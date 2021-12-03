@@ -1,0 +1,211 @@
+-Done
+  **Analytical tools
+	Simulate&plot N sites chain (Evolution/Distribution)	plot_evo(), plot_dist()
+
+  **Graph object tools
+    //create
+	Create& rephase some graph topology			ring()
+								ringNhandle()
+								ringNcut()
+								line()
+	automate chain creation					chain()
+	Generate graph list with codes ( "C4,C6,Ch3,L14")	graph_from_code()
+	Graph from code now understands addition ( "C4+C4", "C7/Ch9")
+
+    //modify
+	rephase re_coords					rephase()
+	join two graph with or without a new link		join_link()
+								join_nolink()
+	Reverse direction of transport				reverse()
+	Generate/retrace Matrix with connectivity or energy trace
+								rertace_conn(),retrace_E()
+    //getters
+	Automated time limits for maximum prob tranfert( it depends on N)
+								max_search_time(gr)
+	breath first graph search				distance()
+	Varoius graph code regex utility			size_from_code()
+								topo_from_code()
+	Data structure generation for plot method		network_from_graph()
+
+	
+    //optimization
+	Optimizer wrapper, relies on the optimum_phase methods	optimize_gr()
+
+	Algorithmic optimum phase finder			optimum_phase(gr)
+	Grid evaluation opt ph finder				optimize_gr_yolo()
+	Lm evolution opt ph finder				optimize_gr_lm()
+	Equal phase opt ph finder				optimize_gr_diag()
+
+  **Graph simulation tools
+	full time serie of derivative				deriv_full()
+	evolution of just target sites				evo_full_target()
+
+
+  **Graph event optimization tools
+	Find stationary points of transfer probability		deriv_roots()
+	yolo min_max find algorithm				deriv_roots_uga_buga()
+	Find transfer probability maximum for arbitrary mat	p_max()
+								t_p_max()
+	Analisis with first max					p_max_first()
+								t_p_max_first()
+
+	Get trans prob for a sample rephase(manual)		performance()
+			 					performance_2()
+	Find phase dependent opt transport event time		t_perfomance()
+	Linear model utilities 					evo_lm_l_(),p_lm()
+								lm_perfomance()
+	brute force maximum check				check_max()
+
+  **Linear models
+	Linear model for lower bound of transport time		***_t_lm()
+	Linear model for asymptotic behavour of ChN opt transport
+								chainNh_p_bigN_lm()
+
+  **Plots
+    //utility
+	graph visualization method				plot.graph()
+	utility method to optimize and plot a gr list		opt_and_plot_list()
+	same for time scaling					opt_and_t_plot_list()
+	utiilty for performance plot				performance_plot()
+	utiilty for progression plot				progression_plot()
+
+    //evo
+	Plot arb mat evolution/distribution			plot_evo_mat(), plot_dist_mat()
+	Plot the time evolution just for target site		plot_evo_mat_target()
+	show how phase affect target site evolution		plot_evo_mat_target_phase()
+	Heatmap-like evolution plot				plot_heat_mat()
+	Surface-like evolution plot				plot_surf_mat()
+	Plot example of prob evolution vs his derivative	evo_vs_deriv()
+	Plot difference in trans prob between CN and ChN	plot_evo_vs_chain(N,phi)
+	Fair comparison btwn CN and ChN, with both in their performance optimum
+								plot_fair_evo_vs_chain()
+
+    //performance
+	Plot phase dependant time to reach transport maximum, general wrapper
+							 	plot_t_performance()
+	Plot phase dependant transport maxima, general wrapper
+							 	plot_t_performance()
+
+
+	Plot performance n dimensional implementation		plot_performance_1()
+								plot_performance_2()
+	Plot t_performance n dimensional implementation
+								plot_t_performance_1()
+								plot_t_performance_2()
+
+	old plot_performance_1 now does the multiple 1D graphs stuff
+								plot_performance_multi_1()
+	Comparison of phase dependence of standard vs lm/FM performance
+								plot_performance_vs_lm()
+								plot_performance_vs_first_max()
+	Compare performance with different trace generation	plot_performance_vs_trace(gr)
+	Equal phases performance				plot_performance_diag()
+    
+    //progression
+	Comparison of  optimized performance with pure CTQW	plot_topo_vs_nophase()
+	Example of performance progression for even N		plot_even_progression()
+	Example of performance with CN and ChN			plot_vs_chain()
+	Example of maximum of opt transport for N in 1:10	plot_N_progression()
+	Plot n progression with just one topology		plot_topo_progression()
+	Plot of how lm/FM methods affect overall performance	plot_topo_vs_lm()
+								plot_topo_vs_first_max()
+	Fair comparison btwn graph with same number of sites	plot_fair_N_progression()
+	Plot maxima of opt transport for target topo with different trace generation
+								plot_N_progression_vs_trace()
+	Attempt to get a transport rateo			plot_N_transport_rateo()
+    //handles
+	handle size analysis					plot_add_handles()
+
+    //couples
+
+	how couple performance vary with both equal size	plot_N_couple_progression()
+
+	2 cycles graph grid combination (t)-performance		plot_topo_grid()
+	const sum 2 cycle couple				plot_isobare_progression()
+
+    //line substitution
+	Performance of increasing sized ring substitution	plot_line_to_chain()
+	Performance of different handle sizes			plot_slide_into_line()
+	Graph generation for line to rings chain		plot_line_to_CHchain()
+
+    //chains
+	chain of unit gr scaling				plot_unit_scaling()
+	same with time scaling					plot_unit_t_scaling()
+
+  **Debug
+
+	debug gradient optimization				debug_opti()
+	
+  **Misc
+	R scripts auto updater					update_source() 
+	Globalutils wnvironment					globalUtils
+	
+	Global constant for max time stack system		getTC()
+								setTC()
+								pushTC(),popTC()
+	Global constant for max time stack system		getFC()
+								setFC()
+								pushFC(),popFC()
+								switchFC()
+
+	Global constant for uniroot tollerance			GLOBAL_UNIROOT_TOL
+	Global constant for multidimensional phase optim tries	GLOBAL_RANDOM_START_COUNT
+
+	zimboras article reproduction				zimboras_gr()
+	get Rc4(1-3) with re_coord set for diagonal maxima	correct_cut_square_unit()
+
+-Changelog
+	--15/9
+	added performance anc t_performance with FM criterion
+	Progression plots now support "dist" "range" and "sites" x plotting
+	new image plot method,with color scale			image.plot()
+	got rid of multiple optimize_gr(), added mode parameter [ "", "yolo", "lm", "diag"] for a single wrapper
+	set as a plot_performance() option [ t_col ] to visualize also time of arrival
+	changed chain(CN) name to ring
+	
+
+-To Add
+	
+	Added stack system for TC and FIRST
+	ring lm according to handle size			handles_t_lm()
+	(to finish) general p/t lm				list_t_lm()
+								list_p-lm()
+	plot handle dependeance lm coeffs			plot_handles_lm_coeff()
+	add handles utility method				add_handles()
+	utility line trend					plot_line_trend()
+	utility plot list of lm					plot_lm_list()
+	found a way to do prettier plot labels
+	utility time of arrival plot				t_progression_plot()
+	unit size influence in chains				plot_unit_size_scaling()
+	fix cycle size lm coeffs				cycle_lm_coeff()
+								plot_cycle_lm_coeff()		
+-New
+
+	Plot the influence of a cun in Rc topology		plot_cut_grid(), plot_t_cut_grid()
+	time of arrival for Rc shorcut family FM vs TC1		plot_ringNc_short_prog()
+	comparison of the 4 possible chain feature scaling	plot_chain_freature_comp()
+	L benchmark chain comparisons				plot_Rc_size_scaling()
+								plot_C_size_scaling
+
+-Notes
+
+nuber of ND optimization start points should scale with ^N but it gets not feasable
+abstraction with free number of re_coord gets messy
+2d optimization is somewhat solid
+
+-Todo	
+	Repair first max time location (cfr. t_perf C5+C5)
+        use expression() for fancy plot labels
+
+	More Matrix generation methods
+	try out optimize for finding maximums (meh)
+	do progression comparison with other methods(sites, min dist, ...)
+	rethink degrees of freedom abstraction
+
+-refactor
+	refactor time limits
+	use range() for plot limits
+	use optimize_gr to find best performance
+
+https://qutip.org/
+
