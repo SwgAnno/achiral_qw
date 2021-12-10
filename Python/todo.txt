@@ -5,11 +5,14 @@
 
 
 -new
+	Ported graph object
+	Added core Schrodinger equation simulator
+	Plotter method for evolution on all sites of the graph
 
 -Todo	
-
-	recreate graph object
+	Graph dependent plottin time limits
 
 -refactor
 
 	organize or discontinue "conn_trace" parameter
+	
