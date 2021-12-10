@@ -12,14 +12,18 @@
 # int start			// start site for evolution
 # int target 		// target site ''
 
-# "constructor" for a N sites|no connection graph
 
-# 0 size graph are defined but usually ill formed
+#2D graph visualization
 
 plot.graph = function(gr,...)
 {
   plot( network_from_graph(gr),...)
 }
+
+
+# "constructor" for a N sites|no connection graph
+
+# 0 size graph are defined but usually ill formed
 
 graph = function(n_N = 4)
 {

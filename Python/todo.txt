@@ -1,0 +1,15 @@
+-Done
+
+
+-to
+
+
+-new
+
+-Todo	
+
+	recreate graph object
+
+-refactor
+
+	organize or discontinue "conn_trace" parameter
