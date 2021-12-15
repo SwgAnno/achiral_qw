@@ -1,5 +1,7 @@
 import numpy as np
 from numpy.linalg import eigh
+import igraph as ig
+from igraph import Graph
 
 #get numpy basis vector
 
@@ -11,14 +13,16 @@ def basis(N,l):
 
 #QW simulation oriented graph class
 
-class Graph(object) :
+class QWGraph(Graph) :
 
-    def __init__(self, N = 4) :
+    def __init__(self, N = 4,edges=None) :
+
+        super().__init__(N, edges)
 
         self.N = N
         self.code = "e"
         
-        self.mat = np.identity(N, dtype = complex)
+        self.init_mat()
 
         #it'd better be not mandatory
         self.update_eigen()
@@ -26,6 +30,10 @@ class Graph(object) :
         self.re_coord = []
         self.start = 0
         self.target = 0
+
+    #initialize adjacency matrix
+    def init_mat(self) :
+        self.mat = np.array ( self.get_adjacency().data, dtype = complex)
 
     #return localized start state for evolution
     def get_start_state(self):
@@ -48,58 +56,52 @@ class Graph(object) :
             self.mat[i][i] = E"""
 
 
+    #ring graph constructor helper
+    def Ring(N, E = 2):
+
+        #it's horrible but it seems to be the only way to inherit from
+        # igraph constructor helpers
+        reference = Graph.Ring(N)
+        out = QWGraph(N, reference.get_edgelist())
+        
+        out.code = "C"+ str(N)
+
+        out.init_mat()
+        out.retrace_E(E)
+        
+        #trace settings
+
+        out.update_eigen()
+
+        out.start = 0
+        out.target = int(N/2)
+        
+        if N!= 1 :
+            out.re_coord.append( (0,N-1))
+
+        return out
 
 
+    #Line graph constructor
 
-#ring graph constructor
+    def Line(N, E = 2):
 
-def Ring(N, E = 2):
-    out = Graph(N)
-    out.code = "C"+ str(N)
+        # See Ring constructor helper
+        reference = Graph.Lattice([N], circular = False)
+        out = QWGraph(N, reference.get_edgelist())
+        
+        code = "L"+ str(N)
 
-    if N==0 :
-        return(out)
+        out.init_mat()
+        out.retrace_E(E)
 
-    out.retrace_E(E)
+        #trace settings
 
-    for i in range(N):
-        out.mat[i][(i+1)%N] = complex(-1)
-        out.mat[(i+1)%N][i] = complex(-1)
+        out.update_eigen()
 
-    #trace settings
+        out.start = 0
+        out.target = N-1
+        
 
-    out.update_eigen()
-
-    out.start = 0
-    out.target = int(N/2)
-    
-    if N!= 1 :
-        out.re_coord.append( (0,N-1))
-
-    return out
-
-#Line graph constructor
-
-def Line(N, E = 2):
-    out = Graph(N)
-    out.code = "L"+ str(N)
-
-    if N==0 :
-        return(out)
-
-    out.retrace_E(E)
-
-    for i in range(N-1):
-        out.mat[i][(i+1)%N] = complex(-1)
-        out.mat[(i+1)%N][i] = complex(-1)
-
-    #trace settings
-
-    out.update_eigen()
-
-    out.start = 0
-    out.target = N-1
-    
-
-    return out
+        return out
 
