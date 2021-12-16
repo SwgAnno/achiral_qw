@@ -7,7 +7,9 @@
 -new
 	Ported graph object
 	Added core Schrodinger equation simulator
+	Derivative Schrodinger computation
 	Plotter method for evolution on all sites of the graph
+	Plotter method for derivative
 
 -Todo	
 	Graph dependent plottin time limits

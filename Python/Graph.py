@@ -4,7 +4,7 @@ from numpy.linalg import eigh
 #get numpy basis vector
 
 def basis(N,l):
-    out = np.zeros(N, dtype = complex)
+    out = np.zeros((N,1), dtype = complex)
     out[l]= 1
 
     return out
@@ -33,6 +33,8 @@ class Graph(object) :
 
     def update_eigen(self):
         self.eig_val, self.eig_vec = eigh(self.mat)
+
+        self.eig_val = np.reshape(self.eig_val, (self.N,1))
         
 
     def retrace_E(self, E):
@@ -46,6 +48,17 @@ class Graph(object) :
             count = 0
             
             self.mat[i][i] = E"""
+
+    def rephase(self, phi = [1j]) :
+        if( len( self.re_coord) != len(phi)):
+            print("rephase() error: wrong number of phases given")
+
+        for i in range(len(phi)) :
+            p = self.re_coord[i]
+            self.mat[p[0]][p[1]] = -1*phi[i]
+            self.mat[p[1]][p[0]] = -1*np.conjugate(phi[i])
+
+        self.update_eigen()
 
 
 

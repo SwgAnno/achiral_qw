@@ -15,17 +15,35 @@ class SESolver(object):
         return self.gr.eig_vec.dot(eigen_A)
 
 
-    #return exponential map in eigenvector basis
+    #return exponential map in eigenvector basis as column vector
     def exp_map(self,t):
         return np.exp(-1j * np.outer( self.gr.eig_val, t) )
 
     #evolve state in the localized basis/ get evolved probability amplitudes
     def evo_l_t(self, l, t):
-        A_t = np.diag(self.decompose_localized(l)).dot(self.exp_map(t))
 
-        return self.recompose(A_t)
+        #carry on calculation in  H eigenvector basis
+        A_t = self.decompose_localized(l) *self.exp_map(t)
+
+        return self.recompose( A_t)
     
     def evo_p_l_t(self, l, t):
         return np.abs(self.evo_l_t(l, t))**2
+
+    def deriv_p_l_t(self, l, t):
+
+        
+        A_t = self.decompose_localized(l)*self.exp_map(t)
+
+        A_t_prime = self.gr.eig_val* A_t
+
+        #get probability derivative as 2Re[(a)(a*)']
+        out = self.recompose(A_t) * np.conjugate(self.recompose(A_t_prime))
+        print(out.shape)
+        return -2* np.imag(out)
+
+
+
+        
         
 
