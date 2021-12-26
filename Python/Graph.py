@@ -15,11 +15,17 @@ def basis(N,l):
 
 class QWGraph(Graph) :
 
-    def __init__(self, N = 4,edges=None) :
+    def __init__(self, *args, **kwargs) :
 
-        super().__init__(N, edges)
+        super().__init__(*args, **kwargs)
 
-        self.N = N
+        #print(args)
+        #print(kwargs)
+
+        #set N as a globally available variable,
+        #due to the __init__ arguments we must let
+        # the super contructor do the work
+        self.N = self.vcount()
         self.code = "e"
         
         self.init_mat()
@@ -31,9 +37,67 @@ class QWGraph(Graph) :
         self.start = 0
         self.target = 0
 
+    #transformed union and disjoint union
+    #to operation which return a connected structure
+        
+    def disjoint_union(self, other) :
+        joint = (self.target, other.start + self.N)
+        out = super().disjoint_union(other)
+
+        out.init_mat()
+        diag_buff = np.append( np.diag(self.mat) , np.diag(other.mat))
+        out.retrace_buff(diag_buff)
+        out.update_eigen()
+
+        out.start = self.start
+        out.target = other.target + self.N
+
+        return out
+
+    def union(self, other, byname='auto') :
+
+        self.name_vs()
+        other.name_vs( self.N-1)
+        other.name_v( other.start, str(self.target))
+
+        out = ig.Graph.union(self,other, byname)
+
+        out.init_mat()
+        diag_buff = np.append( np.diag(self.mat) , np.diag(other.mat))
+        out.retrace_buff(diag_buff)
+        out.update_eigen() 
+
+        out.start = self.start
+        out.target = other.target + self.N -1
+
+        return out
+
+    def name_vs(self, bias = 0) :
+
+        name_l = []
+
+        for i in range(self.N):
+            name_l.append(str(i + bias))
+
+        self.vs["label"] = name_l
+        self.vs["name"] = name_l
+
+    def name_v(self, i, lab = "") :
+        if lab == "":
+            lab = str(i)
+
+        ###todo: fix the mess
+        temp =  self.vs["label"]
+        temp[i] = lab
+
+        self.vs["label"] = temp
+        self.vs["name"] = temp
+
+        print(self.vs["name"][i])
+
     #initialize adjacency matrix
     def init_mat(self) :
-        self.mat = np.array ( self.get_adjacency().data, dtype = complex)
+        self.mat = np.array ( self.get_adjacency().data, dtype = complex)*-1
 
     #return localized start state for evolution
     def get_start_state(self):
@@ -49,6 +113,14 @@ class QWGraph(Graph) :
 
         self.update_eigen()
 
+    #reload values on the main diagonal
+    def retrace_buff(self, buff):
+        for i in range(self.N):
+            self.mat[i][i] = buff[i]
+
+        self.update_eigen()
+
+
     """def retrace_conn(self):
         for i in range(N):
             count = 0
@@ -62,7 +134,7 @@ class QWGraph(Graph) :
         #it's horrible but it seems to be the only way to inherit from
         # igraph constructor helpers
         reference = Graph.Ring(N)
-        out = QWGraph(N, reference.get_edgelist())
+        out = QWGraph( n= N, edges = reference.get_edgelist())
         
         out.code = "C"+ str(N)
 
@@ -88,7 +160,7 @@ class QWGraph(Graph) :
 
         # See Ring constructor helper
         reference = Graph.Lattice([N], circular = False)
-        out = QWGraph(N, reference.get_edgelist())
+        out = QWGraph(n = N, edges = reference.get_edgelist())
         
         code = "L"+ str(N)
 

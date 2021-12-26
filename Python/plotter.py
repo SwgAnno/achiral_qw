@@ -22,3 +22,9 @@ def plot_evo_mat(gr , start = 0, end = 5, by = .1):
 
 
 ################
+
+prova = QWGraph.Ring(4) | QWGraph.Ring(4) | QWGraph.Ring(4)| QWGraph.Ring(4)
+
+plot_evo_mat(prova)
+
+ig.plot(prova)
