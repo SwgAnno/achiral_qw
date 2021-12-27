@@ -22,3 +22,7 @@ def plot_evo_mat(gr , start = 0, end = 5, by = .1):
 
 
 ################
+
+a = QWGraph.Ring(4, True)
+
+plot_evo_mat( a|a)

@@ -9,10 +9,30 @@
 	Added core Schrodinger equation simulator
 	Plotter method for evolution on all sites of the graph
 
+	Graph creation methods :
+	- QWGraph()
+	- Ring() // With handles option
+	- Line()
+
+	Graph modifiers :
+	- retrace_E()		// set trace elements according to a given value
+	- retrace_conn()	// or according to connectivity
+	- compute_re_coord()	// compute tunable edges missing from the spanning tree(igraph generated)
+	
+	
+	igraph interface methods :
+	- from_igraph()	// constructor from igraph instance
+	- to_igraph()	// igraph instance productor
+	- plot()	// colorful plot using the derived igraph instance
+
+	Added core graph editing tools
+	- join_link() // +
+	- join_nolink() // -
+	- chain() // *
+	- add_handles() //
+
 -Todo	
-	Graph dependent plottin time limits
+	Graph dependent plotting time limits
 
 -refactor
-
-	organize or discontinue "conn_trace" parameter
 	
