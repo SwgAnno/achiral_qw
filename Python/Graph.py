@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.linalg import eigh
+import igraph as ig
 
 #get numpy basis vector
 
@@ -11,7 +12,7 @@ def basis(N,l):
 
 #QW simulation oriented graph class
 
-class Graph(object) :
+class QWGraph(object) :
 
     def __init__(self, N = 4) :
 
@@ -43,11 +44,12 @@ class Graph(object) :
 
         self.update_eigen()
 
-    """def retrace_conn(self):
-        for i in range(N):
-            count = 0
-            
-            self.mat[i][i] = E"""
+    def retrace_conn(self):
+        ref = self.to_igraph()
+        
+        for i in range(self.N):
+            self.mat[i][i] = ref.degree(i)
+            print(ref.degree(i))
 
     def rephase(self, phi = [1j]) :
         if( len( self.re_coord) != len(phi)):
@@ -60,59 +62,246 @@ class Graph(object) :
 
         self.update_eigen()
 
+    #ring graph constructor
 
+    def join_link(self, other):
 
+        out_N = self.N + other.N
+        out = QWGraph(out_N)
 
+        out.code = self.code + "+" + other.code
 
-#ring graph constructor
+        #copy old adj mats
+        out.mat[0:self.N, 0:self.N] = self.mat
+        out.mat[self.N:out.N, self.N:out.N] = other.mat
 
-def Ring(N, E = 2):
-    out = Graph(N)
-    out.code = "C"+ str(N)
+        #add new link
 
-    if N==0 :
-        return(out)
+        out.mat[self.target, self.N + other.start] = -1
+        out.mat[self.N + other.start, self.target] = -1
 
-    out.retrace_E(E)
+        out.update_eigen()
+        out.compute_re_coord()
+        out.start = self.start
+        out.target = self.N + other.target
 
-    for i in range(N):
-        out.mat[i][(i+1)%N] = complex(-1)
-        out.mat[(i+1)%N][i] = complex(-1)
+        #todo add r_coord shift
 
-    #trace settings
+        return out
 
-    out.update_eigen()
+    def __add__(self, other) :
+        return QWGraph.join_link(self, other)
 
-    out.start = 0
-    out.target = int(N/2)
-    
-    if N!= 1 :
-        out.re_coord.append( (0,N-1))
+    def join_nolink(self, other):
 
-    return out
+        out_N = self.N + other.N -1
+        out = QWGraph(out_N)
 
-#Line graph constructor
+        out.code = self.code + "|" + other.code
 
-def Line(N, E = 2):
-    out = Graph(N)
-    out.code = "L"+ str(N)
+        #copy first mat
+        out.mat[0:self.N, 0:self.N] = self.mat
 
-    if N==0 :
-        return(out)
+        #copy 2nd mat skipping start site
+        mat2 = np.delete( other.mat, other.start,0 )
+        mat2 = np.delete( mat2, other.start,1 )
+        
+        out.mat[self.N:out.N, self.N:out.N] = mat2
 
-    out.retrace_E(E)
+        #join start site information
+        j_row = np.delete( other.mat, other.start,1)[other.start, :]
+        j_col = np.delete( other.mat, other.start,0)[:, other.start]
 
-    for i in range(N-1):
-        out.mat[i][(i+1)%N] = complex(-1)
-        out.mat[(i+1)%N][i] = complex(-1)
+        out.mat[self.target, self.N:out.N] = j_row
+        out.mat[self.N:out.N, self.target] = j_col
+        
 
-    #trace settings
+        out.update_eigen()
+        out.compute_re_coord()
+        out.start = self.start
+        out.target = self.N + other.target
+        if(other.target > other.start):
+            out.target -= 1
 
-    out.update_eigen()
+        #todo add r_coord shift
 
-    out.start = 0
-    out.target = N-1
-    
+        return out
 
-    return out
+    def __or__(self, other) :
+        return QWGraph.join_nolink(self, other)
+
+    def chain(self, rep, space = 0, HANDLES = True):
+
+        if HANDLES:
+            out = QWGraph.Line(1) + self
+        else:
+            out = QWGraph.Line(0) + self
+
+        for i in range(rep-1):
+            out = out | (QWGraph.Line(space)+self)
+
+        if HANDLES:
+            out = out + QWGraph.Line(1)
+
+        return out
+
+    def __mul__(self, rep) :
+        return self.chain(rep, HANDLES = False)
+
+    def add_handles(self, size, mode = "both", fix =0):
+
+        if mode == "both":
+            dx = size
+            sx = size
+        elif mode == "l":
+            dx = 0
+            sx = size
+        elif mode == "r":
+            dx = size
+            sx = 0
+        elif mode == "fixl":
+            dx = size
+            sx = fix
+        elif mode == "fixr":
+            dx = fix
+            sx = size
+
+        return QWGraph.Line(sx) + self + QWGraph.Line(dx)
+
+    def reverse(self ):
+        self.start, self.target = self.target, self.start
+        
+    def compute_re_coord(self) :
+
+        ref = self.to_igraph()
+        tree = ref.spanning_tree()
+
+        phase = ref-tree
+
+        n_re_coord = []
+        for e in phase.es :
+            n_re_coord.append( e.tuple)
+
+##        names = []
+##        for i in range(self.N):
+##            names.append(str(i))
+##
+##        tree.vs["label"] = names
+##        ref.vs["label"] = names
+##        ig.plot(ref -tree)
+
+        self.re_coord = n_re_coord
+        
+
+    #return QWGraph instance from igraph reference
+    #the adj mat is obviously real
+    def from_igraph( ig, E = 2, ends = None) :
+
+        out = QWGraph( ig.vcount())
+
+        #todo assign name
+        #out.code = ig["name"]
+        
+        out.mat = np.array ( ig.get_adjacency().data, dtype = complex)
+        out.retrace_E(E)
+
+        out.update_eigen()
+        out.compute_re_coord()
+
+        if not ends :
+            out.start = 0
+            out.target = out.N-1
+        else :
+            out.start , out.target = ends
+
+        return out
+
+    #return igraph instance representing the QWGraph
+    #the process does not tranfer phase info
+    def to_igraph(self) :
+
+        ref = np.zeros( (self.N, self.N))
+
+        #format adjacency matix for igraph imput
+        
+        for i in range(self.N) :
+            for m in range(self.N) :
+                if self.mat[i][m] != 0 :
+                    ref[i][m] = 1
+            ref[i][i] = 0
+        
+        out = ig.Graph.Adjacency(ref, mode = "undirected")
+
+        #print(ref)
+        return out
+
+    def plot(self) :
+
+        ref = self.to_igraph()
+
+        names = []
+        for i in range(self.N):
+            names.append(str(i))
+
+        cols = []
+        for e in ref.es:
+            if e.tuple in self.re_coord :
+                cols.append("green")
+            else :
+                cols.append("black")
+
+        ref.vs["label"] = names
+        ref.es["color"] = cols
+        ig.plot( ref )
+
+    def Ring(N, HANDLES = False, E = 2):
+        out = QWGraph(N)
+        out.code = "C"+ str(N)
+
+        if N==0 :
+            return(out)
+
+        out.retrace_E(E)
+
+        for i in range(N):
+            out.mat[i][(i+1)%N] = complex(-1)
+            out.mat[(i+1)%N][i] = complex(-1)
+
+        #trace settings
+
+        out.update_eigen()
+        out.compute_re_coord()
+
+        out.start = 0
+        out.target = int(N/2)
+
+        if HANDLES :
+            return out.add_handles(1)
+
+        return out
+
+    #Line graph constructor
+
+    def Line(N, E = 2):
+        out = QWGraph(N)
+        out.code = "L"+ str(N)
+
+        if N==0 :
+            return(out)
+
+        out.retrace_E(E)
+
+        for i in range(N-1):
+            out.mat[i][(i+1)%N] = complex(-1)
+            out.mat[(i+1)%N][i] = complex(-1)
+
+        #trace settings
+
+        out.update_eigen()
+
+        out.start = 0
+        out.target = N-1
+        
+
+        return out
 

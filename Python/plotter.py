@@ -39,5 +39,6 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = 5, by = .1):
 
 ################
 
+a = QWGraph.Ring(4)
+plot_evo_vs_derivative(a|a+a)
 
-plot_evo_vs_derivative(Ring(5))
