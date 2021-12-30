@@ -10,6 +10,8 @@ def basis(N,l):
 
     return out
 
+
+
 #QW simulation oriented graph class
 
 class QWGraph(object) :
@@ -54,6 +56,7 @@ class QWGraph(object) :
     def rephase(self, phi = [1j]) :
         if( len( self.re_coord) != len(phi)):
             print("rephase() error: wrong number of phases given")
+            return()
 
         for i in range(len(phi)) :
             p = self.re_coord[i]
@@ -191,7 +194,7 @@ class QWGraph(object) :
 ##        ig.plot(ref -tree)
 
         self.re_coord = n_re_coord
-        
+    
 
     #return QWGraph instance from igraph reference
     #the adj mat is obviously real

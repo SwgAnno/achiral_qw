@@ -33,6 +33,17 @@
 	- chain() // *
 	- add_handles() //
 
+	Created Analyzer class to compute evolution information from a graph object
+
+	maxima search:
+	- locate_max()	// Use scipy optimization to find the best evolution maximum
+	- performance()	// sample phase dependent transport performance
+
+	transport proformance analysis:
+	- optimum_phase_yolo // brute force search for best transport-wise phase
+
+	max_search time is now an Analyzer method
+
 -Todo	
 	Graph dependent plotting time limits
 
