@@ -1,16 +1,7 @@
 import numpy as np
 from numpy.linalg import eigh
 import igraph as ig
-
-#get numpy basis vector
-
-def basis(N,l):
-    out = np.zeros((N,1), dtype = complex)
-    out[l]= 1
-
-    return out
-
-
+import qutip as qt
 
 #QW simulation oriented graph class
 
@@ -31,8 +22,8 @@ class QWGraph(object) :
         self.target = 0
 
     #return localized start state for evolution
-    def get_start_state(self):
-        return basis(self.N, self.start)
+    def get_start_state(self, qut = False):
+        return self.basis(self.start, qut)
 
     def update_eigen(self):
         self.eig_val, self.eig_vec = eigh(self.mat)
@@ -307,4 +298,30 @@ class QWGraph(object) :
         
 
         return out
+    #get numpy basis vector
+
+    def basis(self, i, qut = False):
+        if qut:
+            return qt.basis(self.N,i)
+        
+        out = np.zeros((self.N,1), dtype = complex)
+        out[i]= 1
+
+        return out
+
+    #get QuTip projector operator on the Nth site
+    def get_projector(self, i = None):
+        if not i:
+            i = self.target
+            
+        out_mat = np.zeros((self.N,self.N))
+        out_mat[i,i] = 1
+
+        out = qt.Qobj(out_mat)
+
+        return out
+
+    #get the hamiltonian of the system as a QuTip object
+    def get_h(self):
+        return qt.Qobj(self.mat)
 

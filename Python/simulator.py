@@ -1,6 +1,7 @@
 from Graph import *
 import numpy as np
 from scipy import optimize as opt
+import qutip as qt
 
 #helper function to get a discrete sample of modulus 1 complex numbers
 def phase_sample(step = 100):
@@ -9,8 +10,9 @@ def phase_sample(step = 100):
 
 class SESolver(object):
 
-    def __init__(self, gr):
+    def __init__(self, gr, qutip = False):
         self.gr = gr
+        self.qut = qutip
 
     
     # decompose and recompose localized state basis into matrix eigenvectors basis
@@ -26,19 +28,30 @@ class SESolver(object):
         return np.exp(-1j * np.outer( self.gr.eig_val, t) )
 
     #evolve state in the localized basis/ get evolved probability amplitudes
-    def evo_l(self, l, t):
+    def evo_psi(self, psi, t):
 
         #carry on calculation in  H eigenvector basis
-        A_t = self.decompose_localized(l) *self.exp_map(t)
+        A_t = self.decompose_localized(psi) *self.exp_map(t)
 
         return self.recompose( A_t)
     
-    def evo_p_l(self, l, t):
-        return np.abs(self.evo_l(l, t))**2
+    def evo_p_psi(self, psi, t):
+        if self.qut:
+            H = self.gr.get_h()
 
-    def deriv_p_l(self, l, t):
+            E_list = []
+            for i in range(self.gr.N):
+                E_list.append(self.gr.get_projector(i))
+
+            res = qt.sesolve(H, psi, t, E_list)
+
+            return res.expect
+        else:
+            return np.abs(self.evo_psi(psi, t))**2
+
+    def evo_p_psi_prime(self, psi, t):
    
-        A_t = self.decompose_localized(l)*self.exp_map(t)
+        A_t = self.decompose_localized(psi)*self.exp_map(t)
 
         A_t_prime = self.gr.eig_val* A_t
 
@@ -50,10 +63,18 @@ class SESolver(object):
 
     #helper function to do optimization on
     def target_p(self, t):
-        return   self.evo_p_l(self.gr.get_start_state(), t)[self.gr.target,:]
+        if self.qut:
+            psi_0 = self.gr.get_start_state(qut = True)
+            H = self.gr.get_h()
+            E = self.gr.get_projector()
+
+            res = qt.sesolve(H, psi_0, t, [E])
+
+            return res.expect[0]
+        return   self.evo_p_psi(self.gr.get_start_state(), t)[self.gr.target,:]
 
     def target_p_prime(self, t):
-        return self.deriv_p_l(self.gr.get_start_state(), t)[self.gr.target,:]
+        return self.evo_p_psi_prime(self.gr.get_start_state(), t)[self.gr.target,:]
     
     #not very useful getter/setter but it makes the implementation transparent
     def get_gr(self):
@@ -69,8 +90,8 @@ class SESolver(object):
 
 class Analyzer(object):
 
-    def __init__(self, gr, event_s = 2, TC = 1):
-        self.solver = SESolver(gr)
+    def __init__(self, gr, event_s = 2, TC = 1, qutip = False):
+        self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s
         self.TIME_CONSTANT = TC
@@ -126,7 +147,7 @@ class Analyzer(object):
         return out
 
     #brute force search for best phase
-    def optimum_phase_yolo(self, step = 100)
+    def optimum_phase_yolo(self, step = 100):
 
         sample = phase_sample(step)
         perf = self.performance(step)
@@ -156,9 +177,10 @@ class Analyzer(object):
 if __name__ == "__main__" :
     a = QWGraph.Ring(6)
 
-    test = Analyzer(a)
+    test = Analyzer(a, qutip = False)
 
     print(test.locate_max())
+
 
 
         
