@@ -14,6 +14,14 @@ class SESolver(object):
         self.gr = gr
         self.qut = qutip
 
+        if not qutip:
+            self.target_p = self.target_p_old
+            self.target_p_prime = self.target_p_prime_old
+        else:
+            self.target_p = self.target_p_qut
+            #todo implement target_p_prime_qut
+            self.target_p_prime = None
+
     
     # decompose and recompose localized state basis into matrix eigenvectors basis
     def decompose_localized(self, local_A) :
@@ -62,18 +70,19 @@ class SESolver(object):
 
 
     #helper function to do optimization on
-    def target_p(self, t):
-        if self.qut:
-            psi_0 = self.gr.get_start_state(qut = True)
-            H = self.gr.get_h()
-            E = self.gr.get_projector()
-
-            res = qt.sesolve(H, psi_0, t, [E])
-
-            return res.expect[0]
+    def target_p_old(self, t):
         return   self.evo_p_psi(self.gr.get_start_state(), t)[self.gr.target,:]
+    
+    def target_p_qut(self, t):
+        psi_0 = self.gr.get_start_state(qut = True)
+        H = self.gr.get_h()
+        E = self.gr.get_projector()
 
-    def target_p_prime(self, t):
+        res = qt.sesolve(H, psi_0, t, [E])
+
+        return res.expect[0]
+
+    def target_p_prime_old(self, t):
         return self.evo_p_psi_prime(self.gr.get_start_state(), t)[self.gr.target,:]
     
     #not very useful getter/setter but it makes the implementation transparent
@@ -113,8 +122,13 @@ class Analyzer(object):
             end = self.max_search_time()
             def f(t):
                 return -1*self.solver.target_p(t)
-            def f_prime(t):
-                return -1*self.solver.target_p_prime(t)
+
+            #todo update with qut p_prime implementation
+            if self.solver.target_p_prime :
+                def f_prime(t):
+                    return -1*self.solver.target_p_prime(t)
+            else:
+                f_prime = None
 
             b_vec = np.linspace(start,end, (end-start)//self.event_size + 2)
             sol_vec = np.empty( len(b_vec)-1)
@@ -130,8 +144,44 @@ class Analyzer(object):
             
             probs = self.solver.target_p(sol_vec)
             return ( sol_vec[np.argmax(probs)], max(probs))
+        
+        if mode == "first" :
+            start = .01
+            end = self.solver.gr.N/4
+            exp_scale = 1.5
+            evt_sample_scale = .1
+            sign_change_safe = -1e-8
 
-    def performance(self, sample_step = 100):
+            found = False
+            res = 0
+            while not found :
+##                print("looking for first max in "+ str(start) +" - "+ str(end) )
+
+                sample = np.arange(start, end, self.event_size* evt_sample_scale)
+                deriv_evo = self.solver.target_p_prime(sample)
+
+                for i in range(len(sample)-1):
+                    if deriv_evo[i]*deriv_evo[i+1] < sign_change_safe :
+##                        print("Found deriv sign inversion at  " \
+##                              + str(sample[i]) +" - " \
+##                              + str(sample[i+1]) )
+##                        print("   -Derivative values at extrama:  " \
+##                              + str(deriv_evo[i]) +" - " \
+##                              + str(deriv_evo[i+1]) )
+
+                        res = opt.root_scalar( self.solver.target_p_prime, \
+                                               bracket = [sample[i], \
+                                                          sample[i+1]])
+                        found = True
+                        break
+                        #find solution
+                
+                start, end = end, (end + (end-start)*exp_scale)
+
+            return (res.root, self.solver.target_p(res.root)[0])
+                
+
+    def performance(self, sample_step = 100, mode = "TC"):
         
         sample = phase_sample(sample_step)
 
@@ -141,8 +191,21 @@ class Analyzer(object):
 
         out = np.empty(sample_step)
         for i in range(len(sample)):
-            self.solver.rephase_gr( [sample[i]])
-            out[i] = self.locate_max()[1]
+            self.solver.rephase_gr([sample[i]])
+            out[i] = self.locate_max( mode )[1]
+
+        return out
+
+    #equal phases setting transport performance
+    def performance_diag(self, sample_step = 100, mode = "TC"):
+
+        sample = phase_sample(sample_step)
+
+        out = np.empty(sample_step)
+        for i in range(len(sample)):
+            self.solver.rephase_gr( np.repeat( sample[i], \
+                                               self.solver.gr.get_phase_n() ))
+            out[i] = self.locate_max(mode)[1]
 
         return out
 
@@ -179,6 +242,7 @@ if __name__ == "__main__" :
 
     test = Analyzer(a, qutip = False)
 
+    print(test.locate_max(mode = "first"))
     print(test.locate_max())
 
 

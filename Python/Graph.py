@@ -325,3 +325,7 @@ class QWGraph(object) :
     def get_h(self):
         return qt.Qobj(self.mat)
 
+    #get the number of registered free phases
+    def get_phase_n(self):
+        return len(self.re_coord)
+

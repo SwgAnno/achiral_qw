@@ -77,7 +77,7 @@ def plot_evo_vs_qutip(gr, l = 0, start = 0, end = None, by = .1):
     ax.legend(["P", "P qutip"])
     plt.show()
 
-def plot_performance(gr, sample_step = 100):
+def plot_performance(gr, sample_step = 100, diag = False, mode = "TC"):
 
     global TC
     global qut
@@ -85,7 +85,11 @@ def plot_performance(gr, sample_step = 100):
 
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance(sample_step)
+    perf = []
+    if diag:
+        perf = an.performance_diag(sample_step, mode)
+    else:
+        perf = an.performance(sample_step, mode)
 
     fig, ax = plt.subplots()
     
@@ -95,16 +99,23 @@ def plot_performance(gr, sample_step = 100):
     ax.set_ylabel('max P')
 
     plt.show()
-
+    
 ################
 
-a = QWGraph.Ring(7)
-TC = 5
+#a  = QWGraph.chain(QWGraph.Ring(3), 10)
+a = QWGraph.Ring(6)
+TC = 1
+qut = False
+
+test = Analyzer(a, qutip = False)
+
+print(test.locate_max(mode = "first"))
+print(test.locate_max())
 
 
 #plot_evo_vs_derivative(a)
 #plot_evo_vs_qutip(a)
 #plot_evo_mat(a)
-plot_performance(a,100)
+plot_performance(a,100, diag = True, mode = "TC")
 #plot_evo_vs_derivative(a|a+a)
 
