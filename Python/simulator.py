@@ -99,25 +99,26 @@ class SESolver(object):
 
 class Analyzer(object):
 
-    def __init__(self, gr, event_s = 2, TC = 1, qutip = False):
+    def __init__(self, gr, event_s = 2, TC = 1, qutip = False, mode = "TC"):
         self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s
         self.TIME_CONSTANT = TC
+        self.mode = "TC"
 
     #get stationary points in probability evolution on the target stite
     def deriv_roots(self):
         
         pass
 
-    def locate_max(self, mode = "TC"):
+    def locate_max(self):
 
         # minimize works fine for TC near 1 (aka few maxima actually there)
         # Not reliable for higher TC
         # therefore we split the search interval into
         # smaller pieces according to a reference "event size"
         
-        if mode == "TC":      
+        if self.mode == "TC":      
             start = 0
             end = self.max_search_time()
             def f(t):
@@ -145,7 +146,7 @@ class Analyzer(object):
             probs = self.solver.target_p(sol_vec)
             return ( sol_vec[np.argmax(probs)], max(probs))
         
-        if mode == "first" :
+        if self.mode == "first" :
             start = .01
             end = self.solver.gr.N/4
             exp_scale = 1.5
@@ -181,31 +182,41 @@ class Analyzer(object):
             return (res.root, self.solver.target_p(res.root)[0])
                 
 
-    def performance(self, sample_step = 100, mode = "TC"):
+    def performance(self, sample_step = 100):
         
         sample = phase_sample(sample_step)
+         
+        n_sample = [sample] * self.dim()
+        grid = np.meshgrid( *n_sample)
+            
+        out_shape = [sample_step] * self.dim()
+        out = np.empty(sample_step**self.dim())
+        out = np.reshape(out, out_shape)
 
-        #todo: add support for n dimensionss
+        it = np.nditer(out, flags=['multi_index'])
+        for val in it:
 
-        #np.meshgrid
+            i = it.multi_index
+            
+            phi_vec = []
+            for j in range(self.dim()):
+                phi_vec.append(grid[j][i])
 
-        out = np.empty(sample_step)
-        for i in range(len(sample)):
-            self.solver.rephase_gr([sample[i]])
-            out[i] = self.locate_max( mode )[1]
+            self.solver.rephase_gr(phi_vec)
+            out[i] = self.locate_max()[1]
 
         return out
 
     #equal phases setting transport performance
-    def performance_diag(self, sample_step = 100, mode = "TC"):
+    def performance_diag(self, sample_step = 100):
 
         sample = phase_sample(sample_step)
 
         out = np.empty(sample_step)
         for i in range(len(sample)):
             self.solver.rephase_gr( np.repeat( sample[i], \
-                                               self.solver.gr.get_phase_n() ))
-            out[i] = self.locate_max(mode)[1]
+                                               self.dim() ))
+            out[i] = self.locate_max()[1]
 
         return out
 
@@ -234,16 +245,25 @@ class Analyzer(object):
     def set_gr(self, gr):
         self.solver.set_gr(gr)
 
+    #number of free phases in the graph instance
+    def dim(self):
+        return self.get_gr().get_phase_n()
+        
+
         
 #########
 
 if __name__ == "__main__" :
     a = QWGraph.Ring(6)
 
+    a = a+a
+
     test = Analyzer(a, qutip = False)
 
-    print(test.locate_max(mode = "first"))
-    print(test.locate_max())
+##    print(test.locate_max(mode = "first"))
+##    print(test.locate_max())
+
+    print(test.performance(sample_step = 5))
 
 
 
