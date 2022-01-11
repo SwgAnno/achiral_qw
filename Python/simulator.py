@@ -180,9 +180,25 @@ class Analyzer(object):
                 start, end = end, (end + (end-start)*exp_scale)
 
             return (res.root, self.solver.target_p(res.root)[0])
-                
 
-    def performance(self, sample_step = 100):
+    #wrapper for locate_max() with desired phases
+    def performance(self, phi_vec):
+
+        p = np.exp(1j * phi_vec)
+        self.solver.rephase_gr(p)
+
+        return self.locate_max()[1]
+
+    #wrapper for locate_max() with desired 
+    def performance_diag(self, phi):
+
+        p = np.exp(1j * phi)
+        self.solver.rephase_gr( np.repeat( p, self.dim() ))
+
+        return self.locate_max()[1]
+                
+    #get full sampled performance as a ndarray
+    def performance_full(self, sample_step = 100):
         
         sample = phase_sample(sample_step)
          
@@ -208,7 +224,7 @@ class Analyzer(object):
         return out
 
     #equal phases setting transport performance
-    def performance_diag(self, sample_step = 100):
+    def performance_full_diag(self, sample_step = 100):
 
         sample = phase_sample(sample_step)
 
@@ -224,11 +240,57 @@ class Analyzer(object):
     def optimum_phase_yolo(self, step = 100):
 
         sample = phase_sample(step)
-        perf = self.performance(step)
+        perf = self.performance_full(step)
 
         pos_max = np.argmax(perf)
 
         return pos_max/step*2*np.pi
+    
+    #use scipy minimize for optimum phase
+    def optimum_phase_minimize(self, diag = False):
+
+        #minimize the inverse of perf function
+        if diag:
+            def perf(x):
+                return -1*self.performance_diag(x)
+        else:
+            def perf(x):
+                return -1* self.performance(x)
+
+        sol = opt.minimize(perf, \
+                           x0 = np.repeat( 0, self.dim() )    , \
+                           bounds = [(0, 2*np.pi)]* self.dim() )
+
+        return sol.x
+
+    #check for just +-1 +-i
+    def optimum_phase_smart(self):
+
+        sample = phase_sample(step = 5)
+        
+        n_sample = [sample] * self.dim()
+        grid = np.meshgrid( *n_sample)
+
+        best = 0
+        out = np.repeat(0, self.dim())
+
+        it = np.nditer(grid[0], flags=['multi_index'])
+        for val in it:
+
+            i = it.multi_index
+            
+            phi_vec = []
+            for j in range(self.dim()):
+                phi_vec.append(grid[j][i])
+
+            self.solver.rephase_gr(phi_vec)
+            cur = self.locate_max()[1]
+
+            if cur > best:
+                best = cur
+                out = phi_vec
+
+        return np.angle(out)
 
     def max_search_time(self):
         return self.solver.gr.N * self.TIME_CONSTANT
@@ -256,14 +318,16 @@ class Analyzer(object):
 if __name__ == "__main__" :
     a = QWGraph.Ring(6)
 
-    a = a+a
+    c = QWGraph.chain(a,5)
 
-    test = Analyzer(a, qutip = False)
+    test = Analyzer(c, qutip = False)
 
 ##    print(test.locate_max(mode = "first"))
 ##    print(test.locate_max())
 
-    print(test.performance(sample_step = 5))
+##    print(test.performance_full(sample_step = 5))
+
+    print(test.optimum_phase_smart())
 
 
 

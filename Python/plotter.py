@@ -77,13 +77,13 @@ def plot_evo_vs_qutip(gr, l = 0, start = 0, end = None, by = .1):
     ax.legend(["P", "P qutip"])
     plt.show()
 
-def plot_performance(gr, sample_step = 100, diag = False, mode = "TC"):
+def plot_performance(gr, sample_step = 100, mode = None, an_mode = "TC"):
 
     global TC
     global qut
-    an = Analyzer(gr, TC = TC, qutip = qut, mode = mode)
+    an = Analyzer(gr, TC = TC, qutip = qut, mode = an_mode)
 
-    if diag:
+    if mode == "diag":
         plot_performance_diag(sample_step, an)
     elif gr.get_phase_n() == 1 :
         plot_performance_1(sample_step, an)
@@ -97,7 +97,7 @@ def plot_performance_diag(sample_step, an):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
-    perf = an.performance_diag(sample_step)
+    perf = an.performance_full_diag(sample_step)
 
     fig, ax = plt.subplots()
     
@@ -111,7 +111,7 @@ def plot_performance_diag(sample_step, an):
 def plot_performance_1(sample_step, an):
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance(sample_step)
+    perf = an.performance_full(sample_step)
 
     fig, ax = plt.subplots()
     
@@ -125,14 +125,16 @@ def plot_performance_1(sample_step, an):
 def plot_performance_2(sample_step, an):
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance(sample_step)
+    perf = an.performance_full(sample_step)
 
     fig, ax = plt.subplots()
     
-    ax.pcolormesh(seq, seq, perf)
+    c = ax.pcolormesh(seq, seq, perf)
     
     ax.set_xlabel('phi 1')
     ax.set_ylabel('phi 2')
+
+    fig.colorbar(c, ax=ax)
 
     plt.show()
 
@@ -141,8 +143,8 @@ def plot_performance_2(sample_step, an):
 ################
 
 #a  = QWGraph.chain(QWGraph.Ring(3), 10)
-a = QWGraph.Ring(6)
-a = a+a
+a = QWGraph.Parallel(4,5)
+##a = a+a
 TC = 1
 qut = False
 
@@ -157,6 +159,7 @@ print(test.locate_max())
 #plot_evo_vs_derivative(a)
 #plot_evo_vs_qutip(a)
 #plot_evo_mat(a)
-plot_performance(a,100, diag = False, mode = "TC")
+plot_performance(a,100, mode = "diag", an_mode = "TC")
+a.plot()
 #plot_evo_vs_derivative(a|a+a)
 

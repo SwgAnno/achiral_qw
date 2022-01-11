@@ -44,6 +44,20 @@ class QWGraph(object) :
             self.mat[i][i] = ref.degree(i)
             print(ref.degree(i))
 
+    #utiliry method to save trace elements in a buffer
+    #since converting from and to igraph instances
+    #does not presereve that information
+    def buffer_trace(self):
+        out = [ self.mat[i][i] for i in range(self.N)]
+
+        return out
+
+    def retrace(self, T):
+        for i in range(self.N):
+            self.mat[i][i] = T[i]
+
+        self.update_eigen()
+
     def rephase(self, phi = [1j]) :
         if( len( self.re_coord) != len(phi)):
             print("rephase() error: wrong number of phases given")
@@ -164,6 +178,18 @@ class QWGraph(object) :
 
     def reverse(self ):
         self.start, self.target = self.target, self.start
+
+    #add ("cut") the edges specified in the vector as tuples
+    def cut(self, cut_vec):
+        ref = self.to_igraph()
+        ref.add_edges(cut_vec)
+
+        temp = self.buffer_trace()
+
+        out = QWGraph.from_igraph(ref, ends = (self.start, self.target))
+        out.retrace(temp)
+
+        return out
         
     def compute_re_coord(self) :
 
@@ -240,13 +266,18 @@ class QWGraph(object) :
         cols = []
         for e in ref.es:
             if e.tuple in self.re_coord :
-                cols.append("green")
+                cols.append("red")
             else :
                 cols.append("black")
 
+        v_cols = ["yellow"]* self.N
+        v_cols[self.start] = "green"
+        v_cols[self.target] = "red"
+
         ref.vs["label"] = names
+        ref.vs["color"] = v_cols
         ref.es["color"] = cols
-        ig.plot( ref )
+        ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
 
     def Ring(N, HANDLES = False, E = 2):
         out = QWGraph(N)
@@ -298,8 +329,29 @@ class QWGraph(object) :
         
 
         return out
-    #get numpy basis vector
 
+    def Parallel(paths , p_len, E = 2):
+        ref = ig.Graph()
+
+        N = 2 + paths* (p_len-1)
+
+        ref.add_vertices(N)
+
+        for i in range(paths):
+            ref.add_edge(0, i+1)
+            ref.add_edge(N-2-i, N-1)
+
+        for i in range(p_len-2):
+            for m in range(paths):
+                ref.add_edge(1 + paths*i + m,1 + paths*(i+1) + m)
+
+        out = QWGraph.from_igraph(ref)
+        out.retrace_E(E)
+        out.update_eigen
+        
+        return out
+        
+    #get numpy basis vector
     def basis(self, i, qut = False):
         if qut:
             return qt.basis(self.N,i)
@@ -328,4 +380,12 @@ class QWGraph(object) :
     #get the number of registered free phases
     def get_phase_n(self):
         return len(self.re_coord)
+
+
+############################
+
+if __name__ == "__main__":
+    a = QWGraph.Parallel(4,3)
+
+    a.plot()
 
