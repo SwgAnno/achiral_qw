@@ -19,8 +19,7 @@ class SESolver(object):
             self.target_p_prime = self.target_p_prime_old
         else:
             self.target_p = self.target_p_qut
-            #todo implement target_p_prime_qut
-            self.target_p_prime = None
+            self.target_p_prime =  self.target_p_prime_qut
 
     
     # decompose and recompose localized state basis into matrix eigenvectors basis
@@ -74,6 +73,10 @@ class SESolver(object):
         return   self.evo_p_psi(self.gr.get_start_state(), t)[self.gr.target,:]
     
     def target_p_qut(self, t):
+        #qutip has problems with non list input
+        if type(t) == float:
+            t = [t]
+        
         psi_0 = self.gr.get_start_state(qut = True)
         H = self.gr.get_h()
         E = self.gr.get_projector()
@@ -84,6 +87,19 @@ class SESolver(object):
 
     def target_p_prime_old(self, t):
         return self.evo_p_psi_prime(self.gr.get_start_state(), t)[self.gr.target,:]
+
+    def target_p_prime_qut(self, t):
+        #qutip has problems with non list input
+        if type(t) == float:
+            t = [t]
+            
+        psi_0 = self.gr.get_start_state(qut = True)
+        H = self.gr.get_h()
+        E_prime = -1j * qt.commutator( self.gr.get_projector(), H)
+
+        res = qt.sesolve(H, psi_0, t, [E_prime])
+
+        return res.expect[0]
     
     #not very useful getter/setter but it makes the implementation transparent
     def get_gr(self):
@@ -124,12 +140,8 @@ class Analyzer(object):
             def f(t):
                 return -1*self.solver.target_p(t)
 
-            #todo update with qut p_prime implementation
-            if self.solver.target_p_prime :
-                def f_prime(t):
-                    return -1*self.solver.target_p_prime(t)
-            else:
-                f_prime = None
+            def f_prime(t):
+                return -1*self.solver.target_p_prime(t)
 
             b_vec = np.linspace(start,end, (end-start)//self.event_size + 2)
             sol_vec = np.empty( len(b_vec)-1)
@@ -145,13 +157,14 @@ class Analyzer(object):
             
             probs = self.solver.target_p(sol_vec)
             return ( sol_vec[np.argmax(probs)], max(probs))
-        
+
+        #digits are definitely note carefully researched, a check is needed
         if self.mode == "first" :
             start = .01
             end = self.solver.gr.N/4
             exp_scale = 1.5
             evt_sample_scale = .1
-            sign_change_safe = -1e-8
+            sign_change_safe = -1e-7
 
             found = False
             res = 0
@@ -189,7 +202,7 @@ class Analyzer(object):
 
         return self.locate_max()[1]
 
-    #wrapper for locate_max() with desired 
+    #wrapper for locate_max() with desired equal phase
     def performance_diag(self, phi):
 
         p = np.exp(1j * phi)
@@ -237,10 +250,14 @@ class Analyzer(object):
         return out
 
     #brute force search for best phase
-    def optimum_phase_yolo(self, step = 100):
+    def optimum_phase_yolo(self, step = 100, diag = False):
 
         sample = phase_sample(step)
-        perf = self.performance_full(step)
+
+        if diag:
+            perf = self.performance_full_diag(step)
+        else :
+            perf = self.performance_full(step)
 
         pos_max = np.argmax(perf)
 
@@ -253,13 +270,18 @@ class Analyzer(object):
         if diag:
             def perf(x):
                 return -1*self.performance_diag(x)
+
+            sol = opt.minimize(perf, \
+                       x0 = .1   , \
+                       bounds = [(0, 2*np.pi)])
+
         else:
             def perf(x):
                 return -1* self.performance(x)
 
-        sol = opt.minimize(perf, \
-                           x0 = np.repeat( 0, self.dim() )    , \
-                           bounds = [(0, 2*np.pi)]* self.dim() )
+            sol = opt.minimize(perf, \
+                       x0 = np.repeat(.1, self.dim())   , \
+                       bounds = [(0, 2*np.pi)]* self.dim() )
 
         return sol.x
 
@@ -318,12 +340,15 @@ class Analyzer(object):
 if __name__ == "__main__" :
     a = QWGraph.Ring(6)
 
-    c = QWGraph.chain(a,5)
+#    c = QWGraph.chain(a,5)
 
-    test = Analyzer(c, qutip = False)
+    test = Analyzer(a, qutip = True)
 
-##    print(test.locate_max(mode = "first"))
-##    print(test.locate_max())
+    print(test.solver.target_p(.5))
+    test.mode = "first"
+    print(test.locate_max())
+    test.mode = "TC"
+    print(test.locate_max())
 
 ##    print(test.performance_full(sample_step = 5))
 
