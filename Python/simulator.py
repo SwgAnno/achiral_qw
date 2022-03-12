@@ -8,6 +8,8 @@ def phase_sample(step = 100):
     sample = np.linspace(0, np.pi*2, step)
     return np.exp(1j * sample)
 
+
+#general purpose class to handle the time evolution computation of the QW
 class SESolver(object):
 
     def __init__(self, gr, qutip = False):
@@ -41,6 +43,10 @@ class SESolver(object):
         A_t = self.decompose_localized(psi) *self.exp_map(t)
 
         return self.recompose( A_t)
+
+    #evolve the desired state,
+    #get results as sheer probability (p_psi)
+    # or their respective derivatives (p_psi_prime)
     
     def evo_p_psi(self, psi, t):
         if self.qut:
@@ -69,6 +75,10 @@ class SESolver(object):
 
 
     #helper function to do optimization on
+    #get localization probability on target site or its derivative
+    # with the eigenvalue evolution method (p/p_prime_old)
+    # or Qutip solvers (p/p_prime_qut)
+    
     def target_p_old(self, t):
         return   self.evo_p_psi(self.gr.get_start_state(), t)[self.gr.target,:]
     

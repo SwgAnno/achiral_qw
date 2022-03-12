@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 TC = 1
 qut = False
 
+
+#Plot probability evolution on each and every site of the graph
 def plot_evo_mat(gr , start = 0, end = None, by = .1):
 
     if not end:
@@ -27,6 +29,7 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1):
     ax.legend(list(range(0,gr.N)))
     plt.show()
 
+#comparison between target site rpobability and its derivative
 def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1):
 
     if not end:
@@ -51,6 +54,7 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1):
     ax.legend(["P", "dP/dt"])
     plt.show()
 
+#comparison between eigenvalue method and Qutip solver on computed evolution
 def plot_evo_vs_qutip(gr, l = 0, start = 0, end = None, by = .1):
     if not end:
         global TC
@@ -77,6 +81,8 @@ def plot_evo_vs_qutip(gr, l = 0, start = 0, end = None, by = .1):
     ax.legend(["P", "P qutip"])
     plt.show()
 
+# phase-dependent best transport maximua
+# actually a router method for more specific performance-like routines
 def plot_performance(gr, sample_step = 100, mode = None, an_mode = "TC"):
 
     global TC
@@ -92,7 +98,7 @@ def plot_performance(gr, sample_step = 100, mode = None, an_mode = "TC"):
     else :
         print("")
         
-
+# equal-phases setting best transport maxima
 def plot_performance_diag(sample_step, an):
     seq = np.linspace(0, np.pi*2, sample_step)
 
@@ -106,8 +112,9 @@ def plot_performance_diag(sample_step, an):
     ax.set_xlabel('phi')
     ax.set_ylabel('max P')
 
-    plt.show()    
-
+    plt.show()
+    
+# 1-phased graph performance
 def plot_performance_1(sample_step, an):
     seq = np.linspace(0, np.pi*2, sample_step)
 
@@ -121,7 +128,7 @@ def plot_performance_1(sample_step, an):
     ax.set_ylabel('max P')
 
     plt.show()
-
+# 2-phased graph performance
 def plot_performance_2(sample_step, an):
     seq = np.linspace(0, np.pi*2, sample_step)
 
@@ -142,32 +149,5 @@ def plot_performance_2(sample_step, an):
     
 ################
 
-#a  = QWGraph.chain(QWGraph.Ring(3), 10)
-#a = QWGraph.Parallel(3,2)
-#a = QWGraph.chain(a,2)
-##a = a+a
-a = QWGraph.Ring(6)
-TC = 1
-qut = True
 
-plot_performance(a)
-
-plot_evo_vs_derivative(a)
-
-test = Analyzer(a, qutip = True)
-
-test.mode = "first"
-print(test.locate_max())
-test.mode = "TC"
-print(test.locate_max())
-
-
-#plot_evo_vs_derivative(a)
-#plot_evo_vs_qutip(a)
-#plot_evo_mat(a)
-##plot_performance(a,100, mode = "diag", an_mode = "TC")
-##a.plot()
-#plot_evo_vs_derivative(a|a+a)
-
-#print(test.optimum_phase_minimize(diag = True))
 

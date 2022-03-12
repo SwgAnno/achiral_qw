@@ -31,6 +31,7 @@ class QWGraph(object) :
         self.eig_val = np.reshape(self.eig_val, (self.N,1))
         
 
+    #Trace elements manipulation utilities
     def retrace_E(self, E):
         for i in range(self.N):
             self.mat[i][i] = E
@@ -58,6 +59,8 @@ class QWGraph(object) :
 
         self.update_eigen()
 
+
+    #assign a new value to the target rephasing links
     def rephase(self, phi = [1j]) :
         if( len( self.re_coord) != len(phi)):
             print("rephase() error: wrong number of phases given")
@@ -70,8 +73,10 @@ class QWGraph(object) :
 
         self.update_eigen()
 
-    #ring graph constructor
-
+        
+    #concatenate two graph creating the link
+    #between first end site and second start site
+    #(+ operator)
     def join_link(self, other):
 
         out_N = self.N + other.N
@@ -100,6 +105,9 @@ class QWGraph(object) :
     def __add__(self, other) :
         return QWGraph.join_link(self, other)
 
+    
+    #concatenate two graph merging the first end site and the second start site
+    #( | [or] operator)
     def join_nolink(self, other):
 
         out_N = self.N + other.N -1
@@ -138,6 +146,7 @@ class QWGraph(object) :
     def __or__(self, other) :
         return QWGraph.join_nolink(self, other)
 
+    #concatenate multiple graph units into a chain ( * operator)
     def chain(self, rep, space = 0, HANDLES = True):
 
         if HANDLES:
@@ -190,7 +199,9 @@ class QWGraph(object) :
         out.retrace(temp)
 
         return out
-        
+
+    #get automatically a new set of phased links
+    #according to the spanning tree of the graph       
     def compute_re_coord(self) :
 
         ref = self.to_igraph()
@@ -255,6 +266,7 @@ class QWGraph(object) :
         #print(ref)
         return out
 
+    #get a visual rapresentation of the graph (relies on igraph)
     def plot(self) :
 
         ref = self.to_igraph()
@@ -279,6 +291,8 @@ class QWGraph(object) :
         ref.es["color"] = cols
         ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
 
+
+    #Ring graph constructor
     def Ring(N, HANDLES = False, E = 2):
         out = QWGraph(N)
         out.code = "C"+ str(N)
@@ -306,7 +320,6 @@ class QWGraph(object) :
         return out
 
     #Line graph constructor
-
     def Line(N, E = 2):
         out = QWGraph(N)
         out.code = "L"+ str(N)
@@ -330,6 +343,7 @@ class QWGraph(object) :
 
         return out
 
+    #Multi path element graph constructor
     def Parallel(paths , p_len, E = 2):
         ref = ig.Graph()
 
