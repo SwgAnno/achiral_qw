@@ -8,20 +8,32 @@ def phase_sample(step = 100):
     sample = np.linspace(0, np.pi*2, step)
     return np.exp(1j * sample)
 
+#qutip has problems with non list input
+#and with evaulation times not starting with 0
+def format_qutip_time( t):
+
+    if type(t) == float:
+        t = [t]
+
+    if t[0] != 0:
+        if isinstance(t, (np.ndarray, np.generic)):
+            t = np.insert(t,0,0.)
+        else:
+            t.insert(0,0.)
+        
+        return t,True
+    else:
+        return t,False
+
 
 #general purpose class to handle the time evolution computation of the QW
 class SESolver(object):
 
     def __init__(self, gr, qutip = False):
         self.gr = gr
-        self.qut = qutip
+        self.set_qutip(qutip)
 
-        if not qutip:
-            self.target_p = self.target_p_old
-            self.target_p_prime = self.target_p_prime_old
-        else:
-            self.target_p = self.target_p_qut
-            self.target_p_prime =  self.target_p_prime_qut
+
 
     
     # decompose and recompose localized state basis into matrix eigenvectors basis
@@ -84,24 +96,29 @@ class SESolver(object):
     
     def target_p_qut(self, t):
         #qutip has problems with non list input
-        if type(t) == float:
-            t = [t]
+        #and with evaulation times not starting with 0
+        t, strip = format_qutip_time(t)
         
         psi_0 = self.gr.get_start_state(qut = True)
         H = self.gr.get_h()
         E = self.gr.get_projector()
 
+
         res = qt.sesolve(H, psi_0, t, [E])
 
-        return res.expect[0]
+        if strip:
+            return res.expect[0][1:]
+        else:
+            return res.expect[0]
 
     def target_p_prime_old(self, t):
         return self.evo_p_psi_prime(self.gr.get_start_state(), t)[self.gr.target,:]
 
     def target_p_prime_qut(self, t):
+        
         #qutip has problems with non list input
-        if type(t) == float:
-            t = [t]
+        #and with evaulation times not starting with 0
+        t, strip = format_qutip_time(t)
             
         psi_0 = self.gr.get_start_state(qut = True)
         H = self.gr.get_h()
@@ -109,7 +126,10 @@ class SESolver(object):
 
         res = qt.sesolve(H, psi_0, t, [E_prime])
 
-        return res.expect[0]
+        if strip:
+            return res.expect[0][1:]
+        else:
+            return res.expect[0]
     
     #not very useful getter/setter but it makes the implementation transparent
     def get_gr(self):
@@ -117,6 +137,19 @@ class SESolver(object):
 
     def set_gr(self, gr):
         self.gr = gr
+
+    def get_qutip(self):
+        return self.qut
+
+    def set_qutip(self, qutip):
+        self.qut = qutip
+        
+        if not qutip:
+            self.target_p = self.target_p_old
+            self.target_p_prime = self.target_p_prime_old
+        else:
+            self.target_p = self.target_p_qut
+            self.target_p_prime =  self.target_p_prime_qut
 
     def rephase_gr(self, phi_vec):
         self.gr.rephase(phi_vec)
@@ -130,7 +163,7 @@ class Analyzer(object):
 
         self.event_size = event_s
         self.TIME_CONSTANT = TC
-        self.mode = "TC"
+        self.mode = mode
 
     #get stationary points in probability evolution on the target stite
     def deriv_roots(self):
@@ -179,12 +212,15 @@ class Analyzer(object):
             found = False
             res = 0
             while not found :
-##                print("looking for first max in "+ str(start) +" - "+ str(end) )
+                #print("looking for first max in "+ str(start) +" - "+ str(end) )
 
                 sample = np.arange(start, end, self.event_size* evt_sample_scale)
+
+                #print(sample)
                 deriv_evo = self.solver.target_p_prime(sample)
 
                 for i in range(len(sample)-1):
+
                     if deriv_evo[i]*deriv_evo[i+1] < sign_change_safe :
 ##                        print("Found deriv sign inversion at  " \
 ##                              + str(sample[i]) +" - " \
@@ -200,7 +236,7 @@ class Analyzer(object):
                         break
                         #find solution
                 
-                start, end = end, (end + (end-start)*exp_scale)
+                start, end = sample[-1], (end + (end-start)*exp_scale)
 
             return (res.root, self.solver.target_p(res.root)[0])
 
@@ -338,6 +374,13 @@ class Analyzer(object):
 
     def set_gr(self, gr):
         self.solver.set_gr(gr)
+
+    #get qutip status
+    def get_qutip(self):
+        return self.solver.get_qutip()
+
+    def set_qutip(self, qutip):
+        self.solver.set_qutip(qutip)
 
     #number of free phases in the graph instance
     def dim(self):

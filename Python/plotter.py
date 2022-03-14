@@ -1,12 +1,14 @@
 from simulator import *
 import matplotlib.pyplot as plt
 
+#todo: decide on the fate of those global variables
 TC = 1
 qut = False
 
 
 #Plot probability evolution on each and every site of the graph
-def plot_evo_mat(gr , start = 0, end = None, by = .1):
+#todo: discuss show buffering option
+def plot_evo_mat(gr , start = 0, end = None, by = .1, show = True):
 
     if not end:
         global TC
@@ -27,10 +29,15 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1):
     ax.set_ylabel('Expectation values')
     
     ax.legend(list(range(0,gr.N)))
-    plt.show()
+
+    #display finished plot or pass parameter for firther additions
+    if show:
+        plt.show()
+    else :
+        return fig, ax
 
 #comparison between target site rpobability and its derivative
-def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1):
+def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, show = True):
 
     if not end:
         global TC
@@ -52,34 +59,12 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1):
     ax.set_ylabel('P')
 
     ax.legend(["P", "dP/dt"])
-    plt.show()
-
-#comparison between eigenvalue method and Qutip solver on computed evolution
-def plot_evo_vs_qutip(gr, l = 0, start = 0, end = None, by = .1):
-    if not end:
-        global TC
-        end = gr.N * TC
-
-    seq = np.arange(start,end,by)
-
-    solver = SESolver(gr)
-    evo = solver.target_p(seq)
-
-    solver.qut = True
-    evo_q = solver.target_p(seq)
-
-    print( np.abs(evo-evo_q) < .0001)
-
-    fig, ax = plt.subplots()
-
-    ax.plot(seq, evo)
-    ax.plot(seq, evo_q)
     
-    ax.set_xlabel('Time')
-    ax.set_ylabel('P')
-
-    ax.legend(["P", "P qutip"])
-    plt.show()
+    #display finished plot or pass parameter for firther additions
+    if show:
+        plt.show()
+    else :
+        return fig, ax
 
 # phase-dependent best transport maximua
 # actually a router method for more specific performance-like routines
