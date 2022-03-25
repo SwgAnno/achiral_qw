@@ -73,6 +73,7 @@ def check_evo_vs_qutip( test_gr = QWGraph.Ring(6), l = 0, start = 0, end = None,
     ax.legend(["P", "P qutip"])
     plt.show()
 
+#see how qutip (or the old method) works with random poits evaluation
 def check_evo_vs_qutip_scatter( test_gr = QWGraph.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = False):
     if not end:
         global TC
@@ -117,6 +118,7 @@ def check_evo_vs_qutip_scatter( test_gr = QWGraph.Ring(6), l = 0, start = 0, end
     ax.legend(["P", "Scatter evaluation noQ","Scatter evaluation Q","Scat ordered evaluation Q"])
     plt.show()
 
+#single qutip evaluation check
 def check_qutip( test_gr = QWGraph.Ring(6), t_0 = [2], deriv = False):
 
     solver = SESolver(test_gr, qutip = True)
@@ -126,6 +128,25 @@ def check_qutip( test_gr = QWGraph.Ring(6), t_0 = [2], deriv = False):
             print( solver.target_p(t_0))
         else :
             print( solver.target_p_prime(t_0))
+
+#graphic comparison of optimum phase result
+def check_optimum_phase( test_gr = QWGraph.Ring(6), mode = None, qutip = True):
+
+    plot_performance(test_gr, show = False)
+    tester = Analyzer(test_gr, qutip = qutip)
+
+    if mode == "diag":
+        res = tester.optimum_phase_minimize(diag = True)
+    elif mode == "yolo":
+        res = tester.optimum_phase_yolo()
+    elif mode == "smart":
+        res = tester.optimum_phase_smart()
+    else:
+        res = tester.optimum_phase_minimize()
+
+    plt.scatter(res, tester.performance(res))
+
+    plt.show()
 
 #todo: cleanup
 def random():
@@ -162,6 +183,6 @@ def random():
 
 #######################################
 
-a = QWGraph.Ring(7)
-a = a+a
-plot_performance(a, an_mode = "first")
+a = QWGraph.Ring(5)
+#a = a+a
+check_optimum_phase(a, mode = "diag", qutip = False)

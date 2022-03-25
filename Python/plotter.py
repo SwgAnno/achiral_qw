@@ -68,23 +68,23 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, show = Tru
 
 # phase-dependent best transport maximua
 # actually a router method for more specific performance-like routines
-def plot_performance(gr, sample_step = 100, mode = None, an_mode = "TC"):
+def plot_performance(gr, sample_step = 100, mode = None, an_mode = "TC", show = True):
 
     global TC
     global qut
     an = Analyzer(gr, TC = TC, qutip = qut, mode = an_mode)
 
     if mode == "diag":
-        plot_performance_diag(sample_step, an)
+        plot_performance_diag(sample_step, an, show)
     elif gr.get_phase_n() == 1 :
-        plot_performance_1(sample_step, an)
+        plot_performance_1(sample_step, an, show)
     elif gr.get_phase_n() == 2 :
-        plot_performance_2(sample_step, an)
+        plot_performance_2(sample_step, an, show)
     else :
         print("")
         
 # equal-phases setting best transport maxima
-def plot_performance_diag(sample_step, an):
+def plot_performance_diag(sample_step, an, show):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
@@ -97,10 +97,14 @@ def plot_performance_diag(sample_step, an):
     ax.set_xlabel('phi')
     ax.set_ylabel('max P')
 
-    plt.show()
+    #display finished plot or pass parameter for firther additions
+    if show:
+        plt.show()
+    else :
+        return fig, ax
     
 # 1-phased graph performance
-def plot_performance_1(sample_step, an):
+def plot_performance_1(sample_step, an, show):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = an.performance_full(sample_step)
@@ -112,9 +116,14 @@ def plot_performance_1(sample_step, an):
     ax.set_xlabel('phi')
     ax.set_ylabel('max P')
 
-    plt.show()
+    #display finished plot or pass parameter for firther additions
+    if show:
+        plt.show()
+    else :
+        return fig, ax
+    
 # 2-phased graph performance
-def plot_performance_2(sample_step, an):
+def plot_performance_2(sample_step, an, show):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = an.performance_full(sample_step)
@@ -128,9 +137,11 @@ def plot_performance_2(sample_step, an):
 
     fig.colorbar(c, ax=ax)
 
-    plt.show()
-
-    pass
+    #display finished plot or pass parameter for firther additions
+    if show:
+        plt.show()
+    else :
+        return fig, ax
     
 ################
 

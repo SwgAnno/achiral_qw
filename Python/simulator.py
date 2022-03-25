@@ -8,6 +8,44 @@ def phase_sample(step = 100):
     sample = np.linspace(0, np.pi*2, step)
     return np.exp(1j * sample)
 
+#DIY optimization method
+#it divides the sample bounds into n smaller sections
+# according to a given lenght or a set number
+#and there it tries to run scipy.minimize
+
+def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
+
+    if n_sec != None:
+        b_vec = np.linspace(bounds[0], bounds[1], n_sec)
+    elif sec_size != None :
+        b_vec = np.linspace(bounds[0], bounds[1], \
+                            (bounds[1]-bounds[0])//self.event_size + 2)
+    else :
+         b_vec = np.linspace(bounds[0], bounds[1], 10)
+         #1 order of magintude finer
+         
+    sol_vec    = np.empty( len(b_vec)-1)
+    f_sol_vec  = np.empty( len(b_vec)-1)
+    
+    for i in range( len(b_vec)-1):
+        
+        sol = opt.minimize(f, \
+                           x0 = (b_vec[i]+b_vec[i+1])/2, \
+                           bounds = [(b_vec[i],b_vec[i+1])], \
+                           jac = f_prime)
+        
+        sol_vec[i] = sol.x[0]
+        f_sol_vec[i] =  f( sol.x[0])
+
+    out = dict()
+    out["x"] =sol_vec[np.argmin(f_sol_vec)]
+    out["f"] = min(f_sol_vec)
+
+    return out
+
+    
+    
+
 #qutip has problems with non list input
 #and with evaulation times not starting with 0
 def format_qutip_time( t):
@@ -251,6 +289,8 @@ class Analyzer(object):
     #wrapper for locate_max() with desired equal phase
     def performance_diag(self, phi):
 
+        #print(phi)
+
         p = np.exp(1j * phi)
         self.solver.rephase_gr( np.repeat( p, self.dim() ))
 
@@ -317,19 +357,17 @@ class Analyzer(object):
             def perf(x):
                 return -1*self.performance_diag(x)
 
-            sol = opt.minimize(perf, \
-                       x0 = .1   , \
-                       bounds = [(0, 2*np.pi)])
+            sol = section_minimize(perf, bounds = [0, 2*np.pi])
 
         else:
             def perf(x):
                 return -1* self.performance(x)
 
             sol = opt.minimize(perf, \
-                       x0 = np.repeat(.1, self.dim())   , \
+                       x0 = np.repeat(.5, self.dim())   , \
                        bounds = [(0, 2*np.pi)]* self.dim() )
 
-        return sol.x
+        return sol["x"]
 
     #check for just +-1 +-i
     def optimum_phase_smart(self):

@@ -62,9 +62,13 @@ class QWGraph(object) :
 
     #assign a new value to the target rephasing links
     def rephase(self, phi = [1j]) :
-        if( len( self.re_coord) != len(phi)):
-            print("rephase() error: wrong number of phases given")
-            return()
+        
+        if isinstance(phi, (list, np.ndarray)):
+            if( len( self.re_coord) != len(phi)):
+                print("rephase() error: wrong number of phases given")
+                return()
+        else :
+            phi = [phi]
 
         for i in range(len(phi)) :
             p = self.re_coord[i]
