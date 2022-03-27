@@ -84,7 +84,7 @@ def plot_performance(gr, sample_step = 100, mode = None, an_mode = "TC", show = 
         print("")
         
 # equal-phases setting best transport maxima
-def plot_performance_diag(sample_step, an, show):
+def plot_performance_diag(sample_step, an, show ):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []

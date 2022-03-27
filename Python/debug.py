@@ -1,6 +1,7 @@
 from plotter import *
 from simulator import *
 from Graph import *
+from trends import *
 
 
 #global parameters for plotter methods
@@ -130,10 +131,10 @@ def check_qutip( test_gr = QWGraph.Ring(6), t_0 = [2], deriv = False):
             print( solver.target_p_prime(t_0))
 
 #graphic comparison of optimum phase result
-def check_optimum_phase( test_gr = QWGraph.Ring(6), mode = None, qutip = True):
+def check_optimum_phase( test_gr = QWGraph.Ring(6), mode = None, an_mode = "first", qutip = True):
 
-    plot_performance(test_gr, show = False)
-    tester = Analyzer(test_gr, qutip = qutip)
+    plot_performance(test_gr,an_mode = an_mode, show = False)
+    tester = Analyzer(test_gr, mode = an_mode, qutip = qutip)
 
     if mode == "diag":
         res = tester.optimum_phase_minimize(diag = True)
@@ -144,14 +145,14 @@ def check_optimum_phase( test_gr = QWGraph.Ring(6), mode = None, qutip = True):
     else:
         res = tester.optimum_phase_minimize()
 
-    plt.scatter(res, tester.performance(res))
+    plt.scatter(res[0], tester.performance(res[0]))
 
     plt.show()
 
 #todo: cleanup
 def random():
     #a  = QWGraph.chain(QWGraph.Ring(3), 10)
-    #a = QWGraph.Parallel(3,2)
+    #a = QWGraph.Paralle l(3,2)
     #a = QWGraph.chain(a,2)
     ##a = a+a
     a = QWGraph.Ring(6)
@@ -183,6 +184,4 @@ def random():
 
 #######################################
 
-a = QWGraph.Ring(5)
-#a = a+a
-check_optimum_phase(a, mode = "diag", qutip = False)
+size_progression( g_type = "L", bounds = [3,70])

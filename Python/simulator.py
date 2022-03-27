@@ -26,9 +26,10 @@ def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
          
     sol_vec    = np.empty( len(b_vec)-1)
     f_sol_vec  = np.empty( len(b_vec)-1)
-    
+
     for i in range( len(b_vec)-1):
-        
+
+        #print(i, b_vec[i])
         sol = opt.minimize(f, \
                            x0 = (b_vec[i]+b_vec[i+1])/2, \
                            bounds = [(b_vec[i],b_vec[i+1])], \
@@ -347,7 +348,7 @@ class Analyzer(object):
 
         pos_max = np.argmax(perf)
 
-        return pos_max/step*2*np.pi
+        return pos_max/step*2*np.pi, perf[pos_max]
     
     #use scipy minimize for optimum phase
     def optimum_phase_minimize(self, diag = False):
@@ -357,7 +358,7 @@ class Analyzer(object):
             def perf(x):
                 return -1*self.performance_diag(x)
 
-            sol = section_minimize(perf, bounds = [0, 2*np.pi])
+            sol = section_minimize(perf, bounds = [0, 2*np.pi], n_sec = 11+ self.get_gr().N %2)
 
         else:
             def perf(x):
@@ -367,7 +368,7 @@ class Analyzer(object):
                        x0 = np.repeat(.5, self.dim())   , \
                        bounds = [(0, 2*np.pi)]* self.dim() )
 
-        return sol["x"]
+        return sol["x"], -1*perf(sol["x"])
 
     #check for just +-1 +-i
     def optimum_phase_smart(self):
@@ -396,7 +397,7 @@ class Analyzer(object):
                 best = cur
                 out = phi_vec
 
-        return np.angle(out)
+        return np.angle(out), self.performance( np.angle(out))
 
     def max_search_time(self):
         return self.solver.gr.N * self.TIME_CONSTANT
