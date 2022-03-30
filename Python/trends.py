@@ -2,7 +2,7 @@ from plotter import *
 from simulator import *
 from Graph import *
 
-def size_progression(g_type = "C", bounds = [3,12]):
+def size_progression(g_type = "C", bounds = (3,12)):
     
     gr_list = []
     for i in range( bounds[1]- bounds[0] +1):
@@ -14,7 +14,14 @@ def size_progression(g_type = "C", bounds = [3,12]):
             gr_list.append( QWGraph.Line( bounds[0]+ i))
 
     plot_optimized_list(gr_list, x = np.arange( bounds[0], bounds[1]+1), show = True)
-    
+
+def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), HANDLES = True):
+    gr_list = []
+
+    for i in range( bounds[1]- bounds[0] +1):
+        gr_list.append( QWGraph.chain(gr_unit, bounds[0]+ i))
+
+    plot_optimized_list(gr_list, x = np.arange( bounds[0], bounds[1]+1), show = True)
 
 #plot best transport performance for a general collection of graph
 def plot_optimized_list(g_list, x = None, mode = "first", show = False):

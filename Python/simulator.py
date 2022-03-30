@@ -16,24 +16,26 @@ def phase_sample(step = 100):
 def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
 
     if n_sec != None:
-        b_vec = np.linspace(bounds[0], bounds[1], n_sec)
+        b_vec = np.linspace(bounds[0], bounds[1], n_sec+1)
     elif sec_size != None :
         b_vec = np.linspace(bounds[0], bounds[1], \
                             (bounds[1]-bounds[0])//self.event_size + 2)
     else :
-         b_vec = np.linspace(bounds[0], bounds[1], 10)
+         b_vec = np.linspace(bounds[0], bounds[1], 11)
          #1 order of magintude finer
+
+    print(n_sec)
          
     sol_vec    = np.empty( len(b_vec)-1)
     f_sol_vec  = np.empty( len(b_vec)-1)
 
     for i in range( len(b_vec)-1):
 
-        #print(i, b_vec[i])
+        print(i, b_vec[i])
         sol = opt.minimize(f, \
-                           x0 = (b_vec[i]+b_vec[i+1])/2, \
+                           x0 = (b_vec[i+1]+ b_vec[i])/2, \
                            bounds = [(b_vec[i],b_vec[i+1])], \
-                           jac = f_prime)
+                           jac = f_prime, )
         
         sol_vec[i] = sol.x[0]
         f_sol_vec[i] =  f( sol.x[0])
@@ -358,7 +360,9 @@ class Analyzer(object):
             def perf(x):
                 return -1*self.performance_diag(x)
 
-            sol = section_minimize(perf, bounds = [0, 2*np.pi], n_sec = 11+ self.get_gr().N %2)
+            #todo: add a smart way to figure out the number of sections
+
+            sol = section_minimize(perf, bounds = [0, 2*np.pi])
 
         else:
             def perf(x):

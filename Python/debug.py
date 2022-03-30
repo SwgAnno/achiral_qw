@@ -184,4 +184,4 @@ def random():
 
 #######################################
 
-size_progression( g_type = "L", bounds = [3,70])
+chain_progression(QWGraph.Ring(3), bounds = (1,10))
