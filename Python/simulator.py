@@ -24,14 +24,14 @@ def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
          b_vec = np.linspace(bounds[0], bounds[1], 11)
          #1 order of magintude finer
 
-    print(n_sec)
+    #print(n_sec)
          
     sol_vec    = np.empty( len(b_vec)-1)
     f_sol_vec  = np.empty( len(b_vec)-1)
 
     for i in range( len(b_vec)-1):
 
-        print(i, b_vec[i])
+        #print(i, b_vec[i])
         sol = opt.minimize(f, \
                            x0 = (b_vec[i+1]+ b_vec[i])/2, \
                            bounds = [(b_vec[i],b_vec[i+1])], \
@@ -282,22 +282,28 @@ class Analyzer(object):
             return (res.root, self.solver.target_p(res.root)[0])
 
     #wrapper for locate_max() with desired phases
-    def performance(self, phi_vec):
+    def performance(self, phi_vec, t = False):
 
         p = np.exp(1j * phi_vec)
         self.solver.rephase_gr(p)
 
-        return self.locate_max()[1]
+        if not t:
+            return self.locate_max()[1]
+        else :
+            return self.locate_max()[0]
 
     #wrapper for locate_max() with desired equal phase
-    def performance_diag(self, phi):
+    def performance_diag(self, phi, t= False):
 
         #print(phi)
 
         p = np.exp(1j * phi)
         self.solver.rephase_gr( np.repeat( p, self.dim() ))
-
-        return self.locate_max()[1]
+        
+        if not t:
+            return self.locate_max()[1]
+        else :
+            return self.locate_max()[0]
                 
     #get full sampled performance as a ndarray
     def performance_full(self, sample_step = 100):
