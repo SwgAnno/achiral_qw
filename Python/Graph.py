@@ -368,6 +368,19 @@ class QWGraph(object) :
         out.update_eigen
         
         return out
+
+    #link distance between two given nodes
+    def distance(self, start = None, to = None):
+        if not start :
+            start = self.start
+        if not to :
+            to = self.target
+        
+        graph = self.to_igraph()
+
+        path = graph.get_shortest_paths(start,to)
+
+        return len(path[0]) -1
         
     #get numpy basis vector
     def basis(self, i, qut = False):
@@ -398,6 +411,19 @@ class QWGraph(object) :
     #get the number of registered free phases
     def get_phase_n(self):
         return len(self.re_coord)
+
+def get_list_x(gr_list, x_mode = "size"):
+    out = []
+
+    for i in range(len(gr_list)):
+        if x_mode == "size":
+            out.append(gr_list[i].N)
+        elif x_mode == "dist":
+            out.append( gr_list[i].distance())
+        else :
+            out.append(i)
+
+    return out
 
 
 ############################

@@ -184,4 +184,5 @@ def random():
 
 #######################################
 
-time_size_progression_lm("L")
+#chain_progression(QWGraph.Parallel(3,2), target = "p", HANDLES = False, show = True)
+

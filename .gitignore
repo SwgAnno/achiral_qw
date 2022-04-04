@@ -4,3 +4,4 @@
 *.save-failed
 *.RData
 *.Rhistory
+*.ini
