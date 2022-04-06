@@ -12,14 +12,14 @@ def phase_sample(step = 100):
 #it divides the sample bounds into n smaller sections
 # according to a given lenght or a set number
 #and there it tries to run scipy.minimize
-
+# results try to replicate scipy output
 def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
 
     if n_sec != None:
         b_vec = np.linspace(bounds[0], bounds[1], n_sec+1)
     elif sec_size != None :
         b_vec = np.linspace(bounds[0], bounds[1], \
-                            (bounds[1]-bounds[0])//self.event_size + 2)
+                            (bounds[1]-bounds[0])//sec_size + 2)
     else :
          b_vec = np.linspace(bounds[0], bounds[1], 11)
          #1 order of magintude finer
@@ -29,13 +29,17 @@ def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
     sol_vec    = np.empty( len(b_vec)-1)
     f_sol_vec  = np.empty( len(b_vec)-1)
 
+    mini_opts = dict()
+    mini_opts["disp"] = True
+
     for i in range( len(b_vec)-1):
 
-        #print(i, b_vec[i])
+        print(i, b_vec[i])
         sol = opt.minimize(f, \
                            x0 = (b_vec[i+1]+ b_vec[i])/2, \
                            bounds = [(b_vec[i],b_vec[i+1])], \
-                           jac = f_prime, )
+                           jac = f_prime, method="L-BFGS-B", \
+                            options = mini_opts)
         
         sol_vec[i] = sol.x[0]
         f_sol_vec[i] =  f( sol.x[0])
@@ -248,11 +252,11 @@ class Analyzer(object):
             end = self.solver.gr.N/4
             exp_scale = 1.5
             evt_sample_scale = .1
-            sign_change_safe = -1e-7
+            sign_change_safe = -1e-24
+            maxiter = 10
 
-            found = False
-            res = 0
-            while not found :
+            res = None
+            for i in range(maxiter) :
                 #print("looking for first max in "+ str(start) +" - "+ str(end) )
 
                 sample = np.arange(start, end, self.event_size* evt_sample_scale)
@@ -273,13 +277,19 @@ class Analyzer(object):
                         res = opt.root_scalar( self.solver.target_p_prime, \
                                                bracket = [sample[i], \
                                                           sample[i+1]])
-                        found = True
                         break
                         #find solution
-                
-                start, end = sample[-1], (end + (end-start)*exp_scale)
+                if res:
+                    break
+                else :
+                    start, end = sample[-1], (end + (end-start)*exp_scale)
 
-            return (res.root, self.solver.target_p(res.root)[0])
+            if not res:
+                root = end
+            else:
+                root = res.root
+
+            return (root, self.solver.target_p(root)[0])
 
     #wrapper for locate_max() with desired phases
     def performance(self, phi_vec, t = False):

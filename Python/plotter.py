@@ -43,6 +43,8 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, show = Tru
         global TC
         end = gr.N * TC
     global qut
+
+    print(qut)
     
     seq = np.arange(start,end,by)
     
@@ -97,7 +99,7 @@ def plot_performance_diag(sample_step, an, show ):
     ax.set_xlabel('phi')
     ax.set_ylabel('max P')
 
-    #display finished plot or pass parameter for firther additions
+    #display finished plot or pass parameter for further additions
     if show:
         plt.show()
     else :

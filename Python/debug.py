@@ -6,7 +6,7 @@ from trends import *
 
 #global parameters for plotter methods
 TC = 5
-qut = True
+qut = False
 
 #confront locate_max results with actual evolution profile
 def check_locate_max( test_gr = QWGraph.Ring(6), mode = None, qutip = True, TC = 1):
@@ -133,9 +133,14 @@ def check_qutip( test_gr = QWGraph.Ring(6), t_0 = [2], deriv = False):
 #graphic comparison of optimum phase result
 def check_optimum_phase( test_gr = QWGraph.Ring(6), mode = None, an_mode = "first", qutip = True):
 
-    plot_performance(test_gr,an_mode = an_mode, show = False)
+    if mode == "diag":
+        plot_performance(test_gr, mode = mode, an_mode = an_mode, show = False)
+    else :
+        plot_performance(test_gr, an_mode = an_mode, show = False)
+
     tester = Analyzer(test_gr, mode = an_mode, qutip = qutip)
 
+    print("running optimization algorithm")
     if mode == "diag":
         res = tester.optimum_phase_minimize(diag = True)
     elif mode == "yolo":
@@ -184,5 +189,10 @@ def random():
 
 #######################################
 
+
 #chain_progression(QWGraph.Parallel(3,2), target = "p", HANDLES = False, show = True)
 
+a = QWGraph.chain(QWGraph.Parallel(3,2), 2)
+check_optimum_phase(a, mode = "diag", qutip = False)
+
+#todo: debug chain  C4*2 optimum phase
