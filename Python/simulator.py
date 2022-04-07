@@ -30,11 +30,11 @@ def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
     f_sol_vec  = np.empty( len(b_vec)-1)
 
     mini_opts = dict()
-    mini_opts["disp"] = True
+    mini_opts["disp"] = False
 
     for i in range( len(b_vec)-1):
 
-        print(i, b_vec[i])
+        #print(i, b_vec[i])
         sol = opt.minimize(f, \
                            x0 = (b_vec[i+1]+ b_vec[i])/2, \
                            bounds = [(b_vec[i],b_vec[i+1])], \

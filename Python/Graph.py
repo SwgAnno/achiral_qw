@@ -83,6 +83,11 @@ class QWGraph(object) :
     #(+ operator)
     def join_link(self, other):
 
+        if self.N == 0 :
+            return other
+        if other.N == 0 :
+            return self
+
         out_N = self.N + other.N
         out = QWGraph(out_N)
 
@@ -324,7 +329,7 @@ class QWGraph(object) :
         return out
 
     #Line graph constructor
-    def Line(N, E = 2):
+    def Line(N, E = 2, speedup = None):
         out = QWGraph(N)
         out.code = "L"+ str(N)
 
@@ -336,6 +341,11 @@ class QWGraph(object) :
         for i in range(N-1):
             out.mat[i][(i+1)%N] = complex(-1)
             out.mat[(i+1)%N][i] = complex(-1)
+
+            if speedup and i != 0 and i!= N-2 :
+                out.mat[i][(i+1)%N] *= speedup
+                out.mat[(i+1)%N][i] *= speedup
+
 
         #trace settings
 

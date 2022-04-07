@@ -3,7 +3,7 @@ from simulator import *
 from Graph import *
 import scipy.stats as stats
 
-def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", show = False):
+def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, show = False):
     
     gr_list = []
     for i in range( bounds[1]- bounds[0] +1):
@@ -12,20 +12,30 @@ def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist
         elif    g_type == "Ch":
             gr_list.append( QWGraph.Ring( bounds[0]+ i, HANDLES = True) )
         elif    g_type == "L":
-            gr_list.append( QWGraph.Line( bounds[0]+ i))
+            gr_list.append( QWGraph.Line( bounds[0]+ i, speedup = speedup))
 
     out = optimized_progression(gr_list, target = target)
     x = get_list_x(gr_list, x_mode = x_mode)
+
     if show:
-        plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
+        if L_ref:
+            line_data = get_line_data( (min(x), max(x)), target = target, x_mode = x_mode)
+
+            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = False)
+            ax.plot(line_data[0], line_data[1], color = "green")
+
+            plt.show()
+        else :
+            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
     else:
         return out
 
 #simple wrapper for L class references
-def get_line_data(bounds = (3,10), target = "p"):
-    return size_progression("L", bounds, target)
+def get_line_data(bounds = (3,10), target = "p", x_mode = "dist"):
+    return size_progression("L", bounds = bounds, target = target, x_mode = x_mode)
     
-def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p", x_mode = "dist", HANDLES = True, show = False):
+def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p", \
+                        x_mode = "dist", HANDLES = True, L_ref = True, show = False):
     gr_list = []
 
     for i in range( bounds[1]- bounds[0] +1):
@@ -34,7 +44,16 @@ def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p",
     out = optimized_progression(gr_list, target = target)
     x = get_list_x(gr_list, x_mode = x_mode)
     if show:
-        plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
+
+        if L_ref:
+            line_data = get_line_data( (min(x), max(x)), target = target, x_mode = x_mode)
+
+            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = False)
+            ax.plot(line_data[0], line_data[1], color = "green")
+
+            plt.show()
+        else :
+            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
     else:
         return out
     

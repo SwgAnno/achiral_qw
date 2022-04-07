@@ -167,24 +167,6 @@ def random():
 
     plot_evo_vs_derivative(a)
 
-    test = Analyzer(a, qutip = True)
-
-
-    test.mode = "first"
-    print(test.locate_max())
-    test.mode = "TC"
-    print(test.locate_max())
-
-
-    #plot_evo_vs_derivative(a)
-    #plot_evo_vs_qutip(a)
-    #plot_evo_mat(a)
-    ##plot_performance(a,100, mode = "diag", an_mode = "TC")
-    ##a.plot()
-    #plot_evo_vs_derivative(a|a+a)
-
-    #print(test.optimum_phase_minimize(diag = True))
-
 
 
 #######################################
@@ -192,7 +174,12 @@ def random():
 
 #chain_progression(QWGraph.Parallel(3,2), target = "p", HANDLES = False, show = True)
 
-a = QWGraph.chain(QWGraph.Parallel(3,2), 2)
-check_optimum_phase(a, mode = "diag", qutip = False)
+#QWGraph.chain(QWGraph.Ring(4), 4, HANDLES = False).plot()
+a = QWGraph.chain(QWGraph.Ring(4),1, HANDLES = False)
+#print(a.mat)
+#check_locate_max(a)
+#plot_performance(QWGraph.chain(QWGraph.Ring(4),1, HANDLES = False))
+#chain_progression(QWGraph.Ring(3), (1,30), HANDLES = True,show = True)
+size_progression("L", bounds = (4,70) ,speedup = 4 , target = "p", L_ref = True, show = True)
 
 #todo: debug chain  C4*2 optimum phase
