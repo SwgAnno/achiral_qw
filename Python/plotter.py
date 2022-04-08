@@ -1,4 +1,5 @@
 from simulator import *
+from scipy.special import *
 import matplotlib.pyplot as plt
 
 #todo: decide on the fate of those global variables
@@ -8,7 +9,7 @@ qut = False
 
 #Plot probability evolution on each and every site of the graph
 #todo: discuss show buffering option
-def plot_evo_mat(gr , start = 0, end = None, by = .1, show = True):
+def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, show = True):
 
     if not end:
         global TC
@@ -22,8 +23,17 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1, show = True):
 
     print("Grid-wise maximum: ", max(evo[gr.target][:]))
 
+    if not filter :
+        selection = range(gr.N)
+    elif filter == "target" :
+        selection = [gr.target]
+    elif filter == "start" :
+        selection = [gr.start]
+    else :
+        selection = filter
+
     fig, ax = plt.subplots()
-    for i in range(gr.N) :
+    for i in selection :
         ax.plot(seq, evo[i][:])
     ax.set_xlabel('Time')
     ax.set_ylabel('Expectation values')
@@ -35,6 +45,27 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1, show = True):
         plt.show()
     else :
         return fig, ax
+
+#compare line evolution with analytical dynamics with besel functions
+#todo: make it work :(
+def plot_line_vs_bessel(l = 5, end = 30, trace_conn = False):
+
+    gr = QWGraph.Line(l)
+    if trace_conn:
+        gr.retrace_conn()
+
+    fig,ax = plot_evo_mat(gr, end = 30,filter = "target", show = False)
+
+    def f(x):
+        return np.power( np.power(-1j,l)*np.abs( jv(l,2*x) + np.power(-1j,-l)*jv(-l,2*x)), 2)
+
+    x = np.arange(0,30, .1)
+    eval = f(x)
+
+    ax.legend(["Target", "Bessel"])
+    ax.plot(x,eval)
+
+    plt.show()
 
 #comparison between target site rpobability and its derivative
 def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, show = True):

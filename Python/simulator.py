@@ -273,10 +273,12 @@ class Analyzer(object):
 ##                        print("   -Derivative values at extrama:  " \
 ##                              + str(deriv_evo[i]) +" - " \
 ##                              + str(deriv_evo[i+1]) )
-
-                        res = opt.root_scalar( self.solver.target_p_prime, \
-                                               bracket = [sample[i], \
-                                                          sample[i+1]])
+                        if deriv_evo[i]*deriv_evo[i+1] >= 0:
+                            pass
+                        else :
+                            res = opt.root_scalar( self.solver.target_p_prime, \
+                                                    bracket = [sample[i], \
+                                                                sample[i+1]])
                         break
                         #find solution
                 if res:

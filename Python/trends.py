@@ -1,7 +1,40 @@
 from plotter import *
 from simulator import *
 from Graph import *
+from scipy.optimize import minimize_scalar
 import scipy.stats as stats
+
+#progression of first maxima of squared bessel function
+def bessel_progression( bounds = (3,12), target = "p", L_ref = True,show = True):
+
+    def f(x,l):
+        return -4* np.power( np.abs( jv(l,2*x)), 2)
+
+    data = np.empty((2, bounds[1]-bounds[0]+1))
+
+    for i in range(bounds[1]-bounds[0] +1):
+
+        order = bounds[0]+i
+
+        res = minimize_scalar( f, bounds = (order/2, 3/4*order), method="bounded", args = (order) )
+        data[:,i] = [ order, res.x]
+
+    print(data)
+
+    if target == "p":
+        for i in range( data.shape[1]):
+            data[1,i] = -1* f(data[1,i], data[0,i])
+
+    if L_ref:
+        line_data = get_line_data( bounds, target = target, x_mode = "size")
+
+        fig, ax = plot_standard_progression(data, target = target, x_mode = "order", show = False)
+        ax.plot(line_data[0]+1, line_data[1], color = "green")
+
+        plt.show()
+    else:
+        plot_standard_progression(data, target = target, x_mode = "order", show = True)
+
 
 def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, show = False):
     
