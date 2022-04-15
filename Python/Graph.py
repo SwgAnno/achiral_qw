@@ -7,23 +7,25 @@ import qutip as qt
 
 class QWGraph(object) :
 
-    def __init__(self, N = 4) :
+    def __init__(self, N , mat = None) :
 
-        self.N = N
-        self.code = "e"
-        
-        self.mat = np.identity(N, dtype = complex)
+        if mat is None :
+            self.N = N
+            self.code = "e"
+            
+            self.mat = np.identity(N, dtype = complex)
+        else :
+            #mat is assumed to be a square numpy ndarray
+            self.N = mat.shape[0]
+            self.code = "m"
+
+            self.mat = mat
 
         #it'd better be not mandatory
         self.update_eigen()
-        
-        self.re_coord = []
+        self.compute_re_coord()
         self.start = 0
-        self.target = 0
-
-    #return localized start state for evolution
-    def get_start_state(self, qut = False):
-        return self.basis(self.start, qut)
+        self.target = self.N-1
 
     def update_eigen(self):
         self.eig_val, self.eig_vec = eigh(self.mat)
@@ -209,6 +211,57 @@ class QWGraph(object) :
 
         return out
 
+    #get the equivalent graph in the krylov subspace relative to a given start state
+    def krylov_transform( self, start_state = None):
+
+        if start_state == None:
+            start_state = self.get_start_state()
+
+        #use Laczos algorithm to compute the new basis
+        k_basis = []
+        k_E = []
+        k_A = []
+
+        k_basis.append( start_state)
+        k_A.append(0)
+        l = 1
+        for i in range(self.N):
+            v = np.matmul( self.mat, k_basis[i])
+
+            E = np.vdot(k_basis[i], v )
+
+            v_orto = v - E* k_basis[i] - k_A[i]* k_basis[i-1]
+
+            #print( "******************************")
+            #print( v, E* k_basis[i], k_A[i]* k_basis[i-1])
+            A =  np.linalg.norm( v_orto)
+            v_orto = v_orto/ A
+
+            #print(l, E, A)
+            #print(v_orto)
+
+            k_E.append(E)
+
+            if A < 1e-14:
+                break
+            else :
+                k_A.append(A)
+                k_basis.append(v_orto)
+                l += 1
+
+        mat = np.zeros( (l,l), dtype = complex)
+
+        for i in range(l-1):
+            mat[i,i] = k_E[i]
+            mat[i+1, i] = k_A[i+1]
+            mat[i, i+1] = k_A[i+1]
+
+        mat[l-1, l-1] = k_E[-1]
+
+        return QWGraph(N = l, mat = mat)
+
+
+
     #get automatically a new set of phased links
     #according to the spanning tree of the graph       
     def compute_re_coord(self) :
@@ -274,32 +327,6 @@ class QWGraph(object) :
 
         #print(ref)
         return out
-
-    #get a visual rapresentation of the graph (relies on igraph)
-    def plot(self) :
-
-        ref = self.to_igraph()
-
-        names = []
-        for i in range(self.N):
-            names.append(str(i))
-
-        cols = []
-        for e in ref.es:
-            if e.tuple in self.re_coord :
-                cols.append("red")
-            else :
-                cols.append("black")
-
-        v_cols = ["yellow"]* self.N
-        v_cols[self.start] = "green"
-        v_cols[self.target] = "red"
-
-        ref.vs["label"] = names
-        ref.vs["color"] = v_cols
-        ref.es["color"] = cols
-        ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
-
 
     #Ring graph constructor
     def Ring(N, HANDLES = False, E = 2):
@@ -402,6 +429,10 @@ class QWGraph(object) :
 
         return out
 
+    #return localized start state for evolution
+    def get_start_state(self, qut = False):
+        return self.basis(self.start, qut)
+
     #get QuTip projector operator on the Nth site
     def get_projector(self, i = None):
         if not i:
@@ -421,6 +452,32 @@ class QWGraph(object) :
     #get the number of registered free phases
     def get_phase_n(self):
         return len(self.re_coord)
+
+    #get a visual rapresentation of the graph (relies on igraph)
+    def plot(self) :
+
+        ref = self.to_igraph()
+
+        names = []
+        for i in range(self.N):
+            names.append(str(i))
+
+        cols = []
+        for e in ref.es:
+            if e.tuple in self.re_coord :
+                cols.append("red")
+            else :
+                cols.append("black")
+
+        v_cols = ["yellow"]* self.N
+        v_cols[self.start] = "green"
+        v_cols[self.target] = "red"
+
+        ref.vs["label"] = names
+        ref.vs["color"] = v_cols
+        ref.es["color"] = cols
+        ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
+
 
 def get_list_x(gr_list, x_mode = "size"):
     out = []

@@ -171,12 +171,9 @@ def random():
 
 #######################################
 
-
-#chain_progression(QWGraph.Parallel(3,2), target = "p", HANDLES = False, show = True)
-
-#QWGraph.chain(QWGraph.Ring(4), 4, HANDLES = False).plot()
-#size_progression("L", bounds = (4,70) ,speedup = 4 , target = "p", L_ref = True, show = True)
 #plot_line_vs_bessel(l = 4, trace_conn = False)
-bessel_progression(bounds = (2,20), target = "t", L_ref = True)
+#bessel_progression(bounds = (2,20), target = "t", L_ref = True)
 
-#todo: debug chain  C4*2 optimum phase
+a = QWGraph.chain( QWGraph.Ring(4),5)
+b = a.krylov_transform()
+b.plot()
