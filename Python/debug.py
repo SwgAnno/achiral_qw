@@ -174,6 +174,5 @@ def random():
 #plot_line_vs_bessel(l = 4, trace_conn = False)
 #bessel_progression(bounds = (2,20), target = "t", L_ref = True)
 
-a = QWGraph.chain( QWGraph.Ring(4),5)
-b = a.krylov_transform()
-b.plot()
+a = QWGraph.Ring(5)
+a.krylov_basis(mode = "short_re")

@@ -260,7 +260,53 @@ class QWGraph(object) :
 
         return QWGraph(N = l, mat = mat)
 
+    def krylov_basis( self, start_state = None, mode = "x"):
 
+        if start_state == None:
+            start_state = self.get_start_state()
+
+        #use Laczos algorithm to compute the new basis
+        k_basis = []
+        k_E = []
+        k_A = []
+
+        k_basis.append( start_state)
+        k_A.append(0)
+        l = 1
+        for i in range(self.N):
+            v = np.matmul( self.mat, k_basis[i])
+
+            E = np.vdot(k_basis[i], v )
+
+            v_orto = v - E* k_basis[i] - k_A[i]* k_basis[i-1]
+
+            #print( "******************************")
+            #print( v, E* k_basis[i], k_A[i]* k_basis[i-1])
+            A =  np.linalg.norm( v_orto)
+            v_orto = v_orto/ A
+
+            #print(l, E, A)
+            #print(v_orto)
+
+            k_E.append(E)
+
+            if A < 1e-14:
+                break
+            else :
+                k_A.append(A)
+                k_basis.append(v_orto)
+                l += 1
+
+        for i in range(len(k_basis)):
+            vec = " "
+            for elem in k_basis[i] :
+                if mode == "x":
+                    vec = vec + ("[]" if np.abs(elem)< 1e-10 else "[x]") + "\t"
+                elif mode == "short_re":
+                    vec = vec + "{: 0.2f}".format(np.abs(elem[0])) + "\t"
+                else :
+                    vec = vec + str(elem) + "\t"
+            print( i, "|\t", vec)
 
     #get automatically a new set of phased links
     #according to the spanning tree of the graph       
