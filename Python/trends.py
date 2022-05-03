@@ -5,7 +5,7 @@ from scipy.optimize import minimize_scalar
 import scipy.stats as stats
 
 #progression of first maxima of squared bessel function
-def bessel_progression( bounds = (3,12), target = "p", L_ref = True,show = True):
+def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref = True,show = True):
 
     def f(x,l):
         return -4* np.power( np.abs( jv(l,2*x)), 2)
@@ -16,7 +16,7 @@ def bessel_progression( bounds = (3,12), target = "p", L_ref = True,show = True)
 
         order = bounds[0]+i
 
-        res = minimize_scalar( f, bounds = (order/2, 3/4*order), method="bounded", args = (order) )
+        res = minimize_scalar( f, bounds = (order/2, order), method="bounded", args = (order) )
         data[:,i] = [ order, res.x]
 
     print(data)
@@ -25,15 +25,29 @@ def bessel_progression( bounds = (3,12), target = "p", L_ref = True,show = True)
         for i in range( data.shape[1]):
             data[1,i] = -1* f(data[1,i], data[0,i])
 
+    fig, ax = plot_standard_progression(data, target = target, x_mode = "order", show = False)
+
     if L_ref:
         line_data = get_line_data( bounds, target = target, x_mode = "size")
-
-        fig, ax = plot_standard_progression(data, target = target, x_mode = "order", show = False)
         ax.plot(line_data[0]+1, line_data[1], color = "green")
 
-        plt.show()
-    else:
-        plot_standard_progression(data, target = target, x_mode = "order", show = True)
+    if approx_ref:
+
+        def approx(x):
+            k1 = .6748851
+            k2 = .16172
+            k3 = .02918
+            max_trend =  k1*np.power(x, -1/3) * (1 -k2*np.power(x,-2/3) + k3*np.power(x,-4/3))
+            return 4*max_trend*max_trend
+        
+        grid = np.arange(bounds[0], bounds[1], .1)
+        eval = []
+        for t in grid:
+            eval.append( approx(t))
+
+        plt.plot(grid, eval)
+
+    plt.show()
 
 
 def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, show = False):
@@ -62,6 +76,34 @@ def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist
             fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
     else:
         return out
+
+#Compare line behaviour with Abramovich(???) handbook expansion
+def line_progression_vs_bessel_expansion(bounds = (3,10)):
+
+    x = np.arange(bounds[0], bounds[1]+1)
+
+    def approx(x):
+        k1 = .6748851
+        k2 = .16172
+        k3 = .02918
+        max_trend =  k1*np.power(x, -1/3) * (1 -k2*np.power(x,-2/3) + k3*np.power(x,-4/3))
+        return 4* max_trend*max_trend
+
+
+    line_data = get_line_data(  bounds, target = "p", x_mode = "dist")
+
+    fig, ax = plot_standard_progression(line_data, target = "p", x_mode = "dist", show = False)
+    
+    grid = np.arange(bounds[0], bounds[1], .1)
+    eval = []
+    for t in grid:
+        eval.append( approx(t))
+
+    plt.plot(grid, eval)
+
+    plt.show()
+    pass
+
 
 #simple wrapper for L class references
 def get_line_data(bounds = (3,10), target = "p", x_mode = "dist"):

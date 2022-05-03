@@ -1,5 +1,5 @@
 from simulator import *
-from scipy.special import *
+from bessel import *
 import matplotlib.pyplot as plt
 
 #todo: decide on the fate of those global variables
@@ -23,47 +23,109 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, show = True
 
     print("Grid-wise maximum: ", max(evo[gr.target][:]))
 
-    if not filter :
+    if filter == None :
         selection = range(gr.N)
     elif filter == "target" :
         selection = [gr.target]
     elif filter == "start" :
         selection = [gr.start]
     else :
-        selection = filter
+        if type(filter) == int :
+            selection = [filter]
+        else :
+            selection = filter
 
     fig, ax = plt.subplots()
     for i in selection :
-        ax.plot(seq, evo[i][:])
+        ax.plot(seq, evo[i][:], label = str(i))
     ax.set_xlabel('Time')
     ax.set_ylabel('Expectation values')
-    
-    ax.legend(list(range(0,gr.N)))
+
 
     #display finished plot or pass parameter for firther additions
     if show:
+        ax.legend()
         plt.show()
     else :
         return fig, ax
 
-#compare line evolution with analytical dynamics with besel functions
-#todo: make it work :(
-def plot_line_vs_bessel(l = 5, end = 30, trace_conn = False):
+def plot_line_bessel_evolution(l = 5, end = 30):
 
-    gr = QWGraph.Line(l)
+    grid = np.arange(0,end, .1)
+    eval = []
+    for i in range(l):
+        eval.append( [])
+
+    for t in grid:
+        for i in range(l):
+            eval[i].append( line_evo_bessel(l-1,i,t))
+
+    fig, ax = plt.subplots()
+
+    for i in range(l):
+        ax.plot(grid,eval[i], label = str(i))
+
+    ax.legend()
+
+    plt.show()
+
+def plot_ring_bessel_evolution(l = 5, end = 30):
+
+    grid = np.arange(0,end, .1)
+    eval = []
+    for i in range(l):
+        eval.append( [])
+
+    for t in grid:
+        for i in range(l):
+            eval[i].append( ring_evo_bessel(l,i,t))
+
+    fig, ax = plt.subplots()
+
+    for i in range(l):
+        ax.plot(grid,eval[i], label = str(i))
+
+    ax.legend()
+
+    plt.show()
+
+#compare line evolution on target site with analytical dynamics with bessel functions
+#todo: make it work :(
+def plot_line_vs_bessel(n = 5, l= None, end = 30, trace_conn = False):
+
+    if l == None:
+        l = n
+
+    gr = QWGraph.Line(n+1)
     if trace_conn:
         gr.retrace_conn()
 
-    fig,ax = plot_evo_mat(gr, end = 30,filter = "target", show = False)
+    fig,ax = plot_evo_mat(gr, end = end, filter = l, show = False)
 
-    def f(x):
-        return np.power( np.power(-1j,l)*np.abs( jv(l,2*x) + np.power(-1j,-l)*jv(-l,2*x)), 2)
+    grid = np.arange(0,end, .1)
+    eval = []
+    for t in grid:
+        eval.append( line_evo_bessel(n,l,t))
 
-    x = np.arange(0,30, .1)
-    eval = f(x)
+    ax.plot(grid,eval, label = "Bessel")
+    ax.legend()
 
-    ax.legend(["Target", "Bessel"])
-    ax.plot(x,eval)
+    plt.show()
+
+#compare ring evolution on target site with analytical dynamics with bessel functions
+def plot_ring_vs_bessel(l = 5, end = 30):
+
+    gr = QWGraph.Ring(l)
+
+    fig,ax = plot_evo_mat(gr, end = end,filter = "target", show = False)
+
+    grid = np.arange(0,end, .1)
+    eval = []
+    for t in grid:
+        eval.append( ring_evo_bessel(l,None,t)/2)
+
+    ax.plot(grid,eval, label = "Bessel")
+    ax.legend()
 
     plt.show()
 

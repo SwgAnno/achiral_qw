@@ -154,6 +154,28 @@ def check_optimum_phase( test_gr = QWGraph.Ring(6), mode = None, an_mode = "firs
 
     plt.show()
 
+def check_line_bessel_dist(l = 5, end = 10):
+
+    grid = np.arange(0,end, 1)
+    eval = np.zeros( len(grid))
+
+    for t in range(len(grid)):
+        for i in range(l):
+            eval[t] = eval[t] + line_evo_bessel(l-1,i, grid[t])
+
+    print(eval)
+
+def check_ring_bessel_dist(l = 5, end = 10):
+
+    grid = np.arange(0,end, 1)
+    eval = np.zeros( len(grid))
+
+    for t in range(len(grid)):
+        for i in range(l):
+            eval[t] = eval[t] + ring_evo_bessel(l,i, grid[t])
+
+    print(eval)
+
 #todo: cleanup
 def random():
     #a  = QWGraph.chain(QWGraph.Ring(3), 10)
@@ -171,8 +193,10 @@ def random():
 
 #######################################
 
-#plot_line_vs_bessel(l = 4, trace_conn = False)
-#bessel_progression(bounds = (2,20), target = "t", L_ref = True)
+#plot_line_vs_bessel(l = 5, trace_conn = False)
+#bessel_progression(bounds = (2,50), target = "p", L_ref = True)
 
-a = QWGraph.Ring(5)
-a.krylov_basis(mode = "short_re")
+plot_line_bessel_evolution(5,end = 10)
+plot_evo_mat(QWGraph.Ring(8), end = 10)
+check_line_bessel_dist(5)
+
