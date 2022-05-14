@@ -196,7 +196,14 @@ def random():
 #plot_line_vs_bessel(l = 5, trace_conn = False)
 #bessel_progression(bounds = (2,50), target = "p", L_ref = True)
 
-plot_line_bessel_evolution(5,end = 10)
-plot_evo_mat(QWGraph.Ring(8), end = 10)
-check_line_bessel_dist(5)
+#plot_line_bessel_evolution(5,end = 10)
+#plot_evo_mat(QWGraph.Ring(8), end = 10)
+#check_line_bessel_dist(5)
+
+#plot_speedup_performance_multi(bounds = (4,40), target = "t", show = True)
+#plot_evo_line_speedup(9, show = True)
+
+a = QWGraph.Line(8, speedup = np.sqrt(100))
+
+plot_evo_mat(a, end = 30)
 

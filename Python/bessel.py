@@ -38,3 +38,6 @@ def ring_evo_bessel(n, l = None, x = .0):
         l = l+n
 
     return np.power(abs(out), 2)
+
+#simulate first maximum transport performance with besse functions
+#def ring_pefrormance_bessel(l,  )

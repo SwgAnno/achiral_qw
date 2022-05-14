@@ -190,11 +190,11 @@ def optimized_progression( g_list, target = "p", mode = "first", diag = True):
     return x , perf
 
 #plot best transport performance for a general collection of graph
-def plot_standard_progression(prog, target = "p", x_mode = "dist", show = False):
+def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "",show = False):
 
     fig, ax = plt.subplots()
     
-    ax.plot(prog[0], prog[1])
+    ax.plot(prog[0], prog[1], label = label)
 
     if(target == "p"):
         plt.ylim(0,1.1)
@@ -211,3 +211,104 @@ def plot_standard_progression(prog, target = "p", x_mode = "dist", show = False)
     else :
         return fig, ax
     
+def plot_speedup_performance(N, target = "p", show = False) :
+
+    sample = np.linspace(.1,10, 1000)
+    data = np.empty( len(sample))
+
+    cur = QWGraph.Line(N)
+    an = Analyzer(cur, mode = "first")
+
+    for i in range(len(sample)):
+        cur = QWGraph.Line(N, speedup = sample[i])
+        an.set_gr(cur)
+
+        data[i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
+
+    fig, ax = plt.subplots()
+    
+    ax.plot(sample, data, label = "L" + str(N))
+
+    if(target == "p"):
+        plt.ylim(0,1.1)
+            
+        ax.set_xlabel("speedup")
+        ax.set_ylabel('max P')
+    if(target == "t"):
+        ax.set_xlabel("speedup")
+        ax.set_ylabel('t')
+
+    print(max(data), sample[np.argmax(data)])
+
+    #display finished plot or pass parameter for further additions
+    if show:
+        plt.show()
+        ax.legend()
+    else :
+        return fig, ax
+
+def plot_evo_line_speedup(N, bounds = (0,50), step = .5, show = False):
+    
+    gr = QWGraph.Line(N)
+    sample = np.linspace(.1,10, 1000)
+    t_sample = np.arange(bounds[0], bounds[1], step)
+    data = np.empty( ( len(sample), len(t_sample)))
+
+    an = Analyzer(gr, mode = "first")
+
+    for m in range( len(sample)):
+        cur = QWGraph.Line(N, speedup = sample[m])
+        an.set_gr(cur)
+
+        data[m,:] = an.evo_full(bounds = bounds, step = step)
+
+    fig, ax = plt.subplots()
+    
+    c = ax.pcolormesh(t_sample, sample, data, label = "LN")
+    
+    ax.set_xlabel('t')
+    ax.set_ylabel('speedup')
+
+    fig.colorbar(c, ax=ax)
+
+    #display finished plot or pass parameter for further additions
+    if show:
+        plt.show()
+        ax.legend()
+    else :
+        return fig, ax
+
+
+def plot_speedup_performance_multi(bounds = (4,20), target = "p", show = False) :
+
+    sample = np.linspace(.1,10, 1000)
+    y_sample = np.arange(bounds[0],bounds[1]+1)
+    data = np.empty( ( len(y_sample), len(sample)))
+
+    cur = QWGraph.Line(4)
+    an = Analyzer(cur, mode = "first")
+
+    for m in range( len(y_sample)):
+        for i in range(len(sample)):
+            cur = QWGraph.Line(y_sample[m], speedup = sample[i])
+            an.set_gr(cur)
+
+            data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
+
+    fig, ax = plt.subplots()
+    
+    c = ax.pcolormesh(sample, y_sample, data, label = "LN")
+
+    ax.vlines(np.sqrt(2), bounds[0], bounds[1])
+    
+    ax.set_xlabel('speedup')
+    ax.set_ylabel('N')
+
+    fig.colorbar(c, ax=ax)
+
+    #display finished plot or pass parameter for further additions
+    if show:
+        plt.show()
+        ax.legend()
+    else :
+        return fig, ax

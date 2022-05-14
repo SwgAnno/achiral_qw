@@ -210,6 +210,21 @@ class Analyzer(object):
         self.TIME_CONSTANT = TC
         self.mode = mode
 
+    #get evolution on target site
+    def evo_full(self, phi_vec = None, bounds =(0,10), step = .1):
+
+        if phi_vec == None:
+            phi_vec = np.repeat(0,self.dim())
+
+        p = np.exp(1j * phi_vec)
+        self.solver.rephase_gr(p)
+
+        sample =np.arange(bounds[0], bounds[1], step)
+
+        return self.solver.target_p(sample)
+
+
+
     #get stationary points in probability evolution on the target stite
     def deriv_roots(self):
         
@@ -248,7 +263,7 @@ class Analyzer(object):
 
         #digits are definitely note carefully researched, a check is needed
         if self.mode == "first" :
-            start = .01
+            start = .001
             end = self.solver.gr.N/4
             exp_scale = 1.5
             evt_sample_scale = .1
@@ -294,7 +309,10 @@ class Analyzer(object):
             return (root, self.solver.target_p(root)[0])
 
     #wrapper for locate_max() with desired phases
-    def performance(self, phi_vec, t = False):
+    def performance(self, phi_vec = None, t = False):
+
+        if phi_vec == None:
+            phi_vec = (np.repeat(0),self.dim())
 
         p = np.exp(1j * phi_vec)
         self.solver.rephase_gr(p)
