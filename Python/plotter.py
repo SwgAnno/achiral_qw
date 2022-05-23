@@ -49,6 +49,54 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, show = True
     else :
         return fig, ax
 
+#display evolution on a 2D heatmap
+def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, show = True):
+    
+    if not end:
+        global TC
+        end = gr.N * TC
+    global qut
+
+    seq = np.arange(start,end,by)
+    
+    solver = SESolver(gr, qutip = qut)
+    evo = solver.evo_p_psi( gr.get_start_state(qut), seq)
+
+    print("Grid-wise maximum: ", max(evo[gr.target][:]))
+
+    if filter == None :
+        selection = np.arange(0, gr.N)
+    elif filter == "target" :
+        selection = [gr.target]
+    elif filter == "start" :
+        selection = [gr.start]
+    else :
+        if type(filter) == int :
+            selection = [filter]
+        else :
+            selection = filter
+
+    fig, ax = plt.subplots()
+
+    c = ax.pcolormesh(seq, selection, evo, label = gr.code)
+    
+    ax.set_xlabel('speedup')
+    ax.set_ylabel('N')
+
+    fig.colorbar(c, ax=ax)
+
+    ax.set_xlabel('t')
+    ax.set_ylabel('site')
+
+
+    #display finished plot or pass parameter for firther additions
+    if show:
+        ax.legend()
+        plt.show()
+    else :
+        return fig, ax
+    pass
+
 def plot_line_bessel_evolution(l = 5, end = 30):
 
     grid = np.arange(0,end, .1)

@@ -2,6 +2,7 @@ import numpy as np
 from numpy.linalg import eigh
 import igraph as ig
 import qutip as qt
+import matplotlib.pyplot as plt
 
 #QW simulation oriented graph class
 
@@ -296,6 +297,53 @@ class QWGraph(object) :
                 k_A.append(A)
                 k_basis.append(v_orto)
                 l += 1
+
+        if mode == "e" :
+            for e in k_E:
+                print( e, "\t")
+            return k_E
+
+        if mode == "link" :
+            for a in k_A:
+                print( a, "\t")
+            return k_A
+
+        if mode == "basis_plot":
+            data = np.empty( (len(k_basis),self.N))
+
+            for i in range(len(k_basis)):
+                data[i,:] = np.abs(k_basis[i][:,0])
+
+            fig, ax = plt.subplots()
+            x = np.arange(0,self.N)
+            y = np.arange(0,len(k_basis))
+            
+            c = ax.pcolormesh(x, y, data, label = self.code)
+            
+            ax.set_xlabel('site')
+            ax.set_ylabel('k_n')
+
+            fig.colorbar(c, ax=ax)
+
+            ax.legend()
+            plt.show()
+
+            return
+        
+        if mode == "link_plot":
+            
+            fig, ax = plt.subplots()
+            x = np.arange(0,len(k_basis))
+            
+            ax.scatter(x, k_A, label = "couplings")
+            
+            ax.set_xlabel('i')
+            ax.set_ylabel('a')
+
+            ax.legend()
+            plt.show()
+
+            return
 
         for i in range(len(k_basis)):
             vec = " "

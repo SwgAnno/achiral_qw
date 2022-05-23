@@ -299,7 +299,7 @@ def plot_speedup_performance_multi(bounds = (4,20), target = "p", show = False) 
     
     c = ax.pcolormesh(sample, y_sample, data, label = "LN")
 
-    ax.vlines(np.sqrt(2), bounds[0], bounds[1])
+    ax.vlines(np.sqrt(2), bounds[0], bounds[1], color = "red")
     
     ax.set_xlabel('speedup')
     ax.set_ylabel('N')
