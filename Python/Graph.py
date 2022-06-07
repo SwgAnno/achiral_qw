@@ -261,6 +261,42 @@ class QWGraph(object) :
 
         return QWGraph(N = l, mat = mat)
 
+    def eigen_basis( self, mode = "basis_plot"):
+
+        if mode == "val":
+            for j in range(len(self.eig_val)) :
+                print(j, ") \t", self.eig_val[j])
+
+        elif mode == "vec":
+            for j in range(len(self.eig_vec)) :
+                print(j, ") \t", self.eig_vec[j])
+
+        elif mode == "plot_vec":
+
+            x_range = np.arange(0,self.N)
+            y_range = np.arange(0,len(self.eig_vec))
+
+            modulus = np.empty( ( self.N, len(self.eig_vec)) )
+            phase = np.empty( ( self.N, len(self.eig_vec)) )
+
+            for j in range(len(self.eig_val)) :
+                modulus[:,j] = np.abs( self.eig_vec[j])
+                phase[:,j] = np.angle( self.eig_vec[j])
+
+            fig, ax = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True)
+
+            c1 = ax[0].pcolormesh(x_range, y_range, modulus, label = "mod")
+            c2 = ax[1].pcolormesh(x_range, y_range, phase, label = "phase")
+
+            fig.colorbar(c1, ax = ax[0])
+            fig.colorbar(c2, ax = ax[1])
+            
+            for stuff in ax :    
+                stuff.set_xlabel('site')
+                stuff.set_ylabel('eig_n')
+
+            plt.show()
+
     def krylov_basis( self, start_state = None, mode = "x"):
 
         if start_state == None:
@@ -291,7 +327,7 @@ class QWGraph(object) :
 
             k_E.append(E)
 
-            if A < 1e-14:
+            if A < 1e-8:
                 break
             else :
                 k_A.append(A)

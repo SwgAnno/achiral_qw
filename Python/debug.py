@@ -1,8 +1,7 @@
+from Graph import *
 from plotter import *
 from simulator import *
-from Graph import *
 from trends import *
-
 
 #global parameters for plotter methods
 TC = 5
@@ -201,16 +200,10 @@ def random():
 #check_line_bessel_dist(5)
 
 #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
-#plot_evo_line_speedup(8, show = True)
+#plot_evo_line_speedup(7, show = True)
 
-#a = QWGraph.Line(9, speedup = np.sqrt(2))
-a = QWGraph.Ring(3)
-a.rephase(np.exp(-1.57j))
-a = QWGraph.chain(a, 30)
-
-a.krylov_basis( mode = "link_plot")
-b = a.krylov_transform()
-
-
-plot_evo_mat_heatmap(a)
-
+a = QWGraph.Line(8, E = 0, speedup = 200)
+a.eigen_basis("val")
+a.eigen_basis("plot_vec")
+plot_evo_mat(a)
+print(a.mat)
