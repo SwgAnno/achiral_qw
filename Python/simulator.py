@@ -216,8 +216,9 @@ class Analyzer(object):
         if phi_vec == None:
             phi_vec = np.repeat(0,self.dim())
 
-        p = np.exp(1j * phi_vec)
-        self.solver.rephase_gr(p)
+        else :
+            p = np.exp(1j * phi_vec)
+            self.solver.rephase_gr(p)
 
         sample =np.arange(bounds[0], bounds[1], step)
 

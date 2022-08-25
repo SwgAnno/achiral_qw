@@ -278,6 +278,39 @@ def plot_evo_line_speedup(N, bounds = (0,50), step = .5, show = False):
     else :
         return fig, ax
 
+def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 10), su_sample = 1000, show = False):
+    
+    if bounds == None :
+        bounds = (0, 50)
+    sample = np.linspace(su_bounds[0], su_bounds[1], su_sample)
+    t_sample = np.arange(bounds[0], bounds[1], step)
+    data = np.empty( ( len(sample), len(t_sample)))
+
+    an = Analyzer(QWGraph.chain(gr, rep), mode = "first")
+
+    for m in range( len(sample)):
+
+        print (m, "of", len(sample))
+        cur = QWGraph.chain(gr, rep, speedup = sample[m])
+        an.set_gr(cur)
+        
+        data[m,:] = an.evo_full(bounds = bounds, step = step)
+
+    fig, ax = plt.subplots()
+    
+    c = ax.pcolormesh(t_sample, sample, data, label = "LN")
+    
+    ax.set_xlabel('t')
+    ax.set_ylabel('speedup')
+
+    fig.colorbar(c, ax=ax)
+
+    #display finished plot or pass parameter for further additions
+    if show:
+        plt.show()
+        ax.legend()
+    else :
+        return fig, ax
 
 def plot_speedup_performance_multi(bounds = (4,20), target = "p", show = False) :
 

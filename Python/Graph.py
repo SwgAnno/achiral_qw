@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class QWGraph(object) :
 
-    def __init__(self, N , mat = None) :
+    def __init__(self, N , mat = None, endpoints = None) :
 
         if mat is None :
             self.N = N
@@ -26,7 +26,11 @@ class QWGraph(object) :
         self.update_eigen()
         self.compute_re_coord()
         self.start = 0
-        self.target = self.N-1
+        if not endpoints == None :
+            self.start = endpoints[0]
+            self.target = endpoints[1]
+        else :
+            self.target = self.N-1
 
     def update_eigen(self):
         self.eig_val, self.eig_vec = eigh(self.mat)
@@ -64,6 +68,7 @@ class QWGraph(object) :
 
 
     #assign a new value to the target rephasing links
+    #todo: check way to keep modulus constant
     def rephase(self, phi = [1j]) :
         
         if isinstance(phi, (list, np.ndarray)):
@@ -75,8 +80,8 @@ class QWGraph(object) :
 
         for i in range(len(phi)) :
             p = self.re_coord[i]
-            self.mat[p[0]][p[1]] = -1*phi[i]
-            self.mat[p[1]][p[0]] = -1*np.conjugate(phi[i])
+            self.mat[p[0]][p[1]] = -1*phi[i]* np.abs(self.mat[p[0]][p[1]])
+            self.mat[p[1]][p[0]] = np.conjugate(self.mat[p[0]][p[1]])
 
         self.update_eigen()
 
@@ -159,19 +164,29 @@ class QWGraph(object) :
         return QWGraph.join_nolink(self, other)
 
     #concatenate multiple graph units into a chain ( * operator)
-    def chain(self, rep, space = 0, HANDLES = True):
+    # speedup affects the couplings before adding the handles
+
+    #todo: fix the fact that intra unit space does not get speedup
+    def chain(self, rep, space = 0, speedup = 1, HANDLES = True):
+
+        #create self copy with speedup
+        su_mat = self.mat * speedup
+        dummy = QWGraph(4,mat = su_mat, endpoints = (self.start,self.target))
+        temp = self.buffer_trace()
+        dummy.retrace(temp)
 
         if HANDLES:
-            out = QWGraph.Line(1) + self
+            out = QWGraph.Line(1) + dummy
         else:
-            out = QWGraph.Line(0) + self
+            out = QWGraph.Line(0) + dummy
 
         for i in range(rep-1):
-            out = out | (QWGraph.Line(space)+self)
+            out = out | ( QWGraph.Line(space) +dummy )
 
         if HANDLES:
             out = out + QWGraph.Line(1)
 
+        #out.plot()
         return out
 
     def __mul__(self, rep) :
@@ -202,6 +217,10 @@ class QWGraph(object) :
 
     #add ("cut") the edges specified in the vector as tuples
     def cut(self, cut_vec):
+
+        if type(cut_vec) is  tuple:
+            cut_vec = [cut_vec]
+
         ref = self.to_igraph()
         ref.add_edges(cut_vec)
 
@@ -211,6 +230,12 @@ class QWGraph(object) :
         out.retrace(temp)
 
         return out
+
+    def speedup(self, su):
+        temp = self.buffer_trace()
+
+        self.mat = self.mat * su
+        self.retrace(temp)
 
     #get the equivalent graph in the krylov subspace relative to a given start state
     def krylov_transform( self, start_state = None):
@@ -535,6 +560,15 @@ class QWGraph(object) :
         out.update_eigen
         
         return out
+
+    def SquareCut(E = 2):
+        out = QWGraph.Ring(4, E = E)
+
+        out = out.cut( (0,2))
+        out.re_coord = [(1,2),(3,2)]
+
+        return out
+
 
     #link distance between two given nodes
     def distance(self, start = None, to = None):

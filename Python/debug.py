@@ -200,10 +200,21 @@ def random():
 #check_line_bessel_dist(5)
 
 #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
-#plot_evo_line_speedup(7, show = True)
 
-a = QWGraph.Line(8, E = 0, speedup = 200)
-a.eigen_basis("val")
-a.eigen_basis("plot_vec")
-plot_evo_mat(a)
-print(a.mat)
+a = QWGraph.Ring(3)
+a.rephase(-1j)
+b = QWGraph.SquareCut()
+b.rephase([0,0])
+
+#plot_evo_chain_speedup(a, 10, bounds = (0,100), step = .2,su_sample = 300, show = True)
+
+b = QWGraph.chain(b,10, speedup = 1)
+
+b.krylov_basis(mode = "basis_plot")
+b.krylov_basis(mode = "link_plot")
+plot_evo_mat_heatmap(b)
+
+
+#a.krylov_basis(mode = "basis_plot")
+#a.krylov_basis(mode = "link_plot")
+
