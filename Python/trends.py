@@ -131,7 +131,21 @@ def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p",
             fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
     else:
         return out
+
+def time_progression_lm( gr_list, x_mode = "dist"):
     
+    data = optimized_progression(gr_list, target = "t")
+
+    #print(data)
+    x = get_list_x(gr_list, x_mode = x_mode)
+    out = stats.linregress(x,data[1])
+
+    print("m: ", out.slope, " +- ", out.stderr)
+    print("q: ", out.intercept, " +- ", out.intercept_stderr)
+    print("r: ", out.rvalue)
+
+    return out.slope, out.intercept
+
 def time_size_progression_lm(g_type = "C", x_mode = "dist"):
     
     gr_list = []
@@ -148,6 +162,8 @@ def time_size_progression_lm(g_type = "C", x_mode = "dist"):
     print("m: ", out.slope, " +- ", out.stderr)
     print("q: ", out.intercept, " +- ", out.intercept_stderr)
     print("r: ", out.rvalue)
+
+    return out.slope, out.intercept
 
 def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLES = True):
     
@@ -166,14 +182,16 @@ def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLE
     print("q: ", out.intercept, " +- ", out.intercept_stderr)
     print("r: ", out.rvalue)
 
+    return out.slope, out.intercept
+
     
 
-def optimized_progression( g_list, target = "p", mode = "first", diag = True):
+def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag = True):
     perf = np.empty( len(g_list))
     for i in range(len(g_list)):
         
         print( g_list[i].code)
-        tester = Analyzer(g_list[i], mode = mode, qutip = False)
+        tester = Analyzer(g_list[i], mode = mode, TC = TC, qutip = False)
         best_phi = tester.optimum_phase_minimize(diag = diag)[0]
 
         target_t = (target != "p")
@@ -183,16 +201,17 @@ def optimized_progression( g_list, target = "p", mode = "first", diag = True):
         else:
             perf[i] = tester.performance(best_phi, t = target_t)
             
-        print( i, perf[i])
+        #print( i, perf[i])
 
     x = np.arange(1, len(g_list)+1)
 
     return x , perf
 
 #plot best transport performance for a general collection of graph
-def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "",show = False):
+def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "",show = False, fig = None, ax = None):
 
-    fig, ax = plt.subplots()
+    if fig == None:
+        fig, ax = plt.subplots()
     
     ax.plot(prog[0], prog[1], label = label)
 

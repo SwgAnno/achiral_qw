@@ -2,6 +2,7 @@ from Graph import *
 from plotter import *
 from simulator import *
 from trends import *
+from article import *
 
 #global parameters for plotter methods
 TC = 5
@@ -201,20 +202,25 @@ def random():
 
 #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
 
-a = QWGraph.Ring(3)
-a.rephase(-1j)
-b = QWGraph.SquareCut()
-b.rephase([0,0])
+#a = QWGraph.Ring(3)
+#a.rephase(-1j)
+#b = QWGraph.SquareCut()
+#b.rephase([0,0])
 
 #plot_evo_chain_speedup(a, 10, bounds = (0,100), step = .2,su_sample = 300, show = True)
 
-b = QWGraph.chain(b,10, speedup = 1)
+#b = QWGraph.chain(b,10, speedup = 1)
 
-b.krylov_basis(mode = "basis_plot")
-b.krylov_basis(mode = "link_plot")
-plot_evo_mat_heatmap(b)
+#b.krylov_basis(mode = "basis_plot")
+#b.krylov_basis(mode = "link_plot")
+#plot_evo_mat_heatmap(b)
 
 
 #a.krylov_basis(mode = "basis_plot")
 #a.krylov_basis(mode = "link_plot")
 
+
+plot_simpler_topo_progression( bounds = (3,20), mode = "first", target = "t", TC = 1)
+#plot_odd_even_progression( bounds = (3,30),mode = "first", target = "t", TC = 1)
+
+#odd_even_time_lm(HANDLES = True)

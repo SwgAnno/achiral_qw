@@ -10,13 +10,14 @@ line_t_lm = function(mode = "dist", TC = 1 , FIRST = T)
   pushTC(TC)
   pushFC(FIRST)
 
-  range = 5:20
+  range = 10:30
 
   gr_vec = lapply(range,line)
   #no need to optimize
 
   t_vec = sapply(gr_vec, t_p_max_func)
 
+  print(t_vec)
 
   x = get_list_x(gr_vec,mode)
 

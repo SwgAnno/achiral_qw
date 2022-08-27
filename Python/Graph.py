@@ -483,6 +483,21 @@ class QWGraph(object) :
         #print(ref)
         return out
 
+    #construct a specific graph with the respective code number with variadic arguments
+
+    def Graph_from_code(code , *args):
+
+        if code == 0:
+            return QWGraph.Line(args)
+        if code == 1 :
+            return QWGraph.Ring(args)
+        if code == 2 :
+            return QWGraph.Ring(args)
+
+    def gfc(code, *args):
+        return QWGraph.Graph_from_code(code, args)
+
+
     #Ring graph constructor
     def Ring(N, HANDLES = False, E = 2):
         out = QWGraph(N)
