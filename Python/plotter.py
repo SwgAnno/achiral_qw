@@ -1,6 +1,7 @@
 from simulator import *
 from bessel import *
 import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
 #todo: decide on the fate of those global variables
 TC = 1
@@ -79,14 +80,52 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, sho
     fig, ax = plt.subplots()
 
     c = ax.pcolormesh(seq, selection, evo, label = gr.code)
-    
-    ax.set_xlabel('speedup')
-    ax.set_ylabel('N')
 
     fig.colorbar(c, ax=ax)
 
     ax.set_xlabel('t')
     ax.set_ylabel('site')
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+
+    #display finished plot or pass parameter for firther additions
+    if show:
+        ax.legend()
+        plt.show()
+    else :
+        return fig, ax
+    pass
+
+def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, show = True):
+    
+    if not end:
+        global TC
+        end = gr.N * TC
+    global qut
+
+    seq = np.arange(start,end,by)
+    phase_seq = np.arange(0,2*np.pi, phase_by)
+
+    phase_vec = np.exp( 1j * phase_seq)
+
+    data = np.ndarray( (len(phase_seq), len(seq)))
+    
+    an = Analyzer(gr, qutip = qut)
+
+    for i in range( len(phase_vec)):
+        an.rephase_gr( np.repeat( phase_vec[i], \
+                                  an.dim() ))
+
+        data[i:] = an.evo_full( bounds = (start,end), step = by)
+
+    fig, ax = plt.subplots()
+
+    c = ax.pcolormesh(seq, phase_seq, data, label = gr.code)
+    
+    ax.set_xlabel('t')
+    ax.set_ylabel('phase')
+
+    fig.colorbar(c, ax=ax)
 
 
     #display finished plot or pass parameter for firther additions

@@ -186,13 +186,18 @@ def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLE
 
     
 
-def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag = True):
+def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag = True, smart = False):
     perf = np.empty( len(g_list))
     for i in range(len(g_list)):
         
         print( g_list[i].code)
         tester = Analyzer(g_list[i], mode = mode, TC = TC, qutip = False)
-        best_phi = tester.optimum_phase_minimize(diag = diag)[0]
+        best_phi = 0
+
+        if smart :
+            best_phi = tester.optimum_phase_smart()[0]
+        else :
+            best_phi = tester.optimum_phase_minimize(diag = diag)[0]
 
         target_t = (target != "p")
 
@@ -213,7 +218,7 @@ def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "",sh
     if fig == None:
         fig, ax = plt.subplots()
     
-    ax.plot(prog[0], prog[1], label = label)
+    ax.plot(prog[0], prog[1], marker = ".", label = label)
 
     if(target == "p"):
         plt.ylim(0,1.1)
@@ -226,6 +231,7 @@ def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "",sh
 
     #display finished plot or pass parameter for further additions
     if show:
+        ax.legend()
         plt.show()
     else :
         return fig, ax

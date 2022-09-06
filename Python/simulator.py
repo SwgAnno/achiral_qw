@@ -313,7 +313,7 @@ class Analyzer(object):
     def performance(self, phi_vec = None, t = False):
 
         if phi_vec == None:
-            phi_vec = (np.repeat(0),self.dim())
+            phi_vec = np.repeat(0,self.dim())
 
         p = np.exp(1j * phi_vec)
         self.solver.rephase_gr(p)
@@ -414,8 +414,10 @@ class Analyzer(object):
     #check for just +-1 +-i
     def optimum_phase_smart(self):
 
+        if self.dim() == 0 :
+            return 0 , self.performance()
+
         sample = phase_sample(step = 5)
-        
         n_sample = [sample] * self.dim()
         grid = np.meshgrid( *n_sample)
 
@@ -461,6 +463,9 @@ class Analyzer(object):
 
     def set_qutip(self, qutip):
         self.solver.set_qutip(qutip)
+
+    def rephase_gr(self, phi_vec):
+        self.solver.rephase_gr(phi_vec)
 
     #number of free phases in the graph instance
     def dim(self):

@@ -204,8 +204,10 @@ def random():
 
 #a = QWGraph.Ring(3)
 #a.rephase(-1j)
-#b = QWGraph.SquareCut()
-#b.rephase([0,0])
+b = QWGraph.SquareCut()
+#plot_performance(b, an_mode = "first")
+#plot_evo_mat_heatmap(b)
+plot_evo_vs_phase(b ,end = 50)
 
 #plot_evo_chain_speedup(a, 10, bounds = (0,100), step = .2,su_sample = 300, show = True)
 
@@ -220,7 +222,7 @@ def random():
 #a.krylov_basis(mode = "link_plot")
 
 
-plot_simpler_topo_progression( bounds = (3,20), mode = "first", target = "t", TC = 1)
-#plot_odd_even_progression( bounds = (3,30),mode = "first", target = "t", TC = 1)
+#plot_simpler_topo_progression( bounds = (4,40), mode = "first", target = "t", TC = 1)
+#plot_odd_even_progression( bounds = (3,40), mode = "first", target = "t", TC = 1)
 
-#odd_even_time_lm(HANDLES = True)
+#odd_even_time_lm(HANDLES = False)
