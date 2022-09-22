@@ -193,6 +193,8 @@ class QWGraph(object) :
         return self.chain(rep, HANDLES = False)
 
     def add_handles(self, size, mode = "both", fix =0):
+        
+        temp_code = self.code
 
         if mode == "both":
             dx = size
@@ -210,7 +212,10 @@ class QWGraph(object) :
             dx = fix
             sx = size
 
-        return QWGraph.Line(sx) + self + QWGraph.Line(dx)
+        out = QWGraph.Line(sx) + self + QWGraph.Line(dx)
+        out.code = "h(" + temp_code + ")"
+
+        return out
 
     def reverse(self ):
         self.start, self.target = self.target, self.start
@@ -501,7 +506,7 @@ class QWGraph(object) :
     #Ring graph constructor
     def Ring(N, HANDLES = False, E = 2):
         out = QWGraph(N)
-        out.code = "C"+ str(N)
+        out.code = "CYCL"+ str(N)
 
         if N==0 :
             return(out)
@@ -528,7 +533,7 @@ class QWGraph(object) :
     #Line graph constructor
     def Line(N, E = 2, speedup = None):
         out = QWGraph(N)
-        out.code = "L"+ str(N)
+        out.code = "LIN"+ str(N)
 
         if N==0 :
             return(out)

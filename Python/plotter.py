@@ -1,3 +1,4 @@
+from concurrent.futures.thread import _shutdown
 from simulator import *
 from bessel import *
 import matplotlib.pyplot as plt
@@ -255,69 +256,91 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None,
 # phase-dependent best transport maxima
 # can select either its value or the time of arrival
 # actually a router method for more specific performance-like routines
-def plot_performance(gr, sample_step = 100,target = "p", mode = None, an_mode = "TC", TC = 1, show = True):
+def plot_performance(gr, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
+                     show = True, fig = None, ax = None):
 
     global qut
     an = Analyzer(gr, TC = TC, qutip = qut, mode = an_mode)
 
     if mode == "diag":
-        plot_performance_diag(sample_step, target, an, show)
+        return plot_performance_diag(sample_step, target, an, show, fig, ax)
     elif gr.get_phase_n() == 1 :
-        plot_performance_1(sample_step, target, an, show)
+        return plot_performance_1(sample_step, target, an, show,  fig, ax)
     elif gr.get_phase_n() == 2 :
-        plot_performance_2(sample_step, target, an, show)
+        return plot_performance_2(sample_step, target, an, show)
     else :
         print("")
-        
+
+# wrapper for plot performance for a list imput
+def plot_performance_list(gr_list, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
+                     show = True):
+
+    fig = None
+    ax = None
+    for i in range( len(gr_list) -1):
+        fig, ax = plot_performance(gr_list[i], sample_step, target, mode, an_mode, TC,show = False, fig = fig, ax = ax)
+
+    if show :
+        plot_performance(gr_list[-1], sample_step, target, mode, an_mode, TC, \
+                        show = True, fig = fig, ax = ax)
+    else :
+        return plot_performance(gr_list[-1], sample_step, target, mode, an_mode, TC, \
+                                show = False, fig = fig, ax = ax)
+
 # equal-phases setting best transport maxima
-def plot_performance_diag(sample_step, target, an, show ):
+def plot_performance_diag(sample_step, target, an, show , fig = None , ax = None):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
     perf = an.performance_full_diag(sample_step = sample_step, target = target)
 
-    fig, ax = plt.subplots()
-    
-    ax.plot(seq, perf)
-    
-    ax.set_xlabel( chr(952))
-    ax.set_xlim(0,6.28)
+    if fig == None or ax == None :
+        fig, ax = plt.subplots()
 
-    if target == "p":
-        ax.set_ylabel('max P')
-        ax.set_ylim(bottom = 0, top = 1)
-    else :
-        ax.set_ylabel("t")
-        ax.set_ylim(bottom = 0)
+        ax.set_xlabel( chr(952))
+        ax.set_xlim(0,6.28)
 
+        if target == "p":
+            ax.set_ylabel('max P')
+            ax.set_ylim(bottom = 0, top = 1)
+        else :
+            ax.set_ylabel("t")
+            ax.set_ylim(bottom = 0)
+
+    ax.plot(seq, perf, label = an.get_label())
+    
     #display finished plot or pass parameter for further additions
     if show:
+        ax.legend()
         plt.show()
     else :
         return fig, ax
     
 # 1-phased graph performance
-def plot_performance_1(sample_step,target, an, show):
+def plot_performance_1(sample_step, target, an, show, fig = None, ax = None):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = an.performance_full(sample_step = sample_step, target = target)
 
-    fig, ax = plt.subplots()
-    
-    ax.plot(seq, perf)
-    
-    ax.set_xlabel( chr(952))
-    ax.set_xlim(0,6.28)
+    if fig == None or ax == None :
+        fig, ax = plt.subplots()
 
-    if target == "p":
-        ax.set_ylabel('max P')
-        ax.set_ylim(bottom = 0, top = 1)
-    else :
-        ax.set_ylabel("t")
-        ax.set_ylim(bottom = 0)
+        ax.set_xlabel( chr(952))
+        ax.set_xlim(0,6.28)
+
+        if target == "p":
+            ax.set_ylabel('max P')
+            ax.set_ylim(bottom = 0, top = 1)
+        else :
+            ax.set_ylabel("t")
+            ax.set_ylim(bottom = 0)
+    
+    ax.plot(seq, perf, label = an.get_label())
+
 
     #display finished plot or pass parameter for further additions
     if show:
+        ax.legend()
         plt.show()
     else :
         return fig, ax

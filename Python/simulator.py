@@ -478,6 +478,20 @@ class Analyzer(object):
     #number of free phases in the graph instance
     def dim(self):
         return self.get_gr().get_phase_n()
+
+    #get automatic plot label according to target graph and analysis mode
+
+    def get_label(self, mode = True):
+
+        if not mode:
+            return self.get_gr().code
+
+        mode_label = self.mode
+
+        if self.mode == "TC":
+            mode_label = mode_label + str( self.get_TC() )
+
+        return self.get_gr().code + " " + mode_label
         
 
         

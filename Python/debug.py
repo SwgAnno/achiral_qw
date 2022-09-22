@@ -206,8 +206,14 @@ def random():
 #plot_evo_vs_phase(a, TC = 2, phase_by = .01)
 #plot_performance(a,TC = 2, target = "t", sample_step = 500)
 
-a = QWGraph.Ring(3)
-chain_progression(a, target = "t", bounds = (1,50),show = True)
+#a = QWGraph.Ring(6, HANDLES = True)
+#plot_performance_1_multi(a, TC_vec = [5,20], first = True, step = 1000)
+#plot_performance_odd(step = 100)
+
+#FIX!!!!!
+#chain_progression(a, target = "t", bounds = (1,50),show = True)
+
+
 
 #a.rephase(-1j)
 #b = QWGraph.SquareCut()

@@ -1,5 +1,6 @@
 #list of methonds to draw specific plots in the article
 
+from turtle import st
 from trends import *
 from matplotlib.pyplot import figure
 
@@ -101,4 +102,39 @@ def odd_even_time_lm( L_ref = True, HANDLES = False):
     print( "even/line m : \t" , coeff[0][0]/coeff[2][0])
     print( "odd/line m : \t" , coeff[1][0]/coeff[2][0])
 
+def plot_performance_1_multi(gr,TC_vec, first = False, step = 100):
+    
+    if first:
+        fig, ax = plot_performance(gr, an_mode = "first", sample_step = step, show = False)
+    else :
+        fig = None
+        ax = None
 
+    for i in range(len(TC_vec) -1):
+        fig, ax = plot_performance(gr, an_mode= "TC", TC = TC_vec[i], sample_step = step, \
+                                    show = False, fig = fig, ax = ax)
+
+    plot_performance(gr, an_mode= "TC", TC = TC_vec[-1], sample_step = step, \
+                    show = True, fig = fig, ax = ax)
+
+def plot_performance_odd( step = 100):
+
+    gr_list = []
+
+    gr_list.append( QWGraph.Ring(5, HANDLES = True))
+    gr_list.append( QWGraph.Ring(7))
+    gr_list.append( QWGraph.Ring(9, HANDLES = True))
+    gr_list.append( QWGraph.Ring(11))
+
+    plot_performance_list(gr_list, sample_step = step, an_mode = "first")
+
+def plot_performance_even( step = 100):
+
+    gr_list = []
+
+    gr_list.append( QWGraph.Ring(4))
+    gr_list.append( QWGraph.Ring(6, HANDLES = True))
+    gr_list.append( QWGraph.Ring(8))
+    gr_list.append( QWGraph.Ring(10, HANDLES = True))
+
+    plot_performance_list(gr_list, sample_step = step, an_mode = "first")
