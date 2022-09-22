@@ -202,12 +202,19 @@ def random():
 
 #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
 
-#a = QWGraph.Ring(3)
+#a = QWGraph.Ring(9)
+#plot_evo_vs_phase(a, TC = 2, phase_by = .01)
+#plot_performance(a,TC = 2, target = "t", sample_step = 500)
+
+a = QWGraph.Ring(3)
+chain_progression(a, target = "t", bounds = (1,50),show = True)
+
 #a.rephase(-1j)
-b = QWGraph.SquareCut()
+#b = QWGraph.SquareCut()
 #plot_performance(b, an_mode = "first")
+#plot_performance(b, an_mode = "TC")
 #plot_evo_mat_heatmap(b)
-plot_evo_vs_phase(b ,end = 50)
+#plot_evo_vs_phase(b ,end = 10)
 
 #plot_evo_chain_speedup(a, 10, bounds = (0,100), step = .2,su_sample = 300, show = True)
 
@@ -222,7 +229,15 @@ plot_evo_vs_phase(b ,end = 50)
 #a.krylov_basis(mode = "link_plot")
 
 
-#plot_simpler_topo_progression( bounds = (4,40), mode = "first", target = "t", TC = 1)
+#plot_simpler_topo_progression( bounds = (3,30), mode = "TC", target = "t", TC = 10)
 #plot_odd_even_progression( bounds = (3,40), mode = "first", target = "t", TC = 1)
 
 #odd_even_time_lm(HANDLES = False)
+
+
+
+
+######################
+#theta as char
+print(chr(952))
+#####################

@@ -265,7 +265,7 @@ class Analyzer(object):
         #digits are definitely note carefully researched, a check is needed
         if self.mode == "first" :
             start = .001
-            end = self.solver.gr.N/4
+            end = self.solver.gr.distance()/4
             exp_scale = 1.5
             evt_sample_scale = .1
             sign_change_safe = -1e-24
@@ -337,9 +337,13 @@ class Analyzer(object):
             return self.locate_max()[0]
                 
     #get full sampled performance as a ndarray
-    def performance_full(self, sample_step = 100):
+    def performance_full(self, sample_step = 100, target = "p"):
         
         sample = phase_sample(sample_step)
+        if target == "p":
+            target = 1
+        else:
+            target = 0
          
         n_sample = [sample] * self.dim()
         grid = np.meshgrid( *n_sample)
@@ -358,20 +362,24 @@ class Analyzer(object):
                 phi_vec.append(grid[j][i])
 
             self.solver.rephase_gr(phi_vec)
-            out[i] = self.locate_max()[1]
+            out[i] = self.locate_max()[target]
 
         return out
 
     #equal phases setting transport performance
-    def performance_full_diag(self, sample_step = 100):
+    def performance_full_diag(self, sample_step = 100, target = "p"):
 
         sample = phase_sample(sample_step)
+        if target == "p":
+            target = 1
+        else:
+            target = 0
 
         out = np.empty(sample_step)
         for i in range(len(sample)):
             self.solver.rephase_gr( np.repeat( sample[i], \
                                                self.dim() ))
-            out[i] = self.locate_max()[1]
+            out[i] = self.locate_max()[target]
 
         return out
 
@@ -443,7 +451,7 @@ class Analyzer(object):
         return np.angle(out), self.performance( np.angle(out))
 
     def max_search_time(self):
-        return self.solver.gr.N * self.TIME_CONSTANT
+        return self.solver.gr.distance() * self.TIME_CONSTANT
     
     def get_TC(self):
         return self.TIME_CONSTANT

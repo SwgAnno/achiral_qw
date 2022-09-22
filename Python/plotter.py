@@ -10,11 +10,12 @@ qut = False
 
 #Plot probability evolution on each and every site of the graph
 #todo: discuss show buffering option
-def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, show = True):
+def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, TC = None, show = True):
 
-    if not end:
-        global TC
-        end = gr.N * TC
+    if not end and not TC:
+        print( "plot_evo_mat error, no time bounds given")
+    elif not end:
+        end = gr.distance()*TC
     global qut
 
     seq = np.arange(start,end,by)
@@ -51,11 +52,12 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, show = True
         return fig, ax
 
 #display evolution on a 2D heatmap
-def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, show = True):
+def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC = None, show = True):
     
-    if not end:
-        global TC
-        end = gr.N * TC
+    if not end and not TC:
+        print( "plot_evo_mat_heatmap error, no time bounds given")
+    elif not end:
+        end = gr.distance()*TC
     global qut
 
     seq = np.arange(start,end,by)
@@ -79,7 +81,7 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, sho
 
     fig, ax = plt.subplots()
 
-    c = ax.pcolormesh(seq, selection, evo, label = gr.code)
+    c = ax.pcolormesh(seq, selection, evo,label = gr.code)
 
     fig.colorbar(c, ax=ax)
 
@@ -96,11 +98,12 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, sho
         return fig, ax
     pass
 
-def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, show = True):
+def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, show = True):
     
-    if not end:
-        global TC
-        end = gr.N * TC
+    if not end and not TC:
+        print( "plot_evo_vs_phase error, no time bounds given")
+    elif not end:
+        end = gr.distance()*TC
     global qut
 
     seq = np.arange(start,end,by)
@@ -120,10 +123,10 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, show =
 
     fig, ax = plt.subplots()
 
-    c = ax.pcolormesh(seq, phase_seq, data, label = gr.code)
+    c = ax.pcolormesh(seq, phase_seq, data, cmap = "inferno", label = gr.code)
     
     ax.set_xlabel('t')
-    ax.set_ylabel('phase')
+    ax.set_ylabel(chr(952))
 
     fig.colorbar(c, ax=ax)
 
@@ -217,11 +220,12 @@ def plot_ring_vs_bessel(l = 5, end = 30):
     plt.show()
 
 #comparison between target site rpobability and its derivative
-def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, show = True):
+def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None, show = True):
 
-    if not end:
-        global TC
-        end = gr.N * TC
+    if not end and not TC:
+        print( "plot_evo_vs_derivative error, no time bounds given")
+    elif not end:
+        end = gr.distance()*TC
     global qut
 
     print(qut)
@@ -248,36 +252,43 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, show = Tru
     else :
         return fig, ax
 
-# phase-dependent best transport maximua
+# phase-dependent best transport maxima
+# can select either its value or the time of arrival
 # actually a router method for more specific performance-like routines
-def plot_performance(gr, sample_step = 100, mode = None, an_mode = "TC", show = True):
+def plot_performance(gr, sample_step = 100,target = "p", mode = None, an_mode = "TC", TC = 1, show = True):
 
-    global TC
     global qut
     an = Analyzer(gr, TC = TC, qutip = qut, mode = an_mode)
 
     if mode == "diag":
-        plot_performance_diag(sample_step, an, show)
+        plot_performance_diag(sample_step, target, an, show)
     elif gr.get_phase_n() == 1 :
-        plot_performance_1(sample_step, an, show)
+        plot_performance_1(sample_step, target, an, show)
     elif gr.get_phase_n() == 2 :
-        plot_performance_2(sample_step, an, show)
+        plot_performance_2(sample_step, target, an, show)
     else :
         print("")
         
 # equal-phases setting best transport maxima
-def plot_performance_diag(sample_step, an, show ):
+def plot_performance_diag(sample_step, target, an, show ):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
-    perf = an.performance_full_diag(sample_step)
+    perf = an.performance_full_diag(sample_step = sample_step, target = target)
 
     fig, ax = plt.subplots()
     
     ax.plot(seq, perf)
     
-    ax.set_xlabel('phi')
-    ax.set_ylabel('max P')
+    ax.set_xlabel( chr(952))
+    ax.set_xlim(0,6.28)
+
+    if target == "p":
+        ax.set_ylabel('max P')
+        ax.set_ylim(bottom = 0, top = 1)
+    else :
+        ax.set_ylabel("t")
+        ax.set_ylim(bottom = 0)
 
     #display finished plot or pass parameter for further additions
     if show:
@@ -286,33 +297,40 @@ def plot_performance_diag(sample_step, an, show ):
         return fig, ax
     
 # 1-phased graph performance
-def plot_performance_1(sample_step, an, show):
+def plot_performance_1(sample_step,target, an, show):
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance_full(sample_step)
+    perf = an.performance_full(sample_step = sample_step, target = target)
 
     fig, ax = plt.subplots()
     
     ax.plot(seq, perf)
     
-    ax.set_xlabel('phi')
-    ax.set_ylabel('max P')
+    ax.set_xlabel( chr(952))
+    ax.set_xlim(0,6.28)
 
-    #display finished plot or pass parameter for firther additions
+    if target == "p":
+        ax.set_ylabel('max P')
+        ax.set_ylim(bottom = 0, top = 1)
+    else :
+        ax.set_ylabel("t")
+        ax.set_ylim(bottom = 0)
+
+    #display finished plot or pass parameter for further additions
     if show:
         plt.show()
     else :
         return fig, ax
     
 # 2-phased graph performance
-def plot_performance_2(sample_step, an, show):
+def plot_performance_2(sample_step, target, an, show):
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance_full(sample_step)
+    perf = an.performance_full(sample_step = sample_step, target = target)
 
     fig, ax = plt.subplots()
     
-    c = ax.pcolormesh(seq, seq, perf)
+    c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", label = an.solver.gr.code)
     
     ax.set_xlabel('phi 1')
     ax.set_ylabel('phi 2')
