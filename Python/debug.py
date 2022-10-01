@@ -210,8 +210,17 @@ def random():
 #plot_performance_1_multi(a, TC_vec = [5,20], first = True, step = 1000)
 #plot_performance_odd(step = 100)
 
+#a = QWGraph.Ring(8) + QWGraph.Ring(8)
+#a = QWGraph.SquareCut()
+#plot_performance(a, an_mode = "TC", TC = 2)
+
 #FIX!!!!!
-#chain_progression(a, target = "t", bounds = (1,50),show = True)
+a = QWGraph.SquareCut()
+#a = QWGraph.chain(a, 5)
+#plot_performance(a, mode = "time", an_mode = "first", sample_step = 500)
+#plot_chain_progression(a, bounds = (1,10), target = "t", fix_phi = np.pi/2)
+#chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
+t_chain_progression_multi(a, bounds = (1,50), sample_step = 4)
 
 
 

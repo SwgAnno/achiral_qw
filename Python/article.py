@@ -2,6 +2,7 @@
 
 from turtle import st
 from trends import *
+from plotter import *
 from matplotlib.pyplot import figure
 
 def plot_simpler_topo_progression( bounds = (3,12), target = "p", x_mode = "dist",mode = "TC", TC = 1):
@@ -39,7 +40,7 @@ def plot_odd_even_progression( bounds = (3,12), target = "p", x_mode = "dist",mo
     for i in range( bounds[1]- bounds[0] +1):
         gr_list.append( QWGraph.Line( bounds[0]+ i))
     
-    out = optimized_progression(gr_list, target = target, mode = mode, TC = TC, smart = True)
+    out = optimized_progression(gr_list, target = target, mode = mode, TC = TC, opt_mode = "smart")
     x = get_list_x(gr_list, x_mode = x_mode)
 
     fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, label = "L",show = False)
@@ -56,7 +57,7 @@ def plot_odd_even_progression( bounds = (3,12), target = "p", x_mode = "dist",mo
     for i in range( bounds[1]- bounds[0] +1):
         gr_list.append( QWGraph.Ring( bounds[0]+ i*2))
     
-    out = optimized_progression(gr_list, target = target, mode = mode, TC = TC, smart = True)
+    out = optimized_progression(gr_list, target = target, mode = mode, TC = TC, opt_mode = "smart")
     x = get_list_x(gr_list, x_mode = x_mode)
 
     fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, label = label[0], show = False, fig = fig, ax = ax)
@@ -65,7 +66,7 @@ def plot_odd_even_progression( bounds = (3,12), target = "p", x_mode = "dist",mo
     for i in range( bounds[1]- bounds[0] +1):
         gr_list.append( QWGraph.Ring( bounds[0]+1+ i*2))
     
-    out = optimized_progression(gr_list, target = target, mode = mode, TC = TC, smart = True)
+    out = optimized_progression(gr_list, target = target, mode = mode, TC = TC, opt_mode = "smart")
     x = get_list_x(gr_list, x_mode = x_mode)
 
     plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, label = label[1] , show = True, fig = fig, ax = ax)
@@ -138,3 +139,25 @@ def plot_performance_even( step = 100):
     gr_list.append( QWGraph.Ring(10, HANDLES = True))
 
     plot_performance_list(gr_list, sample_step = step, an_mode = "first")
+
+def t_chain_progression_multi(gr_unit = QWGraph.Ring(3), bounds = (1,10), sample_step = 5):
+
+    if gr_unit.code[0] == "C" and gr_unit.N % 2 == 0:
+        phi_vec = np.arange(0, sample_step) * np.pi/sample_step
+    else :
+        phi_vec = np.arange(0, sample_step) * 2*np.pi/sample_step
+    print(phi_vec)
+
+    fig = None
+    ax = None
+    for i in range(len(phi_vec)):
+        fig, ax = plot_chain_progression(gr_unit = gr_unit, bounds = bounds, target = "t", fix_phi = phi_vec[i], \
+                                         show = False, fig = fig, ax = ax)
+
+    a = ax.get_xlim()
+    l_bounds = (2 ,int(a[1]))
+    L_x, L_data = get_line_data( l_bounds, target = "t")
+    ax.plot(L_x, L_data, label = "L", color = "green")
+
+    ax.legend()
+    plt.show()

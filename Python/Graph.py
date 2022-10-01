@@ -186,6 +186,11 @@ class QWGraph(object) :
         if HANDLES:
             out = out + QWGraph.Line(1)
 
+        #todo : this is really awful, should definitely find a better way to get those link straight
+        if self.code == "DC4" :
+            for i in range(len(out.re_coord)//2):
+                out.re_coord[1+2*i] = out.re_coord[1+2*i][::-1]
+
         #out.plot()
         return out
 
@@ -586,6 +591,7 @@ class QWGraph(object) :
 
         out = out.cut( (0,2))
         out.re_coord = [(1,2),(3,2)]
+        out.code = "DC4"
 
         return out
 
@@ -648,7 +654,7 @@ class QWGraph(object) :
 
         cols = []
         for e in ref.es:
-            if e.tuple in self.re_coord :
+            if e.tuple in self.re_coord or e.tuple[::-1] in self.re_coord:
                 cols.append("red")
             else :
                 cols.append("black")

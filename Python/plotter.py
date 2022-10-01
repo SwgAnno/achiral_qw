@@ -1,7 +1,12 @@
 from concurrent.futures.thread import _shutdown
+from datetime import time
+from itertools import chain
 from simulator import *
 from bessel import *
+from trends import *
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 from matplotlib.ticker import MaxNLocator
 
 #todo: decide on the fate of those global variables
@@ -264,6 +269,8 @@ def plot_performance(gr, sample_step = 100, target = "p", mode = None, an_mode =
 
     if mode == "diag":
         return plot_performance_diag(sample_step, target, an, show, fig, ax)
+    elif mode == "time":
+        return plot_performance_time(sample_step, an, show, fig, ax)
     elif gr.get_phase_n() == 1 :
         return plot_performance_1(sample_step, target, an, show,  fig, ax)
     elif gr.get_phase_n() == 2 :
@@ -315,7 +322,41 @@ def plot_performance_diag(sample_step, target, an, show , fig = None , ax = None
         plt.show()
     else :
         return fig, ax
+
+# diagonal performance + time of arrival as color
+
+def plot_performance_time( sample_step, an, show , fig = None, ax = None):
+    seq = np.linspace(0, np.pi*2, sample_step)
+
+    perf = []
+    perf = an.performance_full_diag(sample_step = sample_step, target = "p")
+
+    time = []
+    time = an.performance_full_diag(sample_step = sample_step, target = "t")
+
+    if fig == None or ax == None :
+        fig, ax = plt.subplots()
+
+        ax.set_xlabel( chr(952))
+        ax.set_xlim(0,6.28)
+
+        ax.set_ylabel('max P')
+        ax.set_ylim(bottom = 0, top = 1)
+
+    ax.scatter(seq, perf, s = 10, c = time , cmap = "viridis")
+
+    norm = colors.Normalize(vmin= min(time), vmax=max(time))
+    map = cm.ScalarMappable(norm, cmap="viridis")
+    plt.colorbar( map)
     
+    #display finished plot or pass parameter for further additions
+    if show:
+        ax.legend()
+        plt.show()
+    else :
+        return fig, ax
+
+
 # 1-phased graph performance
 def plot_performance_1(sample_step, target, an, show, fig = None, ax = None):
     seq = np.linspace(0, np.pi*2, sample_step)
@@ -355,13 +396,48 @@ def plot_performance_2(sample_step, target, an, show):
     
     c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", label = an.solver.gr.code)
     
-    ax.set_xlabel('phi 1')
-    ax.set_ylabel('phi 2')
+    ax.set_xlabel(chr(952) + '1')
+    ax.set_ylabel(chr(952) + '2')
 
     fig.colorbar(c, ax=ax)
 
-    #display finished plot or pass parameter for firther additions
+    #display finished plot or pass parameter for further additions
     if show:
+        plt.show()
+    else :
+        return fig, ax
+
+# chain_progression() data plotting function, adapted for multiple draw call
+def plot_chain_progression(gr_unit, bounds = (1,10), target = "p", \
+                            x_mode = "dist", HANDLES = True, fix_phi = None, \
+                            show = True, fig = None, ax = None):
+    
+    x, data = chain_progression( gr_unit = gr_unit, bounds = bounds, target = target, \
+                                x_mode = x_mode, HANDLES = HANDLES, fix_phi = fix_phi,\
+                                show = False)
+
+    if fig == None or ax == None :
+        fig, ax = plt.subplots()
+
+        ax.set_xlabel( "#unit")
+        if target == "p":
+            ax.set_ylabel('max P')
+            ax.set_ylim(bottom = 0, top = 1)
+
+        else :
+            ax.set_ylabel("t")
+            #ax.set_ylim(bottom = 0, top = 'auto')
+
+    phi_label = ""
+    if fix_phi != None:
+        phi_label = str(int( fix_phi // (np.pi/6))) + "/6" + chr(960)
+
+    
+    ax.plot(x, data, label = gr_unit.code + " " + phi_label)
+    
+    #display finished plot or pass parameter for further additions
+    if show:
+        ax.legend()
         plt.show()
     else :
         return fig, ax

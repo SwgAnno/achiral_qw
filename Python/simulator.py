@@ -203,7 +203,7 @@ class SESolver(object):
 
 class Analyzer(object):
 
-    def __init__(self, gr, event_s = 2, TC = 1, qutip = False, mode = "TC"):
+    def __init__(self, gr, event_s = 1, TC = 1, qutip = False, mode = "TC"):
         self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s
@@ -275,7 +275,7 @@ class Analyzer(object):
             for i in range(maxiter) :
                 #print("looking for first max in "+ str(start) +" - "+ str(end) )
 
-                sample = np.arange(start, end, self.event_size* evt_sample_scale)
+                sample = np.linspace(start, end, int((end-start)//(self.event_size* evt_sample_scale))+2)
 
                 #print(sample)
                 deriv_evo = self.solver.target_p_prime(sample)

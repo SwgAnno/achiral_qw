@@ -110,27 +110,32 @@ def get_line_data(bounds = (3,10), target = "p", x_mode = "dist"):
     return size_progression("L", bounds = bounds, target = target, x_mode = x_mode)
     
 def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p", \
-                        x_mode = "dist", HANDLES = True, L_ref = True, show = False):
+                        x_mode = "dist", HANDLES = True, L_ref = True, fix_phi = None, show = False):
     gr_list = []
 
     for i in range( bounds[1]- bounds[0] +1):
         gr_list.append( QWGraph.chain(gr_unit, bounds[0]+ i, HANDLES = HANDLES))
 
-    out = optimized_progression(gr_list, target = target)
+    if fix_phi != None:
+        out = optimized_progression(gr_list, target = target, opt_mode = "fix", opt_phi = fix_phi)
+    else:
+        out = optimized_progression(gr_list, target = target)
+        
     x = get_list_x(gr_list, x_mode = x_mode)
+
     if show:
-
         if L_ref:
-            line_data = get_line_data( (min(x), max(x)), target = target, x_mode = x_mode)
-
             fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = False)
+
+            line_data = get_line_data( (min(x), max(x)), target = target, x_mode = x_mode)
             ax.plot(line_data[0], line_data[1], color = "green")
 
-            plt.show()
         else :
             fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
+            
+        plt.show()
     else:
-        return out
+        return x, out[1]
 
 def time_progression_lm( gr_list, x_mode = "dist"):
     
@@ -186,7 +191,7 @@ def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLE
 
     
 
-def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag = True, smart = False):
+def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag = True, opt_mode = None, opt_phi = None):
     perf = np.empty( len(g_list))
     for i in range(len(g_list)):
         
@@ -194,8 +199,10 @@ def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag 
         tester = Analyzer(g_list[i], mode = mode, TC = TC, qutip = False)
         best_phi = 0
 
-        if smart :
+        if opt_mode == "smart" :
             best_phi = tester.optimum_phase_smart()[0]
+        elif opt_mode == "fix" :
+            best_phi = opt_phi
         else :
             best_phi = tester.optimum_phase_minimize(diag = diag)[0]
 
