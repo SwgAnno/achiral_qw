@@ -1,5 +1,7 @@
 #list of methonds to draw specific plots in the article
 
+from ctypes.wintypes import tagRECT
+from pickletools import TAKEN_FROM_ARGUMENT4U
 from turtle import st
 from trends import *
 from plotter import *
@@ -161,3 +163,28 @@ def t_chain_progression_multi(gr_unit = QWGraph.Ring(3), bounds = (1,10), sample
 
     ax.legend()
     plt.show()
+
+def plot_size_progression_multi( bounds = (3,12), target = "p") :
+
+    fig, ax = plot_size_progression("L", bounds = bounds, target = target, show = False)
+    fig, ax = plot_size_progression("C", bounds = bounds, target = target, show = False, fig = fig, ax = ax)
+    plot_size_progression("Ch", bounds = bounds, target = target, show = True, fig = fig, ax = ax)
+
+def plot_chain_progression_multi( bounds = (3,20), target = "p"):
+
+    #bounds[0] has to be >=3
+    chain3_bounds = (bounds[0]-2, bounds[1]-3)
+    chain4_bounds = ( (bounds[0]-2)//2, (bounds[1]-3)//2)
+
+    fig, ax = plot_chain_progression( QWGraph.Ring(3), bounds = chain3_bounds, target = target, show = False)
+    fig, ax = plot_chain_progression( QWGraph.Ring(4), bounds = chain4_bounds, target = target, show = False, fig = fig, ax = ax)
+    fig, ax = plot_chain_progression( QWGraph.SquareCut(), bounds = chain3_bounds, target = target, show = False, fig = fig, ax = ax)
+    plot_size_progression( "L", bounds = bounds, target = target, show = True, fig = fig, ax = ax)
+
+def chain_ch_comp( bounds = (3,20), target = "p"):
+
+    chain3_bounds = (bounds[0]-2, bounds[1]-3)
+
+    fig, ax = plot_chain_progression( QWGraph.Ring(3), bounds = chain3_bounds, target = target, show = False)
+    fig, ax = plot_size_progression( "Ch", bounds = bounds, target = target, show = False, fig = fig, ax = ax)
+    plot_size_progression( "L", bounds = bounds, target = target, show = True, fig = fig, ax = ax)

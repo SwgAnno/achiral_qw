@@ -193,9 +193,11 @@ def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLE
 
 def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag = True, opt_mode = None, opt_phi = None):
     perf = np.empty( len(g_list))
+
+    print("########\nOptimized progression", target, mode)
     for i in range(len(g_list)):
         
-        print( g_list[i].code)
+        print( i,"of", len(g_list),  "//",g_list[i].code)
         tester = Analyzer(g_list[i], mode = mode, TC = TC, qutip = False)
         best_phi = 0
 

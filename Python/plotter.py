@@ -419,7 +419,7 @@ def plot_chain_progression(gr_unit, bounds = (1,10), target = "p", \
     if fig == None or ax == None :
         fig, ax = plt.subplots()
 
-        ax.set_xlabel( "#unit")
+        ax.set_xlabel( x_mode)
         if target == "p":
             ax.set_ylabel('max P')
             ax.set_ylim(bottom = 0, top = 1)
@@ -435,6 +435,32 @@ def plot_chain_progression(gr_unit, bounds = (1,10), target = "p", \
     
     ax.plot(x, data, label = gr_unit.code + " " + phi_label)
     
+    #display finished plot or pass parameter for further additions
+    if show:
+        ax.legend()
+        plt.show()
+    else :
+        return fig, ax
+
+def plot_size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, \
+                            show = False, fig = None, ax = None) :
+
+    x, data = size_progression( g_type = g_type, bounds = bounds, target = target, x_mode = x_mode, speedup = speedup, L_ref = L_ref, show = False)
+
+    if fig == None or ax == None:
+        fig, ax = plt.subplots()
+
+        ax.set_xlabel( x_mode)
+        if target == "p":
+            ax.set_ylabel('max P')
+            ax.set_ylim(bottom = 0, top = 1)
+
+        else :
+            ax.set_ylabel("t")
+            #ax.set_ylim(bottom = 0, top = 'auto')
+    
+    ax.plot(x, data, label = g_type)
+
     #display finished plot or pass parameter for further additions
     if show:
         ax.legend()

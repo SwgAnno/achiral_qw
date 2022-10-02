@@ -214,15 +214,16 @@ def random():
 #a = QWGraph.SquareCut()
 #plot_performance(a, an_mode = "TC", TC = 2)
 
-#FIX!!!!!
-a = QWGraph.SquareCut()
+#a = QWGraph.SquareCut()
 #a = QWGraph.chain(a, 5)
 #plot_performance(a, mode = "time", an_mode = "first", sample_step = 500)
 #plot_chain_progression(a, bounds = (1,10), target = "t", fix_phi = np.pi/2)
 #chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
-t_chain_progression_multi(a, bounds = (1,50), sample_step = 4)
+#t_chain_progression_multi(a, bounds = (1,50), sample_step = 4)
 
-
+#plot_size_progression_multi(bounds = (3,50))
+#plot_chain_progression_multi(bounds = (3,50))
+chain_ch_comp( bounds = (3,50))
 
 #a.rephase(-1j)
 #b = QWGraph.SquareCut()
