@@ -187,7 +187,7 @@ class QWGraph(object) :
             out = out + QWGraph.Line(1)
 
         #todo : this is really awful, should definitely find a better way to get those link straight
-        if self.code == "DC4" :
+        if self.code == "DiC4" :
             for i in range(len(out.re_coord)//2):
                 out.re_coord[1+2*i] = out.re_coord[1+2*i][::-1]
 
@@ -311,8 +311,8 @@ class QWGraph(object) :
             x_range = np.arange(0,self.N)
             y_range = np.arange(0,len(self.eig_vec))
 
-            modulus = np.empty( ( self.N, len(self.eig_vec)) )
-            phase = np.empty( ( self.N, len(self.eig_vec)) )
+            modulus = np.zeros( ( self.N, len(self.eig_vec)) )
+            phase = np.zeros( ( self.N, len(self.eig_vec)) )
 
             for j in range(len(self.eig_val)) :
                 modulus[:,j] = np.abs( self.eig_vec[j])
@@ -325,6 +325,9 @@ class QWGraph(object) :
 
             fig.colorbar(c1, ax = ax[0])
             fig.colorbar(c2, ax = ax[1])
+
+            ax[0].set_title("Projection modulus")
+            ax[1].set_title("Relative phase")
             
             for stuff in ax :    
                 stuff.set_xlabel('site')
@@ -380,23 +383,32 @@ class QWGraph(object) :
             return k_A
 
         if mode == "basis_plot":
-            data = np.empty( (len(k_basis),self.N))
 
-            for i in range(len(k_basis)):
-                data[i,:] = np.abs(k_basis[i][:,0])
+            modulus = np.zeros( (len(k_basis),self.N))
+            phase = np.zeros( (len(k_basis),self.N))
 
-            fig, ax = plt.subplots()
-            x = np.arange(0,self.N)
-            y = np.arange(0,len(k_basis))
+            for j in range(len(k_basis)) :
+                modulus[j,:] = np.abs( k_basis[j][:,0])
+                phase[j,:] = np.angle( k_basis[j][:,0])
+
+            x_range = np.arange(0,self.N)
+            y_range = np.arange(0,len(k_basis))
+
+            fig, ax = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True, figsize=(8, 4))
+
+            c1 = ax[0].pcolormesh(x_range, y_range, modulus, label = "mod")
+            c2 = ax[1].pcolormesh(x_range, y_range, phase, label = "phase")
+
+            fig.colorbar(c1, ax = ax[0])
+            fig.colorbar(c2, ax = ax[1])
+
+            ax[0].set_title("Projection modulus")
+            ax[1].set_title("Relative phase")
             
-            c = ax.pcolormesh(x, y, data, label = self.code)
-            
-            ax.set_xlabel('site')
-            ax.set_ylabel('k_n')
+            for stuff in ax :    
+                stuff.set_xlabel('site')
+                stuff.set_ylabel('k_n')
 
-            fig.colorbar(c, ax=ax)
-
-            ax.legend()
             plt.show()
 
             return
@@ -511,7 +523,7 @@ class QWGraph(object) :
     #Ring graph constructor
     def Ring(N, HANDLES = False, E = 2):
         out = QWGraph(N)
-        out.code = "CYCL"+ str(N)
+        out.code = "C"+ str(N)
 
         if N==0 :
             return(out)
@@ -538,7 +550,7 @@ class QWGraph(object) :
     #Line graph constructor
     def Line(N, E = 2, speedup = None):
         out = QWGraph(N)
-        out.code = "LIN"+ str(N)
+        out.code = "L"+ str(N)
 
         if N==0 :
             return(out)
@@ -591,7 +603,7 @@ class QWGraph(object) :
 
         out = out.cut( (0,2))
         out.re_coord = [(1,2),(3,2)]
-        out.code = "DC4"
+        out.code = "DiC4"
 
         return out
 
