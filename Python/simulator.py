@@ -489,7 +489,7 @@ class Analyzer(object):
         mode_label = self.mode
 
         if self.mode == "TC":
-            mode_label = mode_label + str( self.get_TC() )
+            mode_label = chr(957) + "=" + str( self.get_TC() )
 
         return self.get_gr().code + " " + mode_label
         

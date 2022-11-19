@@ -4,6 +4,10 @@ from Graph import *
 from scipy.optimize import minimize_scalar
 import scipy.stats as stats
 
+# plot tick API
+from matplotlib.ticker import MaxNLocator
+
+
 #progression of first maxima of squared bessel function
 def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref = True,show = True):
 
@@ -170,7 +174,7 @@ def time_size_progression_lm(g_type = "C", x_mode = "dist"):
 
     return out.slope, out.intercept
 
-def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLES = True):
+def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLES = True, L_ref = True):
     
     gr_list = []
 
@@ -179,13 +183,24 @@ def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLE
     
     data = chain_progression(gr_unit, bounds, HANDLES = HANDLES, target = "t")
 
-    #print(data)
-    x = get_list_x(gr_list, x_mode = x_mode)
-    out = stats.linregress(x,data[1])
+    out = stats.linregress(data[0],data[1])
 
     print("m: ", out.slope, " +- ", out.stderr)
     print("q: ", out.intercept, " +- ", out.intercept_stderr)
     print("r: ", out.rvalue)
+
+    if not L_ref :
+        return out.slope, out.intercept
+
+    print("Line lm:")
+    gr_list = []
+    for i in range(21):
+        gr_list.append( QWGraph.Line( 10+ i))
+
+    l_coeff = time_progression_lm(gr_list, x_mode = "dist")
+    #print( get_line_data( bounds = (4,20), target = "t"))
+
+    print( gr_unit.code + "chain/line m : \t" , out.slope/l_coeff[0])
 
     return out.slope, out.intercept
 
@@ -208,6 +223,7 @@ def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag 
         else :
             best_phi = tester.optimum_phase_minimize(diag = diag)[0]
 
+        #print(best_phi, opt_mode)
         target_t = (target != "p")
 
         if diag:
@@ -225,16 +241,20 @@ def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag 
 def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "",show = False, fig = None, ax = None):
 
     if fig == None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(1, 1, figsize = (6,5))
     
     ax.plot(prog[0], prog[1], marker = ".", label = label)
 
+    #force integer ticks
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
     if(target == "p"):
-        plt.ylim(0,1.1)
+        ax.set_ylim(0,1.1)
             
         ax.set_xlabel(x_mode)
         ax.set_ylabel('max P')
     if(target == "t"):
+        ax.set_ylim( auto = True)
         ax.set_xlabel(x_mode)
         ax.set_ylabel('t')
 
@@ -361,6 +381,49 @@ def plot_speedup_performance_multi(bounds = (4,20), target = "p", show = False) 
             an.set_gr(cur)
 
             data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
+
+    fig, ax = plt.subplots()
+    
+    c = ax.pcolormesh(sample, y_sample, data, label = "LN")
+
+    ax.vlines(np.sqrt(2), bounds[0], bounds[1], color = "red")
+    
+    ax.set_xlabel('speedup')
+    ax.set_ylabel('N')
+
+    fig.colorbar(c, ax=ax)
+
+    #display finished plot or pass parameter for further additions
+    if show:
+        plt.show()
+        ax.legend()
+    else :
+        return fig, ax
+
+def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p", show = False) :
+
+    sample = np.linspace(.1,10, 1000)
+    y_sample = np.arange(bounds[0],bounds[1]+1)
+    data = np.empty( ( len(y_sample), len(sample)))
+
+    cur = QWGraph.Line(4)
+    an = Analyzer(cur, mode = "first")
+
+    for m in range( len(y_sample)):
+        print("Graph", m, "out of", len(y_sample) )
+
+        #get hypothetical best phase for the given chain
+        cur = QWGraph.chain(gr_unit, rep = y_sample[m], speedup = 1)
+        an.set_gr(cur)
+
+        best_phi = an.optimum_phase_minimize( diag= True)[0]
+        #print(best_phi)
+        
+        for i in range(len(sample)):
+            cur = QWGraph.chain(gr_unit, rep = y_sample[m], speedup = sample[i])
+            an.set_gr(cur)
+
+            data[m,i] = an.performance_diag( phi = best_phi, t = (target !="p"))
 
     fig, ax = plt.subplots()
     

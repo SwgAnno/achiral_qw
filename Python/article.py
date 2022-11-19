@@ -34,7 +34,7 @@ def plot_simpler_topo_progression( bounds = (3,12), target = "p", x_mode = "dist
     out = optimized_progression(gr_list, target = target, mode = mode, TC = TC)
     x = get_list_x(gr_list, x_mode = x_mode)
 
-    plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, label = "Ch", show = True, fig = fig, ax = ax)
+    plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, label = "h(C)", show = True, fig = fig, ax = ax)
 
 def plot_odd_even_progression( bounds = (3,12), target = "p", x_mode = "dist",mode = "TC", TC = 1) :
 
@@ -142,7 +142,7 @@ def plot_performance_even( step = 100):
 
     plot_performance_list(gr_list, sample_step = step, an_mode = "first")
 
-def t_chain_progression_multi(gr_unit = QWGraph.Ring(3), bounds = (1,10), sample_step = 5):
+def t_chain_progression_multi(gr_unit = QWGraph.Ring(3), bounds = (1,10), sample_step = 5, fig = None, ax = None):
 
     if gr_unit.code[0] == "C" and gr_unit.N % 2 == 0:
         phi_vec = np.arange(0, sample_step) * np.pi/sample_step
@@ -150,11 +150,36 @@ def t_chain_progression_multi(gr_unit = QWGraph.Ring(3), bounds = (1,10), sample
         phi_vec = np.arange(0, sample_step) * 2*np.pi/sample_step
     print(phi_vec)
 
-    fig = None
-    ax = None
     for i in range(len(phi_vec)):
         fig, ax = plot_chain_progression(gr_unit = gr_unit, bounds = bounds, target = "t", fix_phi = phi_vec[i], \
                                          show = False, fig = fig, ax = ax)
+
+    a = ax.get_xlim()
+    l_bounds = (2 ,int(a[1]))
+    L_x, L_data = get_line_data( l_bounds, target = "t")
+    ax.plot(L_x, L_data, label = "L", color = "green")
+
+    ax.legend()
+    return fig, ax
+
+def t_size_progression_multi(g_type = "C", bounds = (3,15), sample_step = 5, **kwargs):
+
+    if g_type == "C" and bounds[0] % 2 == 0:
+        phi_vec = np.arange(0, sample_step) * np.pi/sample_step
+    else :
+        phi_vec = np.arange(0, sample_step) * 2*np.pi/sample_step
+    print(phi_vec)
+
+    gr_list = []
+    for i in range( bounds[1]- bounds[0] +1):
+        gr_list.append( QWGraph.Ring( bounds[0]+ i*2))
+
+    fig = None
+    ax = None
+    for i in range(len(phi_vec)):
+
+        data = optimized_progression(gr_list,target = "t", opt_mode = "fix", opt_phi = phi_vec[i], **kwargs)
+        fig, ax = plot_standard_progression(data ,target = "t",fig = fig, ax = ax, show = False)
 
     a = ax.get_xlim()
     l_bounds = (2 ,int(a[1]))
@@ -188,3 +213,22 @@ def chain_ch_comp( bounds = (3,20), target = "p"):
     fig, ax = plot_chain_progression( QWGraph.Ring(3), bounds = chain3_bounds, target = target, show = False)
     fig, ax = plot_size_progression( "Ch", bounds = bounds, target = target, show = False, fig = fig, ax = ax)
     plot_size_progression( "L", bounds = bounds, target = target, show = True, fig = fig, ax = ax)
+
+def chain_performance_multi_speedup( gr_unit,su_vec, rep = 10, sample_step = 100, target = "p"):
+
+    fig = None
+    ax = None
+
+    for i in range(len(su_vec) -1):
+        print("Graph", i, "out of", len(su_vec) )
+        chain = QWGraph.chain(gr_unit, rep, speedup = su_vec[i])
+        chain.code = "C3chain s" + str(su_vec[i])
+        fig,ax = plot_performance( chain, sample_step= sample_step, mode = "diag", fig = fig, ax = ax, show = False)
+
+    chain = QWGraph.chain(gr_unit, rep, speedup = su_vec[-1])
+    chain.code = "C3chain " + str(su_vec[-1])
+    plot_performance( chain, sample_step= sample_step, mode = "diag", fig = fig, ax = ax, show = True)
+
+
+
+
