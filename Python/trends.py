@@ -2,7 +2,7 @@ from simulator import *
 from Graph import *
 from bessel import *
 from scipy.optimize import minimize_scalar
-from plotter import plot_standard_progression, set_progression_plot
+from plotter import set_progression_plot
 import scipy.stats as stats
 
 # plot tick API

@@ -98,7 +98,7 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
     ax.set_ylabel('site')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
-    c = ax.pcolormesh(seq, selection, evo,label = gr.code)
+    c = ax.pcolormesh(seq, selection, evo,vmin = 0, vmax = 1,label = gr.code)
 
     fig.colorbar(c, ax=ax)
 
@@ -134,7 +134,7 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     if ax == None :
         fig, ax = plt.subplots()
 
-    c = ax.pcolormesh(seq, phase_seq, data, cmap = "inferno", label = gr.code)
+    c = ax.pcolormesh(seq, phase_seq, data, cmap = "inferno",vmin = 0, vmax = 1, label = gr.code)
     
     ax.set_xlabel('t')
     ax.set_ylabel(chr(952))
@@ -258,7 +258,7 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None,
 #plot performance methods
 
 def plot_performance(gr, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
-                    ax = None):
+                    ax = None, **kwargs):
     """
     Generic wrapper to plot transport performance as a function of phases
     actually a router method for graph-specific routines       
@@ -267,13 +267,13 @@ def plot_performance(gr, sample_step = 100, target = "p", mode = None, an_mode =
     an = Analyzer(gr, TC = TC, qutip = qut, mode = an_mode)
 
     if mode == "diag":
-        return plot_performance_diag(sample_step, target, an, ax)
+        return plot_performance_diag(sample_step, target, an, ax, **kwargs)
     elif gr.get_phase_n() == 1 :
-        return plot_performance_1(sample_step, target, an, ax)
+        return plot_performance_1(sample_step, target, an, ax, **kwargs)
     elif gr.get_phase_n() == 2 :
-        return plot_performance_2(sample_step, target, an, ax)
+        return plot_performance_2(sample_step, target, an, ax, **kwargs)
     elif mode == "time":
-        return plot_performance_time(sample_step, an, ax)
+        return plot_performance_time(sample_step, an, ax, **kwargs)
     else :
         raise NotImplementedError("Plot mode not found or graph not supported")
 
@@ -343,10 +343,13 @@ def plot_performance_1(sample_step, target, an, ax = None):
     return ax
     
 # 2-phased graph performance
-def plot_performance_2(sample_step, target, an, ax = None):
+def plot_performance_2(sample_step, target, an, ax = None, verbose = False):
     """
     Transport performance for 2-phase graphs
     """
+
+    if verbose :
+        print("plot_performance_2 : ", an.get_label())
     
     seq = np.linspace(0, np.pi*2, sample_step)
 
@@ -357,7 +360,7 @@ def plot_performance_2(sample_step, target, an, ax = None):
 
     set_performance_plot(ax, target = "p", dim = 2)
     
-    c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", label = an.solver.gr.code)
+    c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", vmin = 0, vmax = 1,label = an.solver.gr.code)
 
     #Pass parameter for further additions
     return ax
@@ -379,8 +382,8 @@ def set_performance_plot(ax,target = "p", dim = 1):
             ax.set_ylim(bottom = 0, auto = True)
 
     elif dim == 2:
-        ax.set_xlabel("$\tetha_1$")
-        ax.set_ylabel("$\tetha_2$")
+        ax.set_xlabel("$\\theta_1$")
+        ax.set_ylabel("$\\theta_2$")
 
 def set_progression_plot(ax,x_mode = "dist", target = "p"):
 
@@ -396,9 +399,9 @@ def set_progression_plot(ax,x_mode = "dist", target = "p"):
         raise NotImplementedError("target mode not supported")
 
 #probably usless helper 
-def plot_probability_colorbar():
+def probability_colorbar_map():
     norm = colors.Normalize(vmin= 0, vmax=1)
-    map = cm.ScalarMappable(norm, cmap="viridis")
-    plt.colorbar( map)
+    map = cm.ScalarMappable(norm, cmap="inferno")
+    return map
 
 
