@@ -433,3 +433,71 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
 
     #Pass parameter for further additions
     return ax
+
+#############################################
+# progression plots
+
+def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "", ax = None):
+    """
+    Plot helper for a standard progression ouput
+        prog[0] is a lsist containing x_mode indices
+        prog[1] is a list containing the relative performances
+    """
+    if ax == None:
+        fig, ax = plt.subplots(1, 1, figsize = (6,5))
+        set_progression_plot(ax, x_mode=x_mode, target=target)
+    
+    ax.plot(prog[0], prog[1], marker = ".", label = label)
+
+    #force integer ticks (discrete families of graphs)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+
+    #Pass parameter for further additions
+    return ax
+
+# chain_progression() data plotting function, adapted for multiple draw call
+def plot_chain_progression(gr_unit, bounds = (1,10), target = "p", \
+                            x_mode = "dist", HANDLES = True, fix_phi = None, \
+                            ax = None):
+    """
+    Optimized Transport time/probability for a family of chain graphs
+    built from a given unit
+    """
+    
+    x, data = chain_progression( gr_unit = gr_unit, bounds = bounds, target = target, \
+                                x_mode = x_mode, HANDLES = HANDLES, fix_phi = fix_phi,\
+                                show = False)
+
+    if ax == None :
+        fig, ax = plt.subplots()
+
+        set_progression_plot(ax, x_mode = x_mode, target = target)
+
+    phi_label = ""
+    if fix_phi != None:
+        phi_label = str(int( fix_phi // (np.pi/6))) + "/6" + chr(960)
+
+    
+    ax.plot(x, data, label = gr_unit.code + " " + phi_label)
+    
+    #Pass parameter for further additions
+    return ax
+
+def plot_size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, \
+                            show = False, fig = None, ax = None, **kwargs) :
+
+    """
+    Optimized Transport time/probability for a given family of graphs
+    Supported topologies: C, Ch, L (relies on size prorgession)
+    """
+    x, data = size_progression( g_type = g_type, bounds = bounds, target = target, x_mode = x_mode, speedup = speedup, L_ref = L_ref, show = False, **kwargs)
+
+    if fig == None or ax == None:
+        fig, ax = plt.subplots()
+
+        set_progression_plot(ax, x_mode = x_mode, target = target)
+    
+    ax.plot(x, data, label = g_type)
+
+    #Pass parameter for further additions
+    return ax
