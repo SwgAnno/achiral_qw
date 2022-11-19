@@ -1,15 +1,18 @@
-from plotter import *
 from simulator import *
 from Graph import *
+from bessel import *
 from scipy.optimize import minimize_scalar
+from plotter import plot_standard_progression, set_progression_plot
 import scipy.stats as stats
 
 # plot tick API
 from matplotlib.ticker import MaxNLocator
 
-
-#progression of first maxima of squared bessel function
-def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref = True,show = True):
+#todo: this shouldnt be able to plot just give the progression
+def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref = True):
+    """
+    Progression of first maxima of squared bessel function
+    """
 
     def f(x,l):
         return -4* np.power( np.abs( jv(l,2*x)), 2)
@@ -29,7 +32,7 @@ def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref 
         for i in range( data.shape[1]):
             data[1,i] = -1* f(data[1,i], data[0,i])
 
-    fig, ax = plot_standard_progression(data, target = target, x_mode = "order", show = False)
+    ax = plot_standard_progression(data, target = target, x_mode = "order")
 
     if L_ref:
         line_data = get_line_data( bounds, target = target, x_mode = "size")
@@ -49,12 +52,16 @@ def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref 
         for t in grid:
             eval.append( approx(t))
 
-        plt.plot(grid, eval)
+        ax.plot(grid, eval)
 
     plt.show()
 
 
 def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, show = False):
+    """
+    Transport Time/Probability of a family of graph from a selected list of topologies
+        suppoerted topologies: C, Ch, L
+    """
     
     gr_list = []
     for i in range( bounds[1]- bounds[0] +1):
@@ -68,21 +75,25 @@ def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist
     out = optimized_progression(gr_list, target = target)
     x = get_list_x(gr_list, x_mode = x_mode)
 
+    #todo: show option on data methods is bullshit
     if show:
         if L_ref:
             line_data = get_line_data( (min(x), max(x)), target = target, x_mode = x_mode)
 
-            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = False)
+            ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode)
             ax.plot(line_data[0], line_data[1], color = "green")
 
-            plt.show()
         else :
-            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
+            plot_standard_progression([x, out[1]], target = target, x_mode = x_mode)
+
+        plt.show()
     else:
         return out
 
-#Compare line behaviour with Abramovich(???) handbook expansion
 def line_progression_vs_bessel_expansion(bounds = (3,10)):
+    """
+    Compare line behaviour with Abramovich(???) handbook expansion
+    """
 
     x = np.arange(bounds[0], bounds[1]+1)
 
@@ -96,25 +107,32 @@ def line_progression_vs_bessel_expansion(bounds = (3,10)):
 
     line_data = get_line_data(  bounds, target = "p", x_mode = "dist")
 
-    fig, ax = plot_standard_progression(line_data, target = "p", x_mode = "dist", show = False)
+    ax = plot_standard_progression(line_data, target = "p", x_mode = "dist")
     
     grid = np.arange(bounds[0], bounds[1], .1)
     eval = []
     for t in grid:
         eval.append( approx(t))
 
-    plt.plot(grid, eval)
+    ax.plot(grid, eval)
 
     plt.show()
     pass
 
 
-#simple wrapper for L class references
+
 def get_line_data(bounds = (3,10), target = "p", x_mode = "dist"):
+    """
+    Simple wrapper for L graphs progression references   
+    """
     return size_progression("L", bounds = bounds, target = target, x_mode = x_mode)
     
 def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p", \
                         x_mode = "dist", HANDLES = True, L_ref = True, fix_phi = None, show = False):
+    """
+    Transport Time/Probability of a family of chain graph from a given unit
+    """
+
     gr_list = []
 
     for i in range( bounds[1]- bounds[0] +1):
@@ -129,19 +147,22 @@ def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p",
 
     if show:
         if L_ref:
-            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = False)
+            ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode)
 
             line_data = get_line_data( (min(x), max(x)), target = target, x_mode = x_mode)
             ax.plot(line_data[0], line_data[1], color = "green")
 
         else :
-            fig, ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode, show = True)
+            plot_standard_progression([x, out[1]], target = target, x_mode = x_mode)
             
         plt.show()
     else:
         return x, out[1]
 
 def time_progression_lm( gr_list, x_mode = "dist"):
+    """
+    Construct a linear model of the best transport time from a generic list of graphs
+    """
     
     data = optimized_progression(gr_list, target = "t")
 
@@ -156,7 +177,11 @@ def time_progression_lm( gr_list, x_mode = "dist"):
     return out.slope, out.intercept
 
 def time_size_progression_lm(g_type = "C", x_mode = "dist"):
-    
+    """
+    Construct a linear model of the best transport time for a selected famoly of graphs
+        supported topologies: C,Ch, L (relies on size_progression)
+    """
+    #todo: should it rely on time_progression?
     gr_list = []
 
     #carefully chosen(?)
@@ -175,6 +200,10 @@ def time_size_progression_lm(g_type = "C", x_mode = "dist"):
     return out.slope, out.intercept
 
 def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLES = True, L_ref = True):
+    """
+    Construct a linear model of the best transport time from a family of chain graphs
+    built from a given unit
+    """
     
     gr_list = []
 
@@ -207,6 +236,10 @@ def time_chain_progression_lm(gr_unit = QWGraph.Ring(4), x_mode = "dist", HANDLE
     
 
 def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag = True, opt_mode = None, opt_phi = None):
+    """
+    Return best trasnport time/probability from a given list of graphs
+    """
+    
     perf = np.empty( len(g_list))
 
     print("########\nOptimized progression", target, mode)
@@ -236,36 +269,11 @@ def optimized_progression( g_list, target = "p", mode = "first",TC = None, diag 
     x = np.arange(1, len(g_list)+1)
 
     return x , perf
-
-#plot best transport performance for a general collection of graph
-def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "",show = False, fig = None, ax = None):
-
-    if fig == None:
-        fig, ax = plt.subplots(1, 1, figsize = (6,5))
     
-    ax.plot(prog[0], prog[1], marker = ".", label = label)
-
-    #force integer ticks
-    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-
-    if(target == "p"):
-        ax.set_ylim(0,1.1)
-            
-        ax.set_xlabel(x_mode)
-        ax.set_ylabel('max P')
-    if(target == "t"):
-        ax.set_ylim( auto = True)
-        ax.set_xlabel(x_mode)
-        ax.set_ylabel('t')
-
-    #display finished plot or pass parameter for further additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
-    
-def plot_speedup_performance(N, target = "p", show = False) :
+def plot_speedup_performance(N, target = "p", ax = None) :
+    """
+    L(N) best transport time/probability as a function of internal speedup
+    """
 
     sample = np.linspace(.1,10, 1000)
     data = np.empty( len(sample))
@@ -279,29 +287,21 @@ def plot_speedup_performance(N, target = "p", show = False) :
 
         data[i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
 
-    fig, ax = plt.subplots()
+    if ax == None:
+        fig, ax = plt.subplots()
+        set_progression_plot(ax, x_mode = "$\mu$ speedup", target=target)
     
     ax.plot(sample, data, label = "L" + str(N))
 
-    if(target == "p"):
-        plt.ylim(0,1.1)
-            
-        ax.set_xlabel("speedup")
-        ax.set_ylabel('max P')
-    if(target == "t"):
-        ax.set_xlabel("speedup")
-        ax.set_ylabel('t')
-
     print(max(data), sample[np.argmax(data)])
 
-    #display finished plot or pass parameter for further additions
-    if show:
-        plt.show()
-        ax.legend()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
-def plot_evo_line_speedup(N, bounds = (0,50), step = .5, show = False):
+def plot_evo_line_speedup(N, bounds = (0,50), step = .5, fig = None, ax = None):
+    """
+    L(N) evolution as a function of time and speedup
+    """
     
     gr = QWGraph.Line(N)
     sample = np.linspace(.1,10, 1000)
@@ -316,7 +316,8 @@ def plot_evo_line_speedup(N, bounds = (0,50), step = .5, show = False):
 
         data[m,:] = an.evo_full(bounds = bounds, step = step)
 
-    fig, ax = plt.subplots()
+    if ax == None :
+        fig, ax = plt.subplots()
     
     c = ax.pcolormesh(t_sample, sample, data, label = "LN")
     
@@ -325,14 +326,13 @@ def plot_evo_line_speedup(N, bounds = (0,50), step = .5, show = False):
 
     fig.colorbar(c, ax=ax)
 
-    #display finished plot or pass parameter for further additions
-    if show:
-        plt.show()
-        ax.legend()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
-def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 10), su_sample = 1000, show = False):
+def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 10), su_sample = 1000, fig = None, ax = None):
+    """
+    No phase chain graph best transport time/probability as a function of time and speedup
+    """
     
     if bounds == None :
         bounds = (0, 50)
@@ -350,7 +350,8 @@ def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 1
         
         data[m,:] = an.evo_full(bounds = bounds, step = step)
 
-    fig, ax = plt.subplots()
+    if ax == None :
+        fig, ax = plt.subplots()
     
     c = ax.pcolormesh(t_sample, sample, data, label = "LN")
     
@@ -359,14 +360,10 @@ def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 1
 
     fig.colorbar(c, ax=ax)
 
-    #display finished plot or pass parameter for further additions
-    if show:
-        plt.show()
-        ax.legend()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
-def plot_speedup_performance_multi(bounds = (4,20), target = "p", show = False) :
+def plot_speedup_performance_multi(bounds = (4,20), target = "p",fig = None, ax = None) :
 
     sample = np.linspace(.1,10, 1000)
     y_sample = np.arange(bounds[0],bounds[1]+1)
@@ -382,7 +379,8 @@ def plot_speedup_performance_multi(bounds = (4,20), target = "p", show = False) 
 
             data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
 
-    fig, ax = plt.subplots()
+    if ax == None :
+        fig, ax = plt.subplots()
     
     c = ax.pcolormesh(sample, y_sample, data, label = "LN")
 
@@ -393,14 +391,10 @@ def plot_speedup_performance_multi(bounds = (4,20), target = "p", show = False) 
 
     fig.colorbar(c, ax=ax)
 
-    #display finished plot or pass parameter for further additions
-    if show:
-        plt.show()
-        ax.legend()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
-def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p", show = False) :
+def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p", ax = None) :
 
     sample = np.linspace(.1,10, 1000)
     y_sample = np.arange(bounds[0],bounds[1]+1)
@@ -425,7 +419,8 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
 
             data[m,i] = an.performance_diag( phi = best_phi, t = (target !="p"))
 
-    fig, ax = plt.subplots()
+    if ax == None :
+        fig, ax = plt.subplots()
     
     c = ax.pcolormesh(sample, y_sample, data, label = "LN")
 
@@ -436,9 +431,5 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
 
     fig.colorbar(c, ax=ax)
 
-    #display finished plot or pass parameter for further additions
-    if show:
-        plt.show()
-        ax.legend()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax

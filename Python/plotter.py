@@ -14,13 +14,16 @@ TC = 1
 qut = False
 
 
-#Plot probability evolution on each and every site of the graph
-#todo: discuss show buffering option
-def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, TC = None, show = True):
 
-    if not end and not TC:
-        print( "plot_evo_mat error, no time bounds given")
-    elif not end:
+def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, TC = None, ax = None):
+    """
+    Plot probability evolution on each and every site of the graph
+    todo: discuss show buffering option   
+    """
+
+    assert end or TC , "plot_evo_mat, no time bounds given"
+
+    if not end:
         end = gr.distance()*TC
     global qut
 
@@ -43,26 +46,29 @@ def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, TC = None, 
         else :
             selection = filter
 
-    fig, ax = plt.subplots()
+    #no previous plot given, must create from scatch
+    if ax == None:
+        fig, ax = plt.subplots()
+        
+        ax.set_xlabel('Time')
+        ax.set_ylabel('Expectation values')
+
     for i in selection :
         ax.plot(seq, evo[i][:], label = str(i))
-    ax.set_xlabel('Time')
-    ax.set_ylabel('Expectation values')
 
 
-    #display finished plot or pass parameter for firther additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
+    #return ax parameter for further additions
+    ax.legend()
+    return ax
 
-#display evolution on a 2D heatmap
-def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC = None, show = True):
+def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC = None, fig = None, ax = None):
+    """
+    Display probability evolution on each node of a graph in a 2D heatmap
+    """
     
-    if not end and not TC:
-        print( "plot_evo_mat_heatmap error, no time bounds given")
-    elif not end:
+    assert end or TC , "plot_evo_mat_heatmap, no time bounds given"
+
+    if not end:
         end = gr.distance()*TC
     global qut
 
@@ -85,30 +91,29 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
         else :
             selection = filter
 
-    fig, ax = plt.subplots()
-
-    c = ax.pcolormesh(seq, selection, evo,label = gr.code)
-
-    fig.colorbar(c, ax=ax)
+    #no previous plot
+    if ax == None :
+        fig, ax = plt.subplots()
 
     ax.set_xlabel('t')
     ax.set_ylabel('site')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
 
+    c = ax.pcolormesh(seq, selection, evo,label = gr.code)
 
-    #display finished plot or pass parameter for firther additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
-    pass
+    fig.colorbar(c, ax=ax)
 
-def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, show = True):
-    
-    if not end and not TC:
-        print( "plot_evo_vs_phase error, no time bounds given")
-    elif not end:
+    #dPass parameter for further additions
+    return ax
+
+def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, ax = None):
+    """
+    Plot probability evolution on target site as a function of time and phase
+        Graph must have 1 free phase to work properly
+    """
+
+    assert end or TC , "plot_evo_vs_phase error, no time bounds given"
+    if not end:
         end = gr.distance()*TC
     global qut
 
@@ -127,7 +132,8 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
 
         data[i:] = an.evo_full( bounds = (start,end), step = by)
 
-    fig, ax = plt.subplots()
+    if ax == None :
+        fig, ax = plt.subplots()
 
     c = ax.pcolormesh(seq, phase_seq, data, cmap = "inferno", label = gr.code)
     
@@ -136,14 +142,8 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
 
     fig.colorbar(c, ax=ax)
 
-
-    #display finished plot or pass parameter for firther additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
-    pass
+    #Pass parameter for further additions
+    return ax
 
 def plot_line_bessel_evolution(l = 5, end = 30):
 
@@ -225,12 +225,12 @@ def plot_ring_vs_bessel(l = 5, end = 30):
 
     plt.show()
 
-#comparison between target site rpobability and its derivative
-def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None, show = True):
-
-    if not end and not TC:
-        print( "plot_evo_vs_derivative error, no time bounds given")
-    elif not end:
+def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None, ax = None):
+    """
+    Comparison between target site probability and its derivative
+    """
+    assert end or TC , "plot_evo_vs_derivative error, no time bounds given"
+    if not end:
         end = gr.distance()*TC
     global qut
 
@@ -242,90 +242,66 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None,
     evo = solver.target_p(seq)
     deriv = solver.target_p_prime(seq)
 
-    fig, ax = plt.subplots()
+    if ax == None :
+        fig, ax = plt.subplots()
+        ax.set_xlabel('Time')
+        ax.set_ylabel('P')
 
     ax.plot(seq, evo)
     ax.plot(seq, deriv)
-    
-    ax.set_xlabel('Time')
-    ax.set_ylabel('P')
 
     ax.legend(["P", "dP/dt"])
     
-    #display finished plot or pass parameter for firther additions
-    if show:
-        plt.show()
-    else :
-        return fig, ax
+    #Pass parameter for firther additions
+    return ax
 
-# phase-dependent best transport maxima
-# can select either its value or the time of arrival
-# actually a router method for more specific performance-like routines
+########################################
+#plot performance methods
+
 def plot_performance(gr, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
-                     show = True, fig = None, ax = None):
-
+                    ax = None):
+    """
+    Generic wrapper to plot transport performance as a function of phases
+    actually a router method for graph-specific routines       
+    """
     global qut
     an = Analyzer(gr, TC = TC, qutip = qut, mode = an_mode)
 
     if mode == "diag":
-        return plot_performance_diag(sample_step, target, an, show, fig, ax)
-    elif mode == "time":
-        return plot_performance_time(sample_step, an, show, fig, ax)
+        return plot_performance_diag(sample_step, target, an, ax)
     elif gr.get_phase_n() == 1 :
-        return plot_performance_1(sample_step, target, an, show,  fig, ax)
+        return plot_performance_1(sample_step, target, an, ax)
     elif gr.get_phase_n() == 2 :
-        return plot_performance_2(sample_step, target, an, show)
+        return plot_performance_2(sample_step, target, an, ax)
+    elif mode == "time":
+        return plot_performance_time(sample_step, an, ax)
     else :
-        print("")
+        raise NotImplementedError("Plot mode not found or graph not supported")
 
-# wrapper for plot performance for a list imput
-def plot_performance_list(gr_list, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
-                     show = True):
-
-    fig = None
-    ax = None
-    for i in range( len(gr_list) -1):
-        fig, ax = plot_performance(gr_list[i], sample_step, target, mode, an_mode, TC,show = False, fig = fig, ax = ax)
-
-    if show :
-        plot_performance(gr_list[-1], sample_step, target, mode, an_mode, TC, \
-                        show = True, fig = fig, ax = ax)
-    else :
-        return plot_performance(gr_list[-1], sample_step, target, mode, an_mode, TC, \
-                                show = False, fig = fig, ax = ax)
-
-# equal-phases setting best transport maxima
-def plot_performance_diag(sample_step, target, an, show , fig = None , ax = None):
+def plot_performance_diag(sample_step, target, an, ax = None):
+    """
+    Transport performance in equal phases setting as a function of one parameter
+    """
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
     perf = an.performance_full_diag(sample_step = sample_step, target = target)
 
-    if fig == None or ax == None :
+    if ax == None :
         fig, ax = plt.subplots()
 
-        ax.set_xlabel( chr(952))
-        ax.set_xlim(0,6.28)
-
-        if target == "p":
-            ax.set_ylabel('max P')
-            ax.set_ylim(bottom = 0, top = 1)
-        else :
-            ax.set_ylabel("t")
-            ax.set_ylim(bottom = 0)
+        set_performance_plot(ax, target)
 
     ax.plot(seq, perf, label = an.get_label())
     
-    #display finished plot or pass parameter for further additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
-# diagonal performance + time of arrival as color
-
-def plot_performance_time( sample_step, an, show , fig = None, ax = None):
+def plot_performance_time( sample_step, an, ax = None):
+    """
+    Plot diagonal trsnsport probability performance
+    + time of arrival information as color
+    """
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
@@ -334,14 +310,10 @@ def plot_performance_time( sample_step, an, show , fig = None, ax = None):
     time = []
     time = an.performance_full_diag(sample_step = sample_step, target = "t")
 
-    if fig == None or ax == None :
+    if ax == None :
         fig, ax = plt.subplots()
 
-        ax.set_xlabel( chr(952))
-        ax.set_xlim(0,6.28)
-
-        ax.set_ylabel('max P')
-        ax.set_ylim(bottom = 0, top = 1)
+        set_performance_plot(ax, target = "p")
 
     ax.scatter(seq, perf, s = 10, c = time , cmap = "viridis")
 
@@ -349,84 +321,86 @@ def plot_performance_time( sample_step, an, show , fig = None, ax = None):
     map = cm.ScalarMappable(norm, cmap="viridis")
     plt.colorbar( map)
     
-    #display finished plot or pass parameter for further additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
+def plot_performance_1(sample_step, target, an, ax = None):
+    """
+    Transport performance for 1-phase graphs
+    """
 
-# 1-phased graph performance
-def plot_performance_1(sample_step, target, an, show, fig = None, ax = None):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = an.performance_full(sample_step = sample_step, target = target)
 
-    if fig == None or ax == None :
-        fig, ax = plt.subplots()
+    if ax == None :
+        fig, ax = plt.subplots( figsize = (6,5))
 
-        ax.set_xlabel( chr(952))
-        ax.set_xlim(0,6.28)
+        set_performance_plot(ax,target)
 
-        if target == "p":
-            ax.set_ylabel('max P')
-            ax.set_ylim(bottom = 0, top = 1)
-        else :
-            ax.set_ylabel("t")
-            ax.set_ylim(bottom = 0)
-    
     ax.plot(seq, perf, label = an.get_label())
 
-
-    #display finished plot or pass parameter for further additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
     
 # 2-phased graph performance
-def plot_performance_2(sample_step, target, an, show):
+def plot_performance_2(sample_step, target, an, ax = None):
+    """
+    Transport performance for 2-phase graphs
+    """
+    
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = an.performance_full(sample_step = sample_step, target = target)
 
-    fig, ax = plt.subplots()
+    if ax == None:
+        fig, ax = plt.subplots()
+
+    set_performance_plot(ax, target = "p", dim = 2)
     
     c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", label = an.solver.gr.code)
+
+    #Pass parameter for further additions
+    return ax
+
+#############################################
+# progression plots
+
+def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "", ax = None):
+    """
+    Plot helper for a standard progression ouput
+        prog[0] is a lsist containing x_mode indices
+        prog[1] is a list containing the relative performances
+    """
+    if ax == None:
+        fig, ax = plt.subplots(1, 1, figsize = (6,5))
+        set_progression_plot(ax, x_mode=x_mode, target=target)
     
-    ax.set_xlabel(chr(952) + '1')
-    ax.set_ylabel(chr(952) + '2')
+    ax.plot(prog[0], prog[1], marker = ".", label = label)
 
-    fig.colorbar(c, ax=ax)
+    #force integer ticks (discrete families of graphs)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
-    #display finished plot or pass parameter for further additions
-    if show:
-        plt.show()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
 # chain_progression() data plotting function, adapted for multiple draw call
 def plot_chain_progression(gr_unit, bounds = (1,10), target = "p", \
                             x_mode = "dist", HANDLES = True, fix_phi = None, \
-                            show = True, fig = None, ax = None):
+                            ax = None):
+    """
+    Optimized Transport time/probability for a family of chain graphs
+    built from a given unit
+    """
     
     x, data = chain_progression( gr_unit = gr_unit, bounds = bounds, target = target, \
                                 x_mode = x_mode, HANDLES = HANDLES, fix_phi = fix_phi,\
                                 show = False)
 
-    if fig == None or ax == None :
+    if ax == None :
         fig, ax = plt.subplots()
 
-        ax.set_xlabel( x_mode)
-        if target == "p":
-            ax.set_ylabel('max P')
-            ax.set_ylim(bottom = 0, top = 1)
-
-        else :
-            ax.set_ylabel("t")
-            #ax.set_ylim(bottom = 0, top = 'auto')
+        set_progression_plot(ax, x_mode = x_mode, target = target)
 
     phi_label = ""
     if fix_phi != None:
@@ -435,40 +409,65 @@ def plot_chain_progression(gr_unit, bounds = (1,10), target = "p", \
     
     ax.plot(x, data, label = gr_unit.code + " " + phi_label)
     
-    #display finished plot or pass parameter for further additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
 
 def plot_size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, \
-                            show = False, fig = None, ax = None) :
+                            show = False, fig = None, ax = None, **kwargs) :
 
-    x, data = size_progression( g_type = g_type, bounds = bounds, target = target, x_mode = x_mode, speedup = speedup, L_ref = L_ref, show = False)
+    """
+    Optimized Transport time/probability for a given family of graphs
+    Supported topologies: C, Ch, L (relies on size prorgession)
+    """
+    x, data = size_progression( g_type = g_type, bounds = bounds, target = target, x_mode = x_mode, speedup = speedup, L_ref = L_ref, show = False, **kwargs)
 
     if fig == None or ax == None:
         fig, ax = plt.subplots()
 
-        ax.set_xlabel( x_mode)
-        if target == "p":
-            ax.set_ylabel('max P')
-            ax.set_ylim(bottom = 0, top = 1)
-
-        else :
-            ax.set_ylabel("t")
-            #ax.set_ylim(bottom = 0, top = 'auto')
+        set_progression_plot(ax, x_mode = x_mode, target = target)
     
     ax.plot(x, data, label = g_type)
 
-    #display finished plot or pass parameter for further additions
-    if show:
-        ax.legend()
-        plt.show()
-    else :
-        return fig, ax
+    #Pass parameter for further additions
+    return ax
     
-################
+############################################
+#utils
 
+def set_performance_plot(ax,target = "p", dim = 1):
+        
+    if dim == 1 :
+        ax.set_xlabel( "$\tetha$")
+        ax.set_xlim(0,6.28)
+
+        if target == "p":
+            ax.set_ylabel('$P_{max}$')
+            ax.set_ylim(bottom = 0, top = 1)
+        else :
+            ax.set_ylabel("t")
+            ax.set_ylim(bottom = 0, auto = True)
+
+    elif dim == 2:
+        ax.set_xlabel("$\tetha_1$")
+        ax.set_ylabel("$\tetha_2$")
+
+def set_progression_plot(ax,x_mode = "dist", target = "p"):
+
+    ax.set_xlabel(x_mode)
+
+    if target == "p":
+        ax.set_ylabel('$P_{max}$')
+        ax.set_ylim(bottom = 0, top = 1)
+    elif target == "t":
+        ax.set_ylabel("t")
+        ax.set_ylim(bottom = 0, auto = True)
+    else :
+        raise NotImplementedError("target mode not supported")
+
+#probably usless helper 
+def plot_probability_colorbar():
+    norm = colors.Normalize(vmin= 0, vmax=1)
+    map = cm.ScalarMappable(norm, cmap="viridis")
+    plt.colorbar( map)
 
 
