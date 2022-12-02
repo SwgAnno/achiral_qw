@@ -258,7 +258,8 @@ def plot_chain_progression_multi( bounds = (3,20), loglog = False, target = "p")
     plot_size_progression( "L", bounds = bounds, target = target, ax = ax)
 
     ax.legend()
-    plt.show()
+    
+    return fig, ax
 
 def plot_odd_even_progression( bounds = (3,12), target = "p", x_mode = "dist",mode = "TC", TC = 1, ax = None) :
     """

@@ -341,7 +341,7 @@ plt.show()
 
 #plot_size_progression_multi( bounds = (4,50), loglog = True, mode = "first", target = "p", TC = 20).legend()
 #plot_odd_even_progression( bounds = (3,40), mode = "first", target = "p", TC = 1).legend()
-plot_chain_progression_multi(bounds = (3,10), loglog = True, target = "p")
+plot_chain_progression_multi(bounds = (3,50), loglog = True, target = "p")
 #plt.show()
 
 
