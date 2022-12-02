@@ -4,6 +4,8 @@ from simulator import *
 from trends import *
 from article import *
 
+import matplotlib.pyplot as plt
+
 #global parameters for plotter methods
 TC = 5
 qut = False
@@ -176,6 +178,54 @@ def check_ring_bessel_dist(l = 5, end = 10):
 
     print(eval)
 
+def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
+
+    sample = 4
+    aTC = 4
+
+    fig, axx = plt.subplots(1,4, figsize = (18,6))
+    t_chain_progression_multi(gr_unit, bounds = bounds, sample_step = sample, ax = axx[0])
+    axx[0].legend()
+
+    chain1 = QWGraph.chain(gr_unit, int(bounds[1]/4))
+    chain2 = QWGraph.chain(gr_unit, int(bounds[1]/2))
+    chain3 = QWGraph.chain(gr_unit, bounds[1])
+
+    plot_evo_vs_phase(chain1, TC = aTC, ax = axx[1], phase_by = by,plot_max= True)
+    plot_evo_vs_phase(chain2, TC = aTC, ax = axx[2], phase_by = by, plot_max= True )
+    plot_evo_vs_phase(chain3, TC = aTC, ax = axx[3], phase_by = by, plot_max= True)
+
+    title_temp = "size = {}, d = {}"
+    axx[1].set_title(title_temp.format(int(bounds[1]/4), chain1.distance()))
+    axx[2].set_title(title_temp.format(int(bounds[1]/2), chain2.distance()))
+    axx[3].set_title(title_temp.format(int(bounds[1]), chain3.distance()))
+
+    prob_map = probability_colorbar_map()
+    fig.subplots_adjust(.05, hspace = .25)
+    cbar_ax = fig.add_axes([0.92, 0.1, 0.025, 0.8])
+    fig.colorbar(prob_map, cbar_ax)
+
+
+#######################à
+
+    fig2, axx2 = plt.subplots(1, sample, figsize = (15,6))
+
+    #phi vec stolen from  t_chain_progression_multi
+    if gr_unit.code[0] == "C" and gr_unit.N % 2 == 0:
+        phi_seq = np.arange(0, sample) * np.pi/sample
+    else :
+        phi_seq = np.arange(0, sample) * 2*np.pi/sample
+    print(phi_seq)
+
+    phase_vec = np.exp( 1j * phi_seq)
+
+    for phase, ax in zip(phase_vec, axx2):
+        chain1.rephase( np.repeat( phase, chain1.get_phase_n() ))
+        plot_evo_mat(chain1, TC = 1, filter = "target", ax = ax)
+        ax.set_title( "phase = pi*%.2f" % (np.imag(np.log(phase))/np.pi))
+
+    plt.show()
+
 #todo: cleanup
 def random():
     #a  = QWGraph.chain(QWGraph.Ring(3), 10)
@@ -201,29 +251,59 @@ def random():
 #check_line_bessel_dist(5)
 
 #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
+#plot_speedup_performance_multi_chain(QWGraph.Ring(3), bounds = (4,20), target = "p", show = True
+#plot_performance(QWGraph.chain(QWGraph.Ring(3), 10, speedup = 1), sample_step= 1000, mode = "diag")
+#plot_evo_mat(QWGraph.chain(QWGraph.Ring(3), 5, speedup = 10), end = 50)
+#plot_evo_mat(QWGraph.Line(6, speedup = 20), end = 20)
+
+# su_vec = [1,2,4,5]
+# a = QWGraph.Ring(3)
+# plot_performance(a, an_mode = "TC", TC = 2)
+# chain_performance_multi_speedup(a, su_vec = su_vec,rep = 10, sample_step = 1000)
+#plot_evo_vs_phase( QWGraph.chain(a, 10, speedup = 5), by = .05, TC = 5, phase_by = .01)
+
+#a = QWGraph.chain(QWGraph.Ring(4), 1, speedup = 20)
+#a.plot()
+#b = QWGraph.Line(4, speedup = 20)
+#b.plot()
 
 #a = QWGraph.Ring(9)
+#a.plot()
 #plot_evo_vs_phase(a, TC = 2, phase_by = .01)
 #plot_performance(a,TC = 2, target = "t", sample_step = 500)
 
-#a = QWGraph.Ring(6, HANDLES = True)
+a = QWGraph.Ring(7, HANDLES = False)
+b = QWGraph.Ring(6, HANDLES = True)
 #plot_performance_1_multi(a, TC_vec = [5,20], first = True, step = 1000)
-#plot_performance_odd(step = 100)
+#plot_performance_odd_even(step = 1000)
+#comp_evo_vs_phase(a, [2,12], phase_by = .02, by = .05)
+
+#comp_size_progression([1,5,20], target = "t", bounds = (3, 30))
+#comp_performance_multi([b,a], TC_vec = [5,20], first = True, step = 1000)
+
 
 #a = QWGraph.Ring(8) + QWGraph.Ring(8)
 #a = QWGraph.SquareCut()
 #plot_performance(a, an_mode = "TC", TC = 2)
 
-#a = QWGraph.SquareCut()
+a = QWGraph.Ring(3)
+b = QWGraph.Ring(4)
+c = QWGraph.SquareCut()
+
 #a = QWGraph.chain(a, 5)
 #plot_performance(a, mode = "time", an_mode = "first", sample_step = 500)
 #plot_chain_progression(a, bounds = (1,10), target = "t", fix_phi = np.pi/2)
 #chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
-#t_chain_progression_multi(a, bounds = (1,50), sample_step = 4)
+#inspect_chain_first_maxima(b, bounds = (1,30), by = .02)
+#comp_t_chain_progression([a,b,c],mode = "best", target = "t", unit_bounds = (1,30), l_ref = True )
+#comp_best_t_chain_progression([a,b,c], target = "t", unit_bounds = (1,30), l_ref = True )
 
-#plot_size_progression_multi(bounds = (3,50))
-#plot_chain_progression_multi(bounds = (3,50))
-chain_ch_comp( bounds = (3,50))
+#t_chain_progression_multi(a, bounds = (1,10), sample_step = 4, ax = axx[0][0])
+
+#multi_2_phases_example(sample = 200)
+
+#chain_ch_comp( bounds = (3,50))
+#line_speedup_perf_comp( bounds = (6,60), step = 5, su_bounds = (.1,2.5,1000), mode = "first", TC = 1).legend()
 
 #a.rephase(-1j)
 #b = QWGraph.SquareCut()
@@ -233,8 +313,22 @@ chain_ch_comp( bounds = (3,50))
 #plot_evo_vs_phase(b ,end = 10)
 
 #plot_evo_chain_speedup(a, 10, bounds = (0,100), step = .2,su_sample = 300, show = True)
+#plot_evo_line_speedup(10)
+#plot_evo_line_speedup(11)
 
-#b = QWGraph.chain(b,10, speedup = 1)
+
+#parallel can chase the Bancho optimum
+# a = QWGraph.Parallel(4,2)
+# a = QWGraph.chain(a,32)
+# plot_performance(a, mode = "diag")
+
+plt.show()
+
+#b = QWGraph.Ring(51)
+#b.re_coord[0] = (2,1)
+#plot_performance(b)
+#b.rephase(1j)
+#print(b.mat)
 
 #b.krylov_basis(mode = "basis_plot")
 #b.krylov_basis(mode = "link_plot")
@@ -245,15 +339,28 @@ chain_ch_comp( bounds = (3,50))
 #a.krylov_basis(mode = "link_plot")
 
 
-#plot_simpler_topo_progression( bounds = (3,30), mode = "TC", target = "t", TC = 10)
-#plot_odd_even_progression( bounds = (3,40), mode = "first", target = "t", TC = 1)
+#plot_size_progression_multi( bounds = (4,50), loglog = True, mode = "first", target = "p", TC = 20).legend()
+#plot_odd_even_progression( bounds = (3,40), mode = "first", target = "p", TC = 1).legend()
+plot_chain_progression_multi(bounds = (3,10), loglog = True, target = "p")
+#plt.show()
+
 
 #odd_even_time_lm(HANDLES = False)
+#a = QWGraph.Ring(4)
+#a = QWGraph.SquareCut()
+#plot_performance(a, an_mode = "TC")
+#plot_chain_progression(a,bounds = (1,20), target = "t")
+#time_chain_progression_lm(a)
 
+#t_size_progression_multi( bounds = (4,16))
 
-
+plt.savefig("debug.png")
 
 ######################
 #theta as char
-print(chr(952))
+
+base = 950 -5
+
+greek =  [chr(base+i) for i in range(20)]
+print(greek)
 #####################

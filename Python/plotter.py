@@ -105,7 +105,7 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
     #dPass parameter for further additions
     return ax
 
-def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, ax = None):
+def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, plot_max = False, ax = None):
     """
     Plot probability evolution on target site as a function of time and phase
         Graph must have 1 free phase to work properly
@@ -122,24 +122,28 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     phase_vec = np.exp( 1j * phase_seq)
 
     data = np.ndarray( (len(phase_seq), len(seq)))
+    max_data = np.empty( (2,len(phase_seq)))
     
-    an = Analyzer(gr, qutip = qut)
+    an = Analyzer(gr, qutip = qut, mode = "first")
 
     for i in range( len(phase_vec)):
         an.rephase_gr( np.repeat( phase_vec[i], \
                                   an.dim() ))
 
         data[i:] = an.evo_full( bounds = (start,end), step = by)
+        max_data[:,i] = [ an.locate_max()[0], phase_seq[i]]
 
     if ax == None :
         fig, ax = plt.subplots()
 
     c = ax.pcolormesh(seq, phase_seq, data, cmap = "inferno",vmin = 0, vmax = 1, label = gr.code)
+
+    if plot_max :
+        ax.scatter(max_data[0], max_data[1], c = "green", s= 3)
     
+    ax.set_xlim(0, seq[-1])
     ax.set_xlabel('t')
     ax.set_ylabel(chr(952))
-
-    fig.colorbar(c, ax=ax)
 
     #Pass parameter for further additions
     return ax
@@ -403,5 +407,12 @@ def probability_colorbar_map():
     norm = colors.Normalize(vmin= 0, vmax=1)
     map = cm.ScalarMappable(norm, cmap="inferno")
     return map
+
+#trick to sneak in a global colorbar into a figure
+def fit_colorbar(fig ):
+    fig.subplots_adjust(.05, hspace = .25)
+    cbar_ax = fig.add_axes([0.92, 0.1, 0.025, 0.8])
+    map = probability_colorbar_map()
+    fig.colorbar(map, cax=cbar_ax)
 
 

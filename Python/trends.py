@@ -8,6 +8,13 @@ import scipy.stats as stats
 # plot tick API
 from matplotlib.ticker import MaxNLocator
 
+def unit_list(bounds, unit):
+
+    b_0 = max(0, bounds[0]// unit.distance())
+
+    return np.arange(b_0, bounds[1]// unit.distance())
+
+
 #todo: this shouldnt be able to plot just give the progression
 def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref = True):
     """
@@ -57,7 +64,7 @@ def bessel_progression( bounds = (3,12), target = "p", L_ref = True, approx_ref 
     plt.show()
 
 
-def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, show = False):
+def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, show = False,  **kwargs):
     """
     Transport Time/Probability of a family of graph from a selected list of topologies
         suppoerted topologies: C, Ch, L
@@ -66,13 +73,13 @@ def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist
     gr_list = []
     for i in range( bounds[1]- bounds[0] +1):
         if      g_type == "C":
-            gr_list.append( QWGraph.Ring( bounds[0]+ i) )
+            gr_list.append( QWGraph.Ring( bounds[0]+ i*2) )
         elif    g_type == "Ch":
-            gr_list.append( QWGraph.Ring( bounds[0]+ i, HANDLES = True) )
+            gr_list.append( QWGraph.Ring( bounds[0]+ i*2, HANDLES = True) )
         elif    g_type == "L":
             gr_list.append( QWGraph.Line( bounds[0]+ i, speedup = speedup))
 
-    out = optimized_progression(gr_list, target = target)
+    out = optimized_progression(gr_list, target = target, **kwargs)
     x = get_list_x(gr_list, x_mode = x_mode)
 
     #todo: show option on data methods is bullshit
@@ -88,7 +95,7 @@ def size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist
 
         plt.show()
     else:
-        return out
+        return x, out[1]
 
 def line_progression_vs_bessel_expansion(bounds = (3,10)):
     """
@@ -121,22 +128,37 @@ def line_progression_vs_bessel_expansion(bounds = (3,10)):
 
 
 
-def get_line_data(bounds = (3,10), target = "p", x_mode = "dist"):
+def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
     """
     Simple wrapper for L graphs progression references   
     """
     return size_progression("L", bounds = bounds, target = target, x_mode = x_mode)
+
+def plot_line_data(ax = None, bounds = None, **kwargs):
+
+    if ax == None:
+        fig, ax = plt.subplots(1,1,figsize = (6,5))
+
+    if bounds == None:
+        lim = ax.get_xlim()
+        bounds = (int(max(2, lim[0])), int(lim[1])+1)
+
+    print(bounds)
+
+    x, data = get_line_data(bounds=bounds,**kwargs)
+    ax.plot(x,data, color = "green", label = "L")
     
 def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p", \
-                        x_mode = "dist", HANDLES = True, L_ref = True, fix_phi = None, show = False):
+                        x_mode = "dist", HANDLES = True, fix_phi = None):
     """
     Transport Time/Probability of a family of chain graph from a given unit
     """
 
     gr_list = []
+    sizes = unit_list(bounds,gr_unit)
 
-    for i in range( bounds[1]- bounds[0] +1):
-        gr_list.append( QWGraph.chain(gr_unit, bounds[0]+ i, HANDLES = HANDLES))
+    for size in sizes:
+        gr_list.append( QWGraph.chain(gr_unit,size, HANDLES = HANDLES))
 
     if fix_phi != None:
         out = optimized_progression(gr_list, target = target, opt_mode = "fix", opt_phi = fix_phi)
@@ -145,19 +167,7 @@ def chain_progression( gr_unit = QWGraph.Ring(4), bounds = (1,10), target = "p",
         
     x = get_list_x(gr_list, x_mode = x_mode)
 
-    if show:
-        if L_ref:
-            ax = plot_standard_progression([x, out[1]], target = target, x_mode = x_mode)
-
-            line_data = get_line_data( (min(x), max(x)), target = target, x_mode = x_mode)
-            ax.plot(line_data[0], line_data[1], color = "green")
-
-        else :
-            plot_standard_progression([x, out[1]], target = target, x_mode = x_mode)
-            
-        plt.show()
-    else:
-        return x, out[1]
+    return x, out[1]
 
 def time_progression_lm( gr_list, x_mode = "dist"):
     """
@@ -298,14 +308,14 @@ def plot_speedup_performance(N, target = "p", ax = None) :
     #Pass parameter for further additions
     return ax
 
-def plot_evo_line_speedup(N, bounds = (0,50), step = .5, fig = None, ax = None):
+def plot_evo_line_speedup(N, bounds = (0,50,.5),su_bounds = (.01, 10, 1000), fig = None, ax = None):
     """
     L(N) evolution as a function of time and speedup
     """
     
     gr = QWGraph.Line(N)
-    sample = np.linspace(.1,10, 1000)
-    t_sample = np.arange(bounds[0], bounds[1], step)
+    sample = np.geomspace(*su_bounds)
+    t_sample = np.arange(*bounds)
     data = np.empty( ( len(sample), len(t_sample)))
 
     an = Analyzer(gr, mode = "first")
@@ -314,15 +324,16 @@ def plot_evo_line_speedup(N, bounds = (0,50), step = .5, fig = None, ax = None):
         cur = QWGraph.Line(N, speedup = sample[m])
         an.set_gr(cur)
 
-        data[m,:] = an.evo_full(bounds = bounds, step = step)
+        data[m,:] = an.evo_full(bounds = bounds[0:2], step = bounds[2] )
 
     if ax == None :
         fig, ax = plt.subplots()
+        ax.set_yscale("log")
     
     c = ax.pcolormesh(t_sample, sample, data, label = "LN")
     
     ax.set_xlabel('t')
-    ax.set_ylabel('speedup')
+    ax.set_ylabel('$\mu$')
 
     fig.colorbar(c, ax=ax)
 
@@ -456,48 +467,43 @@ def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "", a
     return ax
 
 # chain_progression() data plotting function, adapted for multiple draw call
-def plot_chain_progression(gr_unit, bounds = (1,10), target = "p", \
-                            x_mode = "dist", HANDLES = True, fix_phi = None, \
-                            ax = None):
+def plot_chain_progression(gr_unit, target = "p", \
+                            x_mode = "dist", fix_phi = None, \
+                            ax = None, **kwargs):
     """
     Optimized Transport time/probability for a family of chain graphs
     built from a given unit
     """
     
-    x, data = chain_progression( gr_unit = gr_unit, bounds = bounds, target = target, \
-                                x_mode = x_mode, HANDLES = HANDLES, fix_phi = fix_phi,\
-                                show = False)
+    x, data = chain_progression( gr_unit = gr_unit, target = target, \
+                                x_mode = x_mode, fix_phi = fix_phi,\
+                                **kwargs)
 
     if ax == None :
         fig, ax = plt.subplots()
 
         set_progression_plot(ax, x_mode = x_mode, target = target)
 
-    phi_label = ""
     if fix_phi != None:
-        phi_label = str(int( fix_phi // (np.pi/6))) + "/6" + chr(960)
-
+        phi_label =  ("%.2f" % (fix_phi / np.pi)) + chr(960)
+    else:
+        phi_label = ""
     
-    ax.plot(x, data, label = gr_unit.code + " " + phi_label)
+    ax.plot(x, data, ".-", label = gr_unit.code + " " + phi_label)
     
     #Pass parameter for further additions
     return ax
 
-def plot_size_progression(g_type = "C", bounds = (3,12), target = "p", x_mode = "dist", speedup = None, L_ref = False, \
-                            show = False, fig = None, ax = None, **kwargs) :
+def plot_size_progression(g_type = "C", target = "p", x_mode = "dist", speedup = None, \
+                         ax = None, **kwargs) :
 
     """
     Optimized Transport time/probability for a given family of graphs
     Supported topologies: C, Ch, L (relies on size prorgession)
     """
-    x, data = size_progression( g_type = g_type, bounds = bounds, target = target, x_mode = x_mode, speedup = speedup, L_ref = L_ref, show = False, **kwargs)
+    prog_data = size_progression( g_type = g_type, target = target, x_mode = x_mode, **kwargs)
 
-    if fig == None or ax == None:
-        fig, ax = plt.subplots()
-
-        set_progression_plot(ax, x_mode = x_mode, target = target)
-    
-    ax.plot(x, data, label = g_type)
+    plot_standard_progression( prog_data, target = target, x_mode = x_mode, label = g_type, ax = ax)
 
     #Pass parameter for further additions
     return ax
