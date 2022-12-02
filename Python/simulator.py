@@ -178,7 +178,7 @@ class SESolver(object):
     
     #not very useful getter/setter but it makes the implementation transparent
     def get_gr(self):
-        return self.solver.gr
+        return self.gr
 
     def set_gr(self, gr):
         self.gr = gr
@@ -460,7 +460,7 @@ class Analyzer(object):
         self.TIME_CONSTANT = TC
         
     def get_gr(self):
-        return self.solver.gr
+        return self.solver.get_gr()
 
     def set_gr(self, gr):
         self.solver.set_gr(gr)

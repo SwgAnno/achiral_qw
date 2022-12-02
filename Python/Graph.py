@@ -550,7 +550,7 @@ class QWGraph(object) :
     #Line graph constructor
     def Line(N, E = 2, speedup = None):
         out = QWGraph(N)
-        out.code = "L"+ str(N)
+        out.code = "P"+ str(N)
 
         if N==0 :
             return(out)
