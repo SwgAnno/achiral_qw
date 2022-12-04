@@ -9,8 +9,11 @@ import tqdm
 
 GET_DATA_MULTIPROCESS = True
 
-def get_gr_data( an, target = "t"):
-    return an.evaluate(target=target)
+def get_gr_t_data( an):
+    return an.evaluate(target="t")
+
+def get_gr_p_data(an):
+    return an.evaluate(target = "p")
 
 def unit_list(bounds, unit):
 
@@ -46,7 +49,6 @@ class QWGraphCollection(object) :
         N = len(graphs)
         data = np.empty( N)
 
-
         prog_label = self.get_name() +" collection " + target + " data:  {:2.1%}"
 
         for i in range(N):
@@ -69,11 +71,16 @@ class QWGraphCollection(object) :
         out = []
 
         testers = [ copy.deepcopy(tester) for i in range(N)]
-
         for i in range(N):
             testers[i].set_gr(graphs[i])
 
-        global get_gr_data
+        global get_gr_t_data
+        global get_gr_p_data
+        if target == "t":
+            get_gr_data = get_gr_t_data
+        else:
+            get_gr_data = get_gr_p_data
+
         n_proc = os.cpu_count()*2  
 
         greeting_string = self.get_name() +" collection: Starting pool evaluation with {} process" 
