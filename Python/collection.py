@@ -145,16 +145,16 @@ class QWGraphCollection(object) :
 
 class CollectionBuilder(object) :
 
-    def from_list( gr_list : list[QWGraph], analyzer : Analyzer = None) -> QWGraphCollection :
+    def from_list( gr_list , analyzer : Analyzer = None) -> QWGraphCollection :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
-        for gr in gr_list :
+        for gr in gr_list:
             cb.add( gr )
 
         return cb
 
-    def P_progression( bounds = None, step = 1, select : list[int] = None, analyzer : Analyzer = None) :
+    def P_progression( bounds = None, step = 1, select = None, analyzer : Analyzer = None) :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
@@ -170,7 +170,7 @@ class CollectionBuilder(object) :
 
         return cb
 
-    def C_progression( bounds = None, step = 1, select : list[int] = None, analyzer : Analyzer = None, **kwargs) :
+    def C_progression( bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
@@ -198,7 +198,7 @@ class CollectionBuilder(object) :
         if g_type == "Ch":
             return CollectionBuilder.C_progression(HANDLES = True, **kwargs)
 
-    def chain_progression( gr_unit, bounds = None, step = 1, select : list[int] = None, analyzer: Analyzer = None, **kwargs) :
+    def chain_progression( gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
