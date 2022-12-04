@@ -15,11 +15,17 @@ def get_gr_t_data( an):
 def get_gr_p_data(an):
     return an.evaluate(target = "p")
 
-def unit_list(bounds, unit):
+def unit_list_bounds(bounds, unit):
 
     b_0 = max(0, bounds[0]// unit.distance())
 
     return np.arange(b_0, bounds[1]// unit.distance())
+
+def unit_list( select, unit):
+
+    num_unit = (select -2)// unit.distance()
+
+    return num_unit
 
 class QWGraphCollection(object) :
 
@@ -86,7 +92,7 @@ class QWGraphCollection(object) :
         greeting_string = self.get_name() +" collection: Starting pool evaluation with {} process" 
         print(greeting_string.format(n_proc))
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.map(get_gr_data, testers), total=len(testers)):
+            for _ in tqdm.tqdm(pool.imap(get_gr_data, testers), total=len(testers)):
                 out.append(_)
             out = pool.map(get_gr_data, testers)
             data = np.array(out)
@@ -158,9 +164,9 @@ class CollectionBuilder(object) :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
-        assert bounds or select
+        assert bounds or np.any(select)
 
-        if select != None:
+        if np.any(select):
             drange = select
         else :
             drange = np.arange(bounds[0], bounds[1], step)
@@ -174,9 +180,9 @@ class CollectionBuilder(object) :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
-        assert bounds or select
+        assert bounds or np.any(select)
 
-        if select != None:
+        if np.any(select):
             drange = select
         else :
             drange = np.arange(bounds[0], bounds[1], step)
@@ -197,14 +203,16 @@ class CollectionBuilder(object) :
             return CollectionBuilder.C_progression(**kwargs)
         if g_type == "Ch":
             return CollectionBuilder.C_progression(HANDLES = True, **kwargs)
+        else:
+            raise ValueError("g_type not supported in base_progression")
 
     def chain_progression( gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
-        assert bounds or select
+        assert bounds or np.any(select)
 
-        if select != None:
+        if np.any(select):
             drange = select
         else :
             drange = unit_list( bounds, gr_unit)

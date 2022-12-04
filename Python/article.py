@@ -235,15 +235,12 @@ def comp_size_progression(TC_vec = [1,5,20], **kwargs):
 
 
 
-def plot_chain_progression_multi( bounds = (3,20), loglog = False, target = "p", analyzer = None):
+def plot_chain_progression_multi( bounds = (3,20), target = "p", analyzer = None):
     """
     Example plot of progression for the 3 best chain graph families
     """
 
     fig, ax = plt.subplots(1,1, figsize = (6,5))
-    if loglog:
-        ax.set_xscale("log")
-        ax.set_yscale("log")
 
     set_progression_plot(ax, x_mode = "dist", target="p")
     ax.set_ylim(0.1,1)
@@ -252,6 +249,26 @@ def plot_chain_progression_multi( bounds = (3,20), loglog = False, target = "p",
     plot_chain_progression( QWGraph.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
     plot_chain_progression( QWGraph.SquareCut(), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
     plot_line_data(target = target, ax = ax)
+
+    ax.legend()
+    
+    return fig, ax
+
+def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = "p", analyzer = None):
+
+
+    fig, ax = plt.subplots(1,1, figsize = (6,5))
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    select = np.geomspace(*bounds, num = points, dtype=int)
+
+    print(select)
+    
+    plot_chain_progression( QWGraph.Ring(3)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
+    plot_chain_progression( QWGraph.Ring(4)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
+    plot_chain_progression( QWGraph.SquareCut(), select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
+    plot_base_progression(  "P", select = select, target = target, label = "P", ax = ax)
 
     ax.legend()
     

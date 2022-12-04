@@ -334,7 +334,7 @@ if __name__ == "__main__" :
 
     plt.show()
 
-    #b = qwg.Ring(51)
+    b = qwg.Ring(50)
     #b.re_coord[0] = (2,1)
     #plot_performance(b)
     #b.rephase(1j)
@@ -351,7 +351,7 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first", TC = 20)
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    plot_chain_progression_multi(bounds = (3,20), loglog = True, target = "p", analyzer = an)
+    plot_chain_progression_multi_loglog(bounds = (3,100), points = 3, target = "p", analyzer = an)
     #plt.show()
 
 
