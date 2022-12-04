@@ -5,7 +5,9 @@ import os, copy
 from Graph import QWGraph as qgw
 from Graph import *
 import scipy.stats as stats
+import tqdm
 
+GET_DATA_MULTIPROCESS = True
 
 def get_gr_data( an, target = "t"):
     return an.evaluate(target=target)
@@ -25,12 +27,19 @@ class QWGraphCollection(object) :
         self._analyzer = analyzer
         self._name = name
 
+        global GET_DATA_MULTIPROCESS
+
+        if GET_DATA_MULTIPROCESS:
+            self.get_data = self.get_data_multiprocess
+        else :
+            self.get_data = self.get_data_singleprocess
+
         self._gr_list : list[QWGraph] = []
 
     def add(self, gr : QWGraph) :
         self._gr_list.append( gr )
 
-    def get_data( self, target = "p", diag = True, opt_mode = None, opt_phi = None, x_mode = "dist"):
+    def get_data_singleprocess( self, target = "p", diag = True, opt_mode = None, opt_phi = None, x_mode = "dist"):
 
         graphs = self.get_list()
         tester = self.get_analyzer()
@@ -40,11 +49,6 @@ class QWGraphCollection(object) :
 
         prog_label = self.get_name() +" collection " + target + " data:  {:2.1%}"
 
-        testers = [ copy.deepcopy(tester) for i in range(N)]
-
-        for i in range(N):
-            testers[i].set_gr(graphs[i])
-
         for i in range(N):
             print (prog_label.format(i/N), end = "\r")
             tester.set_gr(graphs[i])
@@ -53,15 +57,35 @@ class QWGraphCollection(object) :
 
         print(prog_label.format(1))
 
-    
-        # n_proc = os.cpu_count()*2  
-        # n_proc = 1 
-        # print("Starting pool evaluation with {} process".format(n_proc))
-        # with mp.Pool( n_proc) as pool:
-        #     print( pool.map(evaluate, testers))
+        x = self.get_x_vec(x_mode = x_mode)
 
-        #     pool.close()
-        #     pool.join()
+        return x , data
+
+    def get_data_multiprocess( self, target = "p", diag = True, opt_mode = None, opt_phi = None, x_mode = "dist"):
+
+        graphs = self.get_list()
+        tester = self.get_analyzer()
+        N = len(graphs)
+        out = []
+
+        testers = [ copy.deepcopy(tester) for i in range(N)]
+
+        for i in range(N):
+            testers[i].set_gr(graphs[i])
+
+        global get_gr_data
+        n_proc = os.cpu_count()*2  
+
+        greeting_string = self.get_name() +" collection: Starting pool evaluation with {} process" 
+        print(greeting_string.format(n_proc))
+        with mp.Pool( n_proc) as pool:
+            for _ in tqdm.tqdm(pool.map(get_gr_data, testers), total=len(testers)):
+                out.append(_)
+            out = pool.map(get_gr_data, testers)
+            data = np.array(out)
+
+            pool.close()
+            pool.join()
 
         x = self.get_x_vec(x_mode = x_mode)
 

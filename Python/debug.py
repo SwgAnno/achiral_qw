@@ -308,7 +308,7 @@ if __name__ == "__main__" :
     #comp_t_chain_progression([a,b,c],mode = "best", target = "t", unit_bounds = (1,30), l_ref = True )
     #comp_best_t_chain_progression([a,b,c], target = "t", unit_bounds = (1,30), l_ref = True )
 
-    t_chain_progression_phases(a, bounds = (1,20), sample_step = 4, mode = "first").legend()
+    t_chain_progression_phases(a, bounds = (1,40), sample_step = 4, mode = "first").legend()
 
     #multi_2_phases_example(sample = 200)
 
