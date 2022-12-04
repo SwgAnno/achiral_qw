@@ -199,11 +199,12 @@ class SESolver(object):
     def rephase_gr(self, phi_vec):
         self.gr.rephase(phi_vec)
         
+#############################################################
 
 
 class Analyzer(object):
 
-    def __init__(self, gr, event_s = 1, TC = 1, qutip = False, mode = "TC"):
+    def __init__(self, gr = None, event_s = 1, TC = 1, qutip = False, mode = "TC"):
         self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s

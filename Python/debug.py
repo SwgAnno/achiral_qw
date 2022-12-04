@@ -1,8 +1,10 @@
+from Graph import QWGraph as qwg
 from Graph import *
 from plotter import *
 from simulator import *
 from trends import *
 from article import *
+from collection import *
 
 import matplotlib.pyplot as plt
 
@@ -11,7 +13,7 @@ TC = 5
 qut = False
 
 #confront locate_max results with actual evolution profile
-def check_locate_max( test_gr = QWGraph.Ring(6), mode = None, qutip = True, TC = 1):
+def check_locate_max( test_gr = qwg.Ring(6), mode = None, qutip = True, TC = 1):
 
     fix, ax = plot_evo_vs_derivative(test_gr, show = False)
 
@@ -43,7 +45,7 @@ def check_locate_max( test_gr = QWGraph.Ring(6), mode = None, qutip = True, TC =
 
 
 #comparison between eigenvalue method and Qutip solver on computed evolution
-def check_evo_vs_qutip( test_gr = QWGraph.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = True):
+def check_evo_vs_qutip( test_gr = qwg.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = True):
     if not end:
         global TC
         end = test_gr.N * TC
@@ -77,7 +79,7 @@ def check_evo_vs_qutip( test_gr = QWGraph.Ring(6), l = 0, start = 0, end = None,
     plt.show()
 
 #see how qutip (or the old method) works with random poits evaluation
-def check_evo_vs_qutip_scatter( test_gr = QWGraph.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = False):
+def check_evo_vs_qutip_scatter( test_gr = qwg.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = False):
     if not end:
         global TC
         end = test_gr.N * TC
@@ -122,7 +124,7 @@ def check_evo_vs_qutip_scatter( test_gr = QWGraph.Ring(6), l = 0, start = 0, end
     plt.show()
 
 #single qutip evaluation check
-def check_qutip( test_gr = QWGraph.Ring(6), t_0 = [2], deriv = False):
+def check_qutip( test_gr = qwg.Ring(6), t_0 = [2], deriv = False):
 
     solver = SESolver(test_gr, qutip = True)
 
@@ -133,7 +135,7 @@ def check_qutip( test_gr = QWGraph.Ring(6), t_0 = [2], deriv = False):
             print( solver.target_p_prime(t_0))
 
 #graphic comparison of optimum phase result
-def check_optimum_phase( test_gr = QWGraph.Ring(6), mode = None, an_mode = "first", qutip = True):
+def check_optimum_phase( test_gr = qwg.Ring(6), mode = None, an_mode = "first", qutip = True):
 
     if mode == "diag":
         plot_performance(test_gr, mode = mode, an_mode = an_mode, show = False)
@@ -184,12 +186,12 @@ def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
     aTC = 4
 
     fig, axx = plt.subplots(1,4, figsize = (18,6))
-    t_chain_progression_multi(gr_unit, bounds = bounds, sample_step = sample, ax = axx[0])
+    t_chain_progression_phases(gr_unit, bounds = bounds, sample_step = sample, ax = axx[0])
     axx[0].legend()
 
-    chain1 = QWGraph.chain(gr_unit, int(bounds[1]/4))
-    chain2 = QWGraph.chain(gr_unit, int(bounds[1]/2))
-    chain3 = QWGraph.chain(gr_unit, bounds[1])
+    chain1 = qwg.chain(gr_unit, int(bounds[1]/4))
+    chain2 = qwg.chain(gr_unit, int(bounds[1]/2))
+    chain3 = qwg.chain(gr_unit, bounds[1])
 
     plot_evo_vs_phase(chain1, TC = aTC, ax = axx[1], phase_by = by,plot_max= True)
     plot_evo_vs_phase(chain2, TC = aTC, ax = axx[2], phase_by = by, plot_max= True )
@@ -205,8 +207,7 @@ def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
     cbar_ax = fig.add_axes([0.92, 0.1, 0.025, 0.8])
     fig.colorbar(prob_map, cbar_ax)
 
-
-#######################à
+#######################
 
     fig2, axx2 = plt.subplots(1, sample, figsize = (15,6))
 
@@ -228,11 +229,11 @@ def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
 
 #todo: cleanup
 def random():
-    #a  = QWGraph.chain(QWGraph.Ring(3), 10)
-    #a = QWGraph.Paralle l(3,2)
-    #a = QWGraph.chain(a,2)
+    #a  = qwg.chain(qwg.Ring(3), 10)
+    #a = qwg.Paralle l(3,2)
+    #a = qwg.chain(a,2)
     ##a = a+a
-    a = QWGraph.Ring(6)
+    a = qwg.Ring(6)
 
 
     plot_performance(a)
@@ -243,124 +244,134 @@ def random():
 
 #######################################
 
-#plot_line_vs_bessel(l = 5, trace_conn = False)
-#bessel_progression(bounds = (2,50), target = "p", L_ref = True)
 
-#plot_line_bessel_evolution(5,end = 10)
-#plot_evo_mat(QWGraph.Ring(8), end = 10)
-#check_line_bessel_dist(5)
+if __name__ == "__main__" :
+    #plot_line_vs_bessel(l = 5, trace_conn = False)
+    #bessel_progression(bounds = (2,50), target = "p", L_ref = True)
 
-#plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
-#plot_speedup_performance_multi_chain(QWGraph.Ring(3), bounds = (4,20), target = "p", show = True
-#plot_performance(QWGraph.chain(QWGraph.Ring(3), 10, speedup = 1), sample_step= 1000, mode = "diag")
-#plot_evo_mat(QWGraph.chain(QWGraph.Ring(3), 5, speedup = 10), end = 50)
-#plot_evo_mat(QWGraph.Line(6, speedup = 20), end = 20)
+    #plot_line_bessel_evolution(5,end = 10)
+    #plot_evo_mat(qwg.Ring(8), end = 10)
+    #check_line_bessel_dist(5)
 
-# su_vec = [1,2,4,5]
-# a = QWGraph.Ring(3)
-# plot_performance(a, an_mode = "TC", TC = 2)
-# chain_performance_multi_speedup(a, su_vec = su_vec,rep = 10, sample_step = 1000)
-#plot_evo_vs_phase( QWGraph.chain(a, 10, speedup = 5), by = .05, TC = 5, phase_by = .01)
+    #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
+    #plot_speedup_performance_multi_chain(qwg.Ring(3), bounds = (4,20), target = "p", show = True
+    #plot_performance(qwg.chain(qwg.Ring(3), 10, speedup = 1), sample_step= 1000, mode = "diag")
+    #plot_evo_mat(qwg.chain(qwg.Ring(3), 5, speedup = 10), end = 50)
+    #plot_evo_mat(qwg.Line(6, speedup = 20), end = 20)
 
-#a = QWGraph.chain(QWGraph.Ring(4), 1, speedup = 20)
-#a.plot()
-#b = QWGraph.Line(4, speedup = 20)
-#b.plot()
+    # su_vec = [1,2,4,5]
+    # a = qwg.Ring(3)
+    # plot_performance(a, an_mode = "TC", TC = 2)
+    # chain_performance_multi_speedup(a, su_vec = su_vec,rep = 10, sample_step = 1000)
+    #plot_evo_vs_phase( qwg.chain(a, 10, speedup = 5), by = .05, TC = 5, phase_by = .01)
 
-#a = QWGraph.Ring(9)
-#a.plot()
-#plot_evo_vs_phase(a, TC = 2, phase_by = .01)
-#plot_performance(a,TC = 2, target = "t", sample_step = 500)
+    #a = qwg.chain(qwg.Ring(4), 1, speedup = 20)
+    #a.plot()
+    #b = qwg.Line(4, speedup = 20)
+    #b.plot()
 
-a = QWGraph.Ring(7, HANDLES = False)
-b = QWGraph.Ring(6, HANDLES = True)
-#plot_performance_1_multi(a, TC_vec = [5,20], first = True, step = 1000)
-#plot_performance_odd_even(step = 1000)
-#comp_evo_vs_phase(a, [2,12], phase_by = .02, by = .05)
+    #a = qwg.Ring(9)
+    #a.plot()
+    #plot_evo_vs_phase(a, TC = 2, phase_by = .01)
+    #plot_performance(a,TC = 2, target = "t", sample_step = 500)
 
-#comp_size_progression([1,5,20], target = "t", bounds = (3, 30))
-#comp_performance_multi([b,a], TC_vec = [5,20], first = True, step = 1000)
+    a = qwg.Ring(7, HANDLES = False)
+    b = qwg.Ring(6, HANDLES = True)
+    #plot_performance_1_multi(a, TC_vec = [5,20], first = True, step = 1000)
+    #plot_performance_odd_even(step = 1000)
+    #comp_evo_vs_phase(a, [2,12], phase_by = .02, by = .05)
 
-
-#a = QWGraph.Ring(8) + QWGraph.Ring(8)
-#a = QWGraph.SquareCut()
-#plot_performance(a, an_mode = "TC", TC = 2)
-
-a = QWGraph.Ring(3)
-b = QWGraph.Ring(4)
-c = QWGraph.SquareCut()
-
-#a = QWGraph.chain(a, 5)
-#plot_performance(a, mode = "time", an_mode = "first", sample_step = 500)
-#plot_chain_progression(a, bounds = (1,10), target = "t", fix_phi = np.pi/2)
-#chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
-#inspect_chain_first_maxima(b, bounds = (1,30), by = .02)
-#comp_t_chain_progression([a,b,c],mode = "best", target = "t", unit_bounds = (1,30), l_ref = True )
-#comp_best_t_chain_progression([a,b,c], target = "t", unit_bounds = (1,30), l_ref = True )
-
-#t_chain_progression_multi(a, bounds = (1,10), sample_step = 4, ax = axx[0][0])
-
-#multi_2_phases_example(sample = 200)
-
-#chain_ch_comp( bounds = (3,50))
-#line_speedup_perf_comp( bounds = (6,60), step = 5, su_bounds = (.1,2.5,1000), mode = "first", TC = 1).legend()
-
-#a.rephase(-1j)
-#b = QWGraph.SquareCut()
-#plot_performance(b, an_mode = "first")
-#plot_performance(b, an_mode = "TC")
-#plot_evo_mat_heatmap(b)
-#plot_evo_vs_phase(b ,end = 10)
-
-#plot_evo_chain_speedup(a, 10, bounds = (0,100), step = .2,su_sample = 300, show = True)
-#plot_evo_line_speedup(10)
-#plot_evo_line_speedup(11)
+    #comp_size_progression([1,5,20], target = "t", bounds = (3, 30))
+    #comp_performance_multi([b,a], TC_vec = [5,20], first = True, step = 1000)
 
 
-#parallel can chase the Bancho optimum
-# a = QWGraph.Parallel(4,2)
-# a = QWGraph.chain(a,32)
-# plot_performance(a, mode = "diag")
+    #a = qwg.Ring(8) + qwg.Ring(8)
+    #a = qwg.SquareCut()
+    #plot_performance(a, an_mode = "TC", TC = 2)
 
-plt.show()
+    a = qwg.Ring(3)
+    b = qwg.Ring(4)
+    c = qwg.SquareCut()
 
-#b = QWGraph.Ring(51)
-#b.re_coord[0] = (2,1)
-#plot_performance(b)
-#b.rephase(1j)
-#print(b.mat)
+    an = Analyzer( mode = "first")
+    prog = CollectionBuilder.C_progression( bounds = (4,38), step = 2, analyzer= an)
 
-#b.krylov_basis(mode = "basis_plot")
-#b.krylov_basis(mode = "link_plot")
-#plot_evo_mat_heatmap(b)
+    print ( [gr.code for gr in prog.get_list()])
+
+    #prog.transport_time_lm()
+
+    #a = qwg.chain(a, 5)
+    #plot_performance(a, mode = "time", an_mode = "first", sample_step = 500)
+    #plot_chain_progression(a, bounds = (1,10), target = "t", fix_phi = np.pi/2)
+    #chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
+    #inspect_chain_first_maxima(b, bounds = (1,30), by = .02)
+    #comp_t_chain_progression([a,b,c],mode = "best", target = "t", unit_bounds = (1,30), l_ref = True )
+    #comp_best_t_chain_progression([a,b,c], target = "t", unit_bounds = (1,30), l_ref = True )
+
+    t_chain_progression_phases(a, bounds = (1,40), sample_step = 4, analyzer = an).legend()
+
+    #multi_2_phases_example(sample = 200)
+
+    #chain_ch_comp( bounds = (3,50))
+    #line_speedup_perf_comp( bounds = (6,60), step = 5, su_bounds = (.1,2.5,1000), mode = "first", TC = 1).legend()
+
+    #a.rephase(-1j)
+    #b = qwg.SquareCut()
+    #plot_performance(b, an_mode = "first")
+    #plot_performance(b, an_mode = "TC")
+    #plot_evo_mat_heatmap(b)
+    #plot_evo_vs_phase(b ,end = 10)
+
+    #plot_evo_chain_speedup(a, 10, bounds = (0,100), step = .2,su_sample = 300, show = True)
+    #plot_evo_line_speedup(10)
+    #plot_evo_line_speedup(11)
 
 
-#a.krylov_basis(mode = "basis_plot")
-#a.krylov_basis(mode = "link_plot")
+    #parallel can chase the Bancho optimum
+    # a = qwg.Parallel(4,2)
+    # a = qwg.chain(a,32)
+    # plot_performance(a, mode = "diag")
+
+    plt.show()
+
+    #b = qwg.Ring(51)
+    #b.re_coord[0] = (2,1)
+    #plot_performance(b)
+    #b.rephase(1j)
+    #print(b.mat)
+
+    #b.krylov_basis(mode = "basis_plot")
+    #b.krylov_basis(mode = "link_plot")
+    #plot_evo_mat_heatmap(b)
 
 
-#plot_size_progression_multi( bounds = (4,50), loglog = True, mode = "first", target = "p", TC = 20).legend()
-#plot_odd_even_progression( bounds = (3,40), mode = "first", target = "p", TC = 1).legend()
-plot_chain_progression_multi(bounds = (3,50), loglog = True, target = "p")
-#plt.show()
+    #a.krylov_basis(mode = "basis_plot")
+    #a.krylov_basis(mode = "link_plot")
+
+    an = Analyzer(mode = "first", TC = 20)
+    #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
+    #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
+    #plot_chain_progression_multi(bounds = (3,20), loglog = True, target = "p", analyzer = an)
+    #plt.show()
 
 
-#odd_even_time_lm(HANDLES = False)
-#a = QWGraph.Ring(4)
-#a = QWGraph.SquareCut()
-#plot_performance(a, an_mode = "TC")
-#plot_chain_progression(a,bounds = (1,20), target = "t")
-#time_chain_progression_lm(a)
+    #odd_even_time_lm(HANDLES = False)
+    #a = qwg.Ring(4)
+    #a = qwg.SquareCut()
+    #plot_performance(a, an_mode = "TC")
+    #plot_chain_progression(a,bounds = (1,20), target = "t")
+    #time_chain_progression_lm(a)
 
-#t_size_progression_multi( bounds = (4,16))
+    #t_size_progression_phases( bounds = (4,16), step = 2, analyzer = an).legend()
+    plt.show()
 
-plt.savefig("debug.png")
+    plt.savefig("debug.png")
 
-######################
-#theta as char
+    ######################
+    #theta as char
 
-base = 950 -5
+    base = 950 -5
 
-greek =  [chr(base+i) for i in range(20)]
-print(greek)
-#####################
+    greek =  [chr(base+i) for i in range(20)]
+    print(greek)
+    #####################
