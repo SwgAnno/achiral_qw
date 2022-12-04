@@ -104,7 +104,7 @@ def comp_performance_multi( gr_list, **kwargs):
 
     plt.show()
 
-def t_chain_progression_phases(gr_unit = QWGraph.Ring(3), sample_step = 5,l_ref = True,\
+def t_chain_progression_phases(gr_unit = QWGraph.Ring(3), bounds = (1,10), sample_step = 5,l_ref = True,\
                              ax = None, **kwargs):
     """
     Transport time performance for a given family of chain plotted for a range of fixed phase values
@@ -118,11 +118,13 @@ def t_chain_progression_phases(gr_unit = QWGraph.Ring(3), sample_step = 5,l_ref 
     if ax == None :
         fig, ax = plt.subplots(1,1, figsize = (6,5))
 
-    prog = CollectionBuilder.chain_progression(gr_unit=gr_unit, **kwargs)
+    an = Analyzer(opt_mode = "fix", **kwargs)
+    prog = CollectionBuilder.chain_progression(gr_unit=gr_unit, bounds = bounds, analyzer=an)
     label = gr_unit.code + " {:1.2f}$\pi$"
 
     for phase in phi_vec:
-        plot_standard_progression(prog, target = "t", opt_mode = "fix", opt_phi = phase, \
+        an.set_fix_phi(phase)
+        plot_standard_progression(prog, target = "t", \
                                     label = label.format(phase/np.pi), ax =ax)
 
     if l_ref :

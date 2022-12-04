@@ -204,12 +204,15 @@ class SESolver(object):
 
 class Analyzer(object):
 
-    def __init__(self, gr = None, event_s = 1, TC = 1, qutip = False, mode = "TC"):
+    def __init__(self, gr = None, event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = None, diag = True):
         self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s
         self.TIME_CONSTANT = TC
         self.mode = mode
+        self.opt_mode = opt_mode
+        self.fix_phi = None
+        self.diag = diag
 
     #get evolution on target site
     def evo_full(self, phi_vec = None, bounds =(0,10), step = .1):
@@ -313,7 +316,7 @@ class Analyzer(object):
     #wrapper for locate_max() with desired phases
     def performance(self, phi_vec = None, t = False):
 
-        if phi_vec == None:
+        if not np.any(phi_vec):
             phi_vec = np.repeat(0,self.dim())
 
         p = np.exp(1j * phi_vec)
@@ -385,11 +388,11 @@ class Analyzer(object):
         return out
 
     #brute force search for best phase
-    def optimum_phase_yolo(self, step = 100, diag = False):
+    def optimum_phase_yolo(self, step = 100):
 
         sample = phase_sample(step)
 
-        if diag:
+        if self.diag:
             perf = self.performance_full_diag(step)
         else :
             perf = self.performance_full(step)
@@ -399,10 +402,10 @@ class Analyzer(object):
         return pos_max/step*2*np.pi, perf[pos_max]
     
     #use scipy minimize for optimum phase
-    def optimum_phase_minimize(self, diag = False):
+    def optimum_phase_minimize(self):
 
         #minimize the inverse of perf function
-        if diag:
+        if self.diag:
             def perf(x):
                 return -1*self.performance_diag(x)
 
@@ -451,6 +454,29 @@ class Analyzer(object):
 
         return np.angle(out), self.performance( np.angle(out))
 
+    def evaluate(self, target = "p"):
+        best_phi = 0
+
+        if self.opt_mode == "none":
+            best_phi = 0
+        elif self.opt_mode == "smart" :
+            best_phi = self.optimum_phase_smart()[0]
+        elif self.opt_mode == "fix" :
+            assert self.fix_phi != None
+            best_phi = self.fix_phi
+        else :
+            best_phi = self.optimum_phase_minimize()[0]
+
+        #print(best_phi, self.opt_mode)
+        target_t = (target != "p")
+
+        #todo : t is boolean???????
+        if self.diag:
+            return self.performance_diag(best_phi, t = target_t)
+        else:
+            return self.performance(best_phi, t = target_t)
+        
+
     def max_search_time(self):
         return self.solver.gr.distance() * self.TIME_CONSTANT
     
@@ -465,6 +491,12 @@ class Analyzer(object):
 
     def set_gr(self, gr):
         self.solver.set_gr(gr)
+
+    def set_fix_phi(self, phi):
+        self.fix_phi = phi
+
+    def get_fix_phi(self):
+        return self.fix_phi
 
     #get qutip status
     def get_qutip(self):

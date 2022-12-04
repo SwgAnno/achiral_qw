@@ -7,6 +7,9 @@ from Graph import *
 import scipy.stats as stats
 
 
+def get_gr_data( an, target = "t"):
+    return an.evaluate(target=target)
+
 def unit_list(bounds, unit):
 
     b_0 = max(0, bounds[0]// unit.distance())
@@ -37,35 +40,20 @@ class QWGraphCollection(object) :
 
         prog_label = self.get_name() +" collection " + target + " data:  {:2.1%}"
 
-        def evaluate( tester):
-
-            best_phi = 0
-
-            if opt_mode == "smart" :
-                best_phi = tester.optimum_phase_smart()[0]
-            elif opt_mode == "fix" :
-                assert opt_phi != None
-                best_phi = opt_phi
-            else :
-                best_phi = tester.optimum_phase_minimize(diag = diag)[0]
-
-            #print(best_phi, opt_mode)
-            target_t = (target != "p")
-
-            #todo : t is boolean???????
-            if diag:
-                return tester.performance_diag(best_phi, t = target_t)
-            else:
-                return tester.performance(best_phi, t = target_t)
+        testers = [ copy.deepcopy(tester) for i in range(N)]
 
         for i in range(N):
-            print (prog_label.format(1/N), end = "\r")
+            testers[i].set_gr(graphs[i])
+
+        for i in range(N):
+            print (prog_label.format(i/N), end = "\r")
             tester.set_gr(graphs[i])
 
-            data[i] = evaluate(tester)
+            data[i] = tester.evaluate(target=target)
 
         print(prog_label.format(1))
 
+    
         # n_proc = os.cpu_count()*2  
         # n_proc = 1 
         # print("Starting pool evaluation with {} process".format(n_proc))
@@ -204,7 +192,7 @@ def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
     Simple wrapper for L graphs progression references   
     """
 
-    an = Analyzer( mode = "first")
+    an = Analyzer( mode = "first", opt_mode= "none")
     line_collection = CollectionBuilder.P_progression( bounds, analyzer=an)
 
     return line_collection.get_data( target = target, x_mode = x_mode)
