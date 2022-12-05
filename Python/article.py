@@ -262,7 +262,8 @@ def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = 
     ax.set_yscale("log")
 
     select = np.geomspace(*bounds, num = points, dtype=int)
-
+    select = set(select)
+    select = [x for x in select]
     print(select)
     
     plot_chain_progression( QWGraph.Ring(3)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")

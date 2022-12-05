@@ -351,7 +351,7 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first", TC = 20)
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    plot_chain_progression_multi_loglog(bounds = (3,100), points = 3, target = "p", analyzer = an)
+    plot_chain_progression_multi_loglog(bounds = (5,20), points = 50, target = "p", analyzer = an)
     #plt.show()
 
 
@@ -363,7 +363,6 @@ if __name__ == "__main__" :
     #time_chain_progression_lm(a)
 
     #t_size_progression_phases( bounds = (4,16), step = 2, analyzer = an).legend()
-    plt.show()
 
     plt.savefig("debug.png")
 
