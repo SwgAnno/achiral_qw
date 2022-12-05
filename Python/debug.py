@@ -351,7 +351,7 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first", TC = 20)
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    plot_chain_progression_multi_loglog(bounds = (5,100), points = 50, target = "p", analyzer = an)
+    plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an)
 
     #b = qwg.Ring(3)
     #b = qwg.chain(b, 30)
@@ -375,7 +375,7 @@ if __name__ == "__main__" :
 
     #t_size_progression_phases( bounds = (4,16), step = 2, analyzer = an).legend()
 
-    plt.savefig("debug.png")
+    plt.savefig("debug1.png")
 
     ######################
     #theta as char

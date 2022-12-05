@@ -206,10 +206,8 @@ class CollectionBuilder(object) :
         greeting_string = "P progression: Starting pool creation with {} process" 
         print(greeting_string.format(n_proc))
 
-        input_vec = zip( drange,repeat(**kwargs))
-
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.istarmap(QWGraph.Line, input_vec ), total=len(drange)):
+            for _ in tqdm.tqdm(pool.imap(QWGraph.Line, drange ), total=len(drange)):
                 collection.add(_)
 
             pool.close()
@@ -250,10 +248,8 @@ class CollectionBuilder(object) :
         greeting_string = "C progression: Starting pool creation with {} process" 
         print(greeting_string.format(n_proc))
 
-        input_vec = zip( drange,repeat( kwargs))
-
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.istarmap(QWGraph.Ring, input_vec ), total=len(drange)):
+            for _ in tqdm.tqdm(pool.imap(QWGraph.Ring, drange ), total=len(drange)):
                 collection.add(_)
 
             pool.close()
@@ -297,9 +293,9 @@ class CollectionBuilder(object) :
         assert bounds or np.any(select)
 
         if np.any(select):
-            drange = select
+            drange = unit_list(select, gr_unit)
         else :
-            drange = unit_list( bounds, gr_unit)
+            drange = unit_list_bounds( bounds, gr_unit)
 
 
         n_proc = os.cpu_count()*2  
