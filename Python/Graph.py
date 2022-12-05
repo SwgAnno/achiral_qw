@@ -414,9 +414,11 @@ class QWGraph(object) :
             return
         
         if mode == "link_plot":
+
+            k_A = k_A[1:]
             
             fig, ax = plt.subplots()
-            x = np.arange(0,len(k_basis))
+            x = np.arange(1,len(k_A)+1)
             
             ax.scatter(x, k_A, label = "couplings")
             
