@@ -76,6 +76,8 @@ class SESolver(object):
 
     def __init__(self, gr, qutip = False):
         self.gr = gr
+
+        self.gr.update_eigen()
         self.set_qutip(qutip)
 
 
@@ -182,6 +184,7 @@ class SESolver(object):
 
     def set_gr(self, gr):
         self.gr = gr
+        self.gr.update_eigen()
 
     def get_qutip(self):
         return self.qut
@@ -198,13 +201,14 @@ class SESolver(object):
 
     def rephase_gr(self, phi_vec):
         self.gr.rephase(phi_vec)
+        self.gr.update_eigen()
         
 #############################################################
 
 
 class Analyzer(object):
 
-    def __init__(self, gr = None, event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = None, diag = True):
+    def __init__(self, gr = QWGraph.Line(2), event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = None, diag = True):
         self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s

@@ -351,7 +351,7 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first", TC = 20)
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an)
+    plot_chain_progression_multi_loglog(bounds = (5,40), points = 50, target = "p", analyzer = an)
 
     #b = qwg.Ring(3)
     #b = qwg.chain(b, 30)
@@ -363,7 +363,7 @@ if __name__ == "__main__" :
     #b.krylov_basis(mode = "basis_plot")
     #b.krylov_basis(mode = "link_plot")
     #plot_evo_mat_heatmap(b)
-    #plt.show()
+    plt.show()
 
 
     #odd_even_time_lm(HANDLES = False)

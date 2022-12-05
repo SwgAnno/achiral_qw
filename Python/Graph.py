@@ -23,7 +23,7 @@ class QWGraph(object) :
             self.mat = mat
 
         #it'd better be not mandatory
-        self.update_eigen()
+        
         self.compute_re_coord()
         self.start = 0
         if not endpoints == None :
@@ -43,7 +43,7 @@ class QWGraph(object) :
         for i in range(self.N):
             self.mat[i][i] = E
 
-        self.update_eigen()
+        
 
     def retrace_conn(self):
         ref = self.to_igraph()
@@ -64,7 +64,7 @@ class QWGraph(object) :
         for i in range(self.N):
             self.mat[i][i] = T[i]
 
-        self.update_eigen()
+        
 
 
     #assign a new value to the target rephasing links
@@ -83,7 +83,7 @@ class QWGraph(object) :
             self.mat[p[0]][p[1]] = -1*phi[i]* np.abs(self.mat[p[0]][p[1]])
             self.mat[p[1]][p[0]] = np.conjugate(self.mat[p[0]][p[1]])
 
-        self.update_eigen()
+        
 
         
     #concatenate two graph creating the link
@@ -110,7 +110,7 @@ class QWGraph(object) :
         out.mat[self.target, self.N + other.start] = -1
         out.mat[self.N + other.start, self.target] = -1
 
-        out.update_eigen()
+        
         out.compute_re_coord()
         out.start = self.start
         out.target = self.N + other.target
@@ -149,7 +149,7 @@ class QWGraph(object) :
         out.mat[self.N:out.N, self.target] = j_col
         
 
-        out.update_eigen()
+        
         out.compute_re_coord()
         out.start = self.start
         out.target = self.N + other.target
@@ -477,7 +477,7 @@ class QWGraph(object) :
         out.mat = np.array ( ig.get_adjacency().data, dtype = complex)
         out.retrace_E(E)
 
-        out.update_eigen()
+        
         out.compute_re_coord()
 
         if not ends :
@@ -538,7 +538,7 @@ class QWGraph(object) :
 
         #trace settings
 
-        out.update_eigen()
+        
         out.compute_re_coord()
 
         out.start = 0
@@ -570,7 +570,7 @@ class QWGraph(object) :
 
         #trace settings
 
-        out.update_eigen()
+        
 
         out.start = 0
         out.target = N-1
@@ -596,7 +596,7 @@ class QWGraph(object) :
 
         out = QWGraph.from_igraph(ref)
         out.retrace_E(E)
-        out.update_eigen
+        
         
         return out
 
