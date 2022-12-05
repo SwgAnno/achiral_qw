@@ -1,13 +1,15 @@
 from simulator import *
 import numpy as np
+import istarmap
 import multiprocessing  as mp
 import os, copy
+from itertools import repeat
 from Graph import QWGraph as qgw
 from Graph import *
 import scipy.stats as stats
 import tqdm
 
-GET_DATA_MULTIPROCESS = True
+MULTIPROCESS = True
 
 def get_gr_t_data( an):
     return an.evaluate(target="t")
@@ -36,9 +38,9 @@ class QWGraphCollection(object) :
         self._analyzer = analyzer
         self._name = name
 
-        global GET_DATA_MULTIPROCESS
+        global MULTIPROCESS
 
-        if GET_DATA_MULTIPROCESS:
+        if MULTIPROCESS:
             self.get_data = self.get_data_multiprocess
         else :
             self.get_data = self.get_data_singleprocess
@@ -94,7 +96,6 @@ class QWGraphCollection(object) :
         with mp.Pool( n_proc) as pool:
             for _ in tqdm.tqdm(pool.imap(get_gr_data, testers), total=len(testers)):
                 out.append(_)
-            out = pool.map(get_gr_data, testers)
             data = np.array(out)
 
             pool.close()
@@ -151,34 +152,32 @@ class QWGraphCollection(object) :
 
 class CollectionBuilder(object) :
 
-    def from_list( gr_list , analyzer : Analyzer = None) -> QWGraphCollection :
+    def __init__(self):
 
-        cb = QWGraphCollection( analyzer=analyzer)
+        global MULTIPROCESS
+
+        if MULTIPROCESS:
+            self.chain_progression = self.chain_progression_multiprocess
+            self.P_progression = self.P_progression_multiprocess
+            self.C_progression = self.C_progression_multiprocess
+        else :
+            self.chain_progression = self.chain_progression_singleprocess
+            self.P_progression = self.P_progression_singleprocess
+            self.C_progression = self.C_progression_singleprocess
+
+
+    def from_list(self, gr_list , analyzer : Analyzer = None) -> QWGraphCollection :
+
+        collection = QWGraphCollection( analyzer=analyzer)
 
         for gr in gr_list:
-            cb.add( gr )
+            collection.add( gr )
 
-        return cb
+        return collection
 
-    def P_progression( bounds = None, step = 1, select = None, analyzer : Analyzer = None) :
+    def P_progression_singleprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None) :
 
-        cb = QWGraphCollection( analyzer=analyzer)
-
-        assert bounds or np.any(select)
-
-        if np.any(select):
-            drange = select
-        else :
-            drange = np.arange(bounds[0], bounds[1], step)
-
-        for d in drange :
-            cb.add( qgw.Line(d))
-
-        return cb
-
-    def C_progression( bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
-
-        cb = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphCollection( analyzer=analyzer)
 
         assert bounds or np.any(select)
 
@@ -188,27 +187,97 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0], bounds[1], step)
 
         for d in drange :
-            cb.add( qgw.Ring(d, **kwargs))
+            collection.add( qgw.Line(d))
 
-        return cb
+        return collection
 
-    def base_progression( g_type, **kwargs):
+    def P_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
+
+        collection = QWGraphCollection( analyzer=analyzer)
+
+        assert bounds or np.any(select)
+
+        if np.any(select):
+            drange = select
+        else :
+            drange = np.arange(bounds[0], bounds[1], step)
+
+        n_proc = os.cpu_count()*2  
+        greeting_string = "P progression: Starting pool creation with {} process" 
+        print(greeting_string.format(n_proc))
+
+        input_vec = zip( drange,repeat(**kwargs))
+
+        with mp.Pool( n_proc) as pool:
+            for _ in tqdm.tqdm(pool.istarmap(QWGraph.Line, input_vec ), total=len(drange)):
+                collection.add(_)
+
+            pool.close()
+            pool.join()
+
+        return collection
+
+
+
+    def C_progression_singleprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
+
+        collection = QWGraphCollection( analyzer=analyzer)
+
+        assert bounds or np.any(select)
+
+        if np.any(select):
+            drange = select
+        else :
+            drange = np.arange(bounds[0], bounds[1], step)
+
+        for d in drange :
+            collection.add( qgw.Ring(d, **kwargs))
+
+        return collection
+
+    def C_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
+
+        collection = QWGraphCollection( analyzer=analyzer)
+
+        assert bounds or np.any(select)
+
+        if np.any(select):
+            drange = select
+        else :
+            drange = np.arange(bounds[0], bounds[1], step)
+
+        n_proc = os.cpu_count()*2  
+        greeting_string = "C progression: Starting pool creation with {} process" 
+        print(greeting_string.format(n_proc))
+
+        input_vec = zip( drange,repeat( kwargs))
+
+        with mp.Pool( n_proc) as pool:
+            for _ in tqdm.tqdm(pool.istarmap(QWGraph.Ring, input_vec ), total=len(drange)):
+                collection.add(_)
+
+            pool.close()
+            pool.join()
+
+        return collection
+
+    def base_progression(self, g_type, **kwargs):
         """
         wrapper for the 3 basic standard progression
         """
 
         if g_type == "P":
-            return CollectionBuilder.P_progression(**kwargs)
+            return self.P_progression(**kwargs)
         if g_type == "C":
-            return CollectionBuilder.C_progression(**kwargs)
+            return self.C_progression(**kwargs)
         if g_type == "Ch":
-            return CollectionBuilder.C_progression(HANDLES = True, **kwargs)
+            return self.C_progression(HANDLES = True, **kwargs)
         else:
             raise ValueError("g_type not supported in base_progression")
 
-    def chain_progression( gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
+    def chain_progression_singleprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
 
-        cb = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphCollection( analyzer=analyzer)
 
         assert bounds or np.any(select)
 
@@ -218,9 +287,35 @@ class CollectionBuilder(object) :
             drange = unit_list( bounds, gr_unit)
 
         for d in drange :
-            cb.add( qgw.chain( gr_unit, rep = d, **kwargs))
+            collection.add( qgw.chain( gr_unit, rep = d, **kwargs))
 
-        return cb
+        return collection
+
+    def chain_progression_multiprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer = None, **kwargs):
+        collection = QWGraphCollection( analyzer=analyzer)
+
+        assert bounds or np.any(select)
+
+        if np.any(select):
+            drange = select
+        else :
+            drange = unit_list( bounds, gr_unit)
+
+
+        n_proc = os.cpu_count()*2  
+        greeting_string = gr_unit.code +" chain progression: Starting pool creation with {} process" 
+        print(greeting_string.format(n_proc))
+
+        input_vec = [(gr_unit, rep) for rep in drange]
+
+        with mp.Pool( n_proc) as pool:
+            for _ in tqdm.tqdm(pool.istarmap(QWGraph.chain, input_vec ), total=len(drange)):
+                collection.add(_)
+
+            pool.close()
+            pool.join()
+
+        return collection
 
 
 #####################################à
@@ -232,6 +327,6 @@ def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
     """
 
     an = Analyzer( mode = "first", opt_mode= "none")
-    line_collection = CollectionBuilder.P_progression( bounds, analyzer=an)
+    line_collection = CollectionBuilder().P_progression( bounds, analyzer=an)
 
     return line_collection.get_data( target = target, x_mode = x_mode)

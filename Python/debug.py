@@ -294,7 +294,7 @@ if __name__ == "__main__" :
     c = qwg.SquareCut()
 
     an = Analyzer( mode = "first", diag = True)
-    prog = CollectionBuilder.C_progression( bounds = (4,38), step = 2, analyzer= an)
+    prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, analyzer= an)
 
     print ( [gr.code for gr in prog.get_list()])
 
@@ -351,7 +351,18 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first", TC = 20)
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    plot_chain_progression_multi_loglog(bounds = (5,20), points = 50, target = "p", analyzer = an)
+    plot_chain_progression_multi_loglog(bounds = (5,100), points = 50, target = "p", analyzer = an)
+
+    #b = qwg.Ring(3)
+    #b = qwg.chain(b, 30)
+    #b.re_coord[0] = (2,1)
+    #plot_performance(b)
+    #b.rephase( np.repeat(-1j, len(b.re_coord)))
+    #print(b.mat)
+
+    #b.krylov_basis(mode = "basis_plot")
+    #b.krylov_basis(mode = "link_plot")
+    #plot_evo_mat_heatmap(b)
     #plt.show()
 
 

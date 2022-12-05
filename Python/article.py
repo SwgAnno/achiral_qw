@@ -16,18 +16,18 @@ def odd_even_time_lm( L_ref = True, HANDLES = False):
 
     print("Even lm:")
 
-    prog = CollectionBuilder.C_progression( bounds = (4,38), step = 2, analyzer= an)
+    prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, analyzer= an)
     coeff.append (prog.transport_time_lm() )
 
     print("Odd lm:")
-    prog = CollectionBuilder.C_progression( bounds = (5,39), step = 2, analyzer= an)
+    prog = CollectionBuilder().C_progression( bounds = (5,39), step = 2, analyzer= an)
     coeff.append (prog.transport_time_lm() )
 
     if not L_ref :
         return
 
     print("Line lm:")
-    prog = CollectionBuilder.C_progression( bounds = (10,31), step = 1, analyzer= an)
+    prog = CollectionBuilder().C_progression( bounds = (10,31), step = 1, analyzer= an)
     coeff.append (prog.transport_time_lm() )
 
     #print( get_line_data( bounds = (4,20), target = "t"))
@@ -119,7 +119,7 @@ def t_chain_progression_phases(gr_unit = QWGraph.Ring(3), bounds = (1,10), sampl
         fig, ax = plt.subplots(1,1, figsize = (6,5))
 
     an = Analyzer(opt_mode = "fix", **kwargs)
-    prog = CollectionBuilder.chain_progression(gr_unit=gr_unit, bounds = bounds, analyzer=an)
+    prog = CollectionBuilder().chain_progression(gr_unit=gr_unit, bounds = bounds, analyzer=an)
     label = gr_unit.code + " {:1.2f}$\pi$"
 
     for phase in phi_vec:
@@ -189,7 +189,7 @@ def t_size_progression_phases(g_type = "C", bounds = (3,15), sample_step = 5, l_
 
     if ax == None:
         fig,ax = plt.subplots(1,1, figsize = (6,5) )
-    prog = CollectionBuilder.base_progression(g_type, bounds = bounds, **kwargs)
+    prog = CollectionBuilder().base_progression(g_type, bounds = bounds, **kwargs)
     label = g_type + " {:1.2f}$\pi$"
 
     for phase in phi_vec:
@@ -292,11 +292,11 @@ def plot_odd_even_progression( bounds = (3,12),target = "p", ax = None, **kwargs
         label.append("C odd")
         label.append("C even")
 
-    prog = CollectionBuilder.C_progression(bounds = bounds, step = 2, **kwargs)
+    prog = CollectionBuilder().C_progression(bounds = bounds, step = 2, **kwargs)
 
     plot_standard_progression(prog, target = target,label = label[0], ax = ax)
     
-    prog = CollectionBuilder.C_progression(bounds = (bounds[0]+1, bounds[1]+1), step = 2, **kwargs)
+    prog = CollectionBuilder().C_progression(bounds = (bounds[0]+1, bounds[1]+1), step = 2, **kwargs)
 
     plot_standard_progression(prog, target = target,label = label[0], ax = ax)
 
