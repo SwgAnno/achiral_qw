@@ -18,6 +18,8 @@ def get_gr_p_data( an : Analyzer,):
     return an.evaluate(target = "p")
 
 def set_graph( an : Analyzer, graph : QWGraph):
+
+    an = copy.deepcopy(an)
     an.set_gr(graph)
     return an
 
@@ -75,7 +77,7 @@ class QWGraphCollection(object) :
 
         return x , data
 
-    def get_data_multiprocess( self, target = "p", diag = True, opt_mode = None, opt_phi = None, x_mode = "dist"):
+    def get_data_multiprocess( self, target = "p", x_mode = "dist"):
 
         graphs = self.get_list()
         tester = self.get_analyzer()
@@ -97,9 +99,7 @@ class QWGraphCollection(object) :
         print(greeting_string.format(n_proc))
         with mp.Pool( n_proc) as pool:
 
-            testers = [ copy.deepcopy(tester) for i in range(N)]
-
-            input_vec = zip(testers, graphs)
+            input_vec = zip([tester]* len(graphs), graphs)
             testers = []
 
             print("Graph Creation")
@@ -167,16 +167,16 @@ class CollectionBuilder(object) :
 
     def __init__(self):
 
-#        global MULTIPROCESS
-#
-#        if MULTIPROCESS:
-#            self.chain_progression = self.chain_progression_multiprocess
-#            self.P_progression = self.P_progression_multiprocess
-#            self.C_progression = self.C_progression_multiprocess
-#        else :
-        self.chain_progression = self.chain_progression_singleprocess
-        self.P_progression = self.P_progression_singleprocess
-        self.C_progression = self.C_progression_singleprocess
+        global MULTIPROCESS
+
+        if MULTIPROCESS:
+            self.chain_progression = self.chain_progression_multiprocess
+            self.P_progression = self.P_progression_multiprocess
+            self.C_progression = self.C_progression_multiprocess
+        else :
+            self.chain_progression = self.chain_progression_singleprocess
+            self.P_progression = self.P_progression_singleprocess
+            self.C_progression = self.C_progression_singleprocess
 
 
     def from_list(self, gr_list , analyzer : Analyzer = None) -> QWGraphCollection :
@@ -209,7 +209,7 @@ class CollectionBuilder(object) :
 
         collection = QWGraphCollection( analyzer=analyzer)
         collection.get_analyzer().set_opt_mode("none")
-        
+
         assert bounds or np.any(select)
 
         if np.any(select):
