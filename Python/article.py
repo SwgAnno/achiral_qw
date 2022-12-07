@@ -294,6 +294,8 @@ def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = 
 
     plot_base_progression(  "P", select = select, target = target, label = "P", ax = ax)
 
+    #log scale doesn't like integer ticks (as enforced by standard_progresion)
+    ax.xaxis.set_major_locator(MaxNLocator(integer=False))
     ax.legend()
     
     return fig, ax

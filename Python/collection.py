@@ -102,7 +102,7 @@ class QWGraphCollection(object) :
             input_vec = zip([tester]* len(graphs), graphs)
             testers = []
 
-            print("Graph Creation")
+            print("Data Setup")
             for _ in tqdm.tqdm(pool.istarmap(set_graph, input_vec), total=len(testers)):
                 testers.append(_)
 
