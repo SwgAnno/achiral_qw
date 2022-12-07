@@ -3,6 +3,7 @@ from numpy.linalg import eigh
 import igraph as ig
 import qutip as qt
 import matplotlib.pyplot as plt
+import networkx as nx
 
 #QW simulation oriented graph class
 
@@ -14,8 +15,9 @@ class QWGraph(object) :
             self.N = N
             self.code = "e"
             
-            self.mat = np.identity(N, dtype = complex)
+            self.mat = np.zeros((N,N), dtype = complex)
         else :
+            assert N == mat.shape[0]
             #mat is assumed to be a square numpy ndarray
             self.N = mat.shape[0]
             self.code = "m"
@@ -25,12 +27,24 @@ class QWGraph(object) :
         #it'd better be not mandatory
         
         self.compute_re_coord()
-        self.start = 0
+
         if not endpoints == None :
             self.start = endpoints[0]
             self.target = endpoints[1]
-        else :
-            self.target = self.N-1
+
+            # ensure target site is the last diagonal entry
+            if self.target != self.N -1 :
+                #exchange row and columns
+                self.mat[:,[self.target, self.N-1]] = self.mat[:,[self.N-1, self.target]]
+                self.mat[[self.target, self.N-1],:] = self.mat[[self.N-1, self.target],:]
+
+            if self.start  != 0:
+                #revert change
+                self.mat[:,[self.start, 0]] = self.mat[:,[0, self.start]]
+                self.mat[[self.start, 0],:] = self.mat[[0, self.start],:]
+
+        self.start = 0
+        self.target = self.N-1
 
     def update_eigen(self):
         self.eig_val, self.eig_vec = eigh(self.mat)
@@ -128,35 +142,45 @@ class QWGraph(object) :
     def join_nolink(self, other):
 
         out_N = self.N + other.N -1
-        out = QWGraph(out_N)
 
+        outmat = np.zeros( (out_N, out_N), dtype= complex)
+
+        # copy matrices so that target node of sel is the last diagonal entry
+        if self.target != self.N -1 :
+            #exchange row and columns
+            self.mat[:,[self.target, self.N-1]] = self.mat[:,[self.N-1, self.target]]
+            self.mat[[self.target, self.N-1],:] = self.mat[[self.N-1, self.target],:]
+
+            outmat[0:self.N, 0:self.N] = self.mat
+
+            #revert change
+            self.mat[:,[self.target, self.N-1]] = self.mat[:,[self.N-1, self.target]]
+            self.mat[[self.target, self.N-1],:] = self.mat[[self.N-1, self.target],:]
+        else:
+            outmat[0:self.N, 0:self.N] = self.mat
+
+        #do the same thing with other but ensure start target is in first position
+        if other.start != 0 :
+            #exchange row and columns
+            other.mat[:,[other.start, 0]] = other.mat[:,[0, other.start]]
+            other.mat[[other.start, 0],:] = other.mat[[0, other.start],:]
+
+            outmat[self.N-1: out_N, self.N-1: out_N] = other.mat
+
+            #revert change
+            other.mat[:,[other.start, 0]] = other.mat[:,[0, other.start]]
+            other.mat[[other.start, 0],:] = other.mat[[0, other.start],:]
+        else:
+            outmat[self.N-1: out_N, self.N-1: out_N] = other.mat
+
+    
+        out = QWGraph(out_N, mat = outmat)
+        out.compute_re_coord()
         out.code = self.code + "|" + other.code
 
-        #copy first mat
-        out.mat[0:self.N, 0:self.N] = self.mat
-
-        #copy 2nd mat skipping start site
-        mat2 = np.delete( other.mat, other.start,0 )
-        mat2 = np.delete( mat2, other.start,1 )
-        
-        out.mat[self.N:out.N, self.N:out.N] = mat2
-
-        #join start site information
-        j_row = np.delete( other.mat, other.start,1)[other.start, :]
-        j_col = np.delete( other.mat, other.start,0)[:, other.start]
-
-        out.mat[self.target, self.N:out.N] = j_row
-        out.mat[self.N:out.N, self.target] = j_col
-        
-
-        
-        out.compute_re_coord()
-        out.start = self.start
-        out.target = self.N + other.target
-        if(other.target > other.start):
-            out.target -= 1
-
-        #todo add r_coord shift
+        #account for the possible swap whte copying matrices
+        out.start  = self.start                 if self.start != self.N-1   else self.target
+        out.target = self.N + other.target-1    if other.target != 0        else self.N + other.start -1
 
         return out
 
@@ -170,30 +194,39 @@ class QWGraph(object) :
     def chain(self, rep, space = 0, speedup = 1, HANDLES = True):
 
         #create self copy with speedup
-        su_mat = self.mat * speedup
-        dummy = QWGraph(4,mat = su_mat, endpoints = (self.start,self.target))
-        temp = self.buffer_trace()
-        dummy.retrace(temp)
-        new_code = self.code + "^{}".format(rep)
 
+        su_mat = self.mat * speedup
+        unit = QWGraph.Line(space, speedup = speedup) + QWGraph(self.N,mat = su_mat, endpoints = (self.start,self.target))
+        
+        #todo: df am i doing with P graph trace?
+        temp = self.buffer_trace()
+        unit.retrace(temp)
+
+        new_code = self.code + "^{}".format(rep)
+        out_N = (unit.N-1)*rep +1
+
+        offset = 0
         if HANDLES:
             new_code = "h({})".format(new_code)
-            out = QWGraph.Line(1) + dummy
-        else:
-            out = QWGraph.Line(0) + dummy
 
-        for i in range(rep-1):
-            out = out | ( QWGraph.Line(space) +dummy )
+            outmat = np.zeros( (out_N+2,out_N+2), dtype= complex)
+            outmat[0,1] = complex(-1)
+            outmat[1,0] = complex(-1)
+            outmat[-1,-2] = complex(-1)
+            outmat[-2,-1] = complex(-1)
 
-        if HANDLES:
-            out = out + QWGraph.Line(1)
+            offset = 1
 
-        #todo : this is really awful, should definitely find a better way to get those link straight
-        if self.code == "DiC4" :
-            for i in range(len(out.re_coord)//2):
-                out.re_coord[1+2*i] = out.re_coord[1+2*i][::-1]
+        else :
+            outmat = np.zeros((out_N,out_N) , dtype= complex)
 
-        #out.plot()
+        for i in range(rep):
+            pos_0 = offset+ i*(unit.N-1)
+            outmat[pos_0: (pos_0+ unit.N), pos_0: (pos_0+ unit.N)] = unit.mat
+
+        out_N = out_N +2 if HANDLES else out_N
+        out = QWGraph(out_N, outmat)
+        out.compute_re_coord()
         out.code = new_code
         return out
 
@@ -230,6 +263,8 @@ class QWGraph(object) :
 
     #add ("cut") the edges specified in the vector as tuples
     def cut(self, cut_vec):
+
+        #print(self.code, cut_vec)
 
         if type(cut_vec) is  tuple:
             cut_vec = [cut_vec]
@@ -470,7 +505,7 @@ class QWGraph(object) :
 
     #return QWGraph instance from igraph reference
     #the adj mat is obviously real
-    def from_igraph( ig, E = 2, ends = None) :
+    def from_igraph( ig, E = 0, ends = None) :
 
         out = QWGraph( ig.vcount())
 
@@ -491,7 +526,7 @@ class QWGraph(object) :
 
         return out
 
-    #return igraph instance representing the QWGraph
+    #return igraph object representing the QWGraph
     #the process does not tranfer phase info
     def to_igraph(self) :
 
@@ -506,6 +541,25 @@ class QWGraph(object) :
             ref[i][i] = 0
         
         out = ig.Graph.Adjacency(ref, mode = "undirected")
+
+        #print(ref)
+        return out
+
+    #return networkx object representing the QWGraph
+    #the process does not tranfer phase info
+    def to_networkx(self) :
+
+        ref = np.zeros( (self.N, self.N))
+
+        #format adjacency matix for igraph imput
+        
+        for i in range(self.N) :
+            for m in range(self.N) :
+                if self.mat[i][m] != 0 :
+                    ref[i][m] = 1
+            ref[i][i] = 0
+        
+        out = nx.from_numpy_matrix(ref)
 
         #print(ref)
         return out
@@ -526,26 +580,28 @@ class QWGraph(object) :
 
 
     #Ring graph constructor
-    def Ring(N, HANDLES = False, E = 2):
-        out = QWGraph(N)
-        out.code = "C"+ str(N)
+    def Ring(N, HANDLES = False, E = 0):
+
+        code = "C"+ str(N)
 
         if N==0 :
+            out = QWGraph(N)
+            out.code = code
             return(out)
 
-        out.retrace_E(E)
+        outmat = np.identity(N, dtype=complex)* E
 
         for i in range(N):
-            out.mat[i][(i+1)%N] = complex(-1)
-            out.mat[(i+1)%N][i] = complex(-1)
+            outmat[i][(i+1)%N] = complex(-1)
+            outmat[(i+1)%N][i] = complex(-1)
+
+        out = QWGraph(N, outmat, endpoints=(0, N//2))
+        out.code = code
+
 
         #trace settings
-
-        
+        out.retrace_E(E)
         out.compute_re_coord()
-
-        out.start = 0
-        out.target = int(N/2)
 
         if HANDLES :
             return out.add_handles(1)
@@ -553,7 +609,7 @@ class QWGraph(object) :
         return out
 
     #Line graph constructor
-    def Line(N, E = 2, speedup = None):
+    def Line(N, E = 0, speedup = None):
         out = QWGraph(N)
         out.code = "P"+ str(N)
 
@@ -582,7 +638,7 @@ class QWGraph(object) :
         return out
 
     #Multi path element graph constructor
-    def Parallel(paths , p_len, E = 2):
+    def Parallel(paths , p_len, E = 0):
         ref = ig.Graph()
 
         N = 2 + paths* (p_len-1)
@@ -603,11 +659,11 @@ class QWGraph(object) :
         
         return out
 
-    def SquareCut(E = 2):
+    def SquareCut(E = 0):
         out = QWGraph.Ring(4, E = E)
 
-        out = out.cut( (0,2))
-        out.re_coord = [(1,2),(3,2)]
+        out = out.cut( (0,3))
+        out.re_coord = [(1,3),(2,3)]
         out.code = "DiC4"
 
         return out
@@ -663,27 +719,28 @@ class QWGraph(object) :
     #get a visual rapresentation of the graph (relies on igraph)
     def plot(self) :
 
-        ref = self.to_igraph()
+        ref = self.to_networkx()
+        nx.draw_spring(ref, with_labels = True)
 
-        names = []
-        for i in range(self.N):
-            names.append(str(i))
+        # names = []
+        # for i in range(self.N):
+        #     names.append(str(i))
 
-        cols = []
-        for e in ref.es:
-            if e.tuple in self.re_coord or e.tuple[::-1] in self.re_coord:
-                cols.append("red")
-            else :
-                cols.append("black")
+        # cols = []
+        # for e in ref.es:
+        #     if e.tuple in self.re_coord or e.tuple[::-1] in self.re_coord:
+        #         cols.append("red")
+        #     else :
+        #         cols.append("black")
 
-        v_cols = ["yellow"]* self.N
-        v_cols[self.start] = "green"
-        v_cols[self.target] = "red"
+        # v_cols = ["yellow"]* self.N
+        # v_cols[self.start] = "green"
+        # v_cols[self.target] = "red"
 
-        ref.vs["label"] = names
-        ref.vs["color"] = v_cols
-        ref.es["color"] = cols
-        ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
+        # ref.vs["label"] = names
+        # ref.vs["color"] = v_cols
+        # ref.es["color"] = cols
+        # ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
 
 
 def get_list_x(gr_list, x_mode = "size"):
