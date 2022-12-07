@@ -5,6 +5,7 @@ from simulator import *
 from trends import *
 from article import *
 from collection import *
+import sys
 
 import matplotlib.pyplot as plt
 
@@ -332,8 +333,6 @@ if __name__ == "__main__" :
     # a = qwg.chain(a,32)
     # plot_performance(a, mode = "diag")
 
-    plt.show()
-
     b = qwg.Ring(50)
     #b.re_coord[0] = (2,1)
     #plot_performance(b)
@@ -351,7 +350,7 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first", TC = 20)
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    plot_chain_progression_multi_loglog(bounds = (5,40), points = 50, target = "p", analyzer = an)
+    plot_chain_progression_multi_loglog(bounds = (5,100), points = 50, target = "p", analyzer = an, fast = True)
 
     #b = qwg.Ring(3)
     #b = qwg.chain(b, 30)
@@ -363,7 +362,6 @@ if __name__ == "__main__" :
     #b.krylov_basis(mode = "basis_plot")
     #b.krylov_basis(mode = "link_plot")
     #plot_evo_mat_heatmap(b)
-    plt.show()
 
 
     #odd_even_time_lm(HANDLES = False)
@@ -375,7 +373,16 @@ if __name__ == "__main__" :
 
     #t_size_progression_phases( bounds = (4,16), step = 2, analyzer = an).legend()
 
-    plt.savefig("debug1.png")
+
+    if len(sys.argv) > 1:
+        plt.savefig(sys.argv[1])
+    else :
+        file = input("salvare risultati su file? (lasciare vuoto per visualizzare)")   
+
+        if file == "":
+            plt.show() 
+        else :
+            plt.savefig(file)
 
     ######################
     #theta as char

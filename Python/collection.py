@@ -191,6 +191,7 @@ class CollectionBuilder(object) :
     def P_progression_singleprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None) :
 
         collection = QWGraphCollection( analyzer=analyzer)
+        collection.get_analyzer().set_opt_mode("none")
 
         assert bounds or np.any(select)
 
@@ -207,7 +208,8 @@ class CollectionBuilder(object) :
     def P_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
 
         collection = QWGraphCollection( analyzer=analyzer)
-
+        collection.get_analyzer().set_opt_mode("none")
+        
         assert bounds or np.any(select)
 
         if np.any(select):

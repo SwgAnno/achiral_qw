@@ -433,6 +433,23 @@ class Analyzer(object):
         if self.dim() == 0 :
             return 0 , self.performance()
 
+        if self.diag:
+            sample = phase_sample(step = 5)
+
+            out = 0
+            best = 0
+
+            for phase in sample:
+                
+                self.solver.rephase_gr(phase)
+                cur = self.locate_max()[1]
+
+                if cur > best:
+                    best = cur
+                    out = phase
+
+            return np.angle(out), self.performance( np.angle(out))
+
         sample = phase_sample(step = 5)
         n_sample = [sample] * self.dim()
         grid = np.meshgrid( *n_sample)
@@ -506,8 +523,32 @@ class Analyzer(object):
     def get_qutip(self):
         return self.solver.get_qutip()
 
-    def set_qutip(self, qutip):
+    def set_qutip(self, qutip : bool):
         self.solver.set_qutip(qutip)
+
+    def get_mode(self):
+        return self.mode
+
+    def set_mode(self, mode):
+        self.mode = mode
+
+    def get_opt_mode(self):
+        return self.opt_mode
+
+    def set_opt_mode(self, opt_mode):
+        self.opt_mode = opt_mode
+
+    def get_fix_phi(self):
+        return self.fix_phi
+
+    def set_fix_phi(self, phi):
+        self.fix_phi = phi
+
+    def get_diat(self):
+        return self.diag
+
+    def set_diag(self, diag : bool):
+        self.diag = diag
 
     def rephase_gr(self, phi_vec):
         self.solver.rephase_gr(phi_vec)

@@ -254,7 +254,7 @@ def plot_chain_progression_multi( bounds = (3,20), target = "p", analyzer = None
     
     return fig, ax
 
-def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = "p", analyzer = None):
+def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = "p", analyzer = None, fast = False):
 
 
     fig, ax = plt.subplots(1,1, figsize = (6,5))
@@ -268,10 +268,30 @@ def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = 
     select = np.array(select)
 
     print(select)
-    
+
+    if fast:
+        if analyzer == None:
+            analyzer = Analyzer()
+        
+        analyzer.set_opt_mode("fix")
+        analyzer.set_diag(True)
+
+
+    if fast:
+        analyzer.set_gr(QWGraph.Ring(3))
+        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
     plot_chain_progression( QWGraph.Ring(3)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
+
+    if fast:
+        analyzer.set_gr(QWGraph.Ring(4))
+        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
     plot_chain_progression( QWGraph.Ring(4)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
+
+    if fast:
+        analyzer.set_gr(QWGraph.SquareCut())
+        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
     plot_chain_progression( QWGraph.SquareCut(), select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
+
     plot_base_progression(  "P", select = select, target = target, label = "P", ax = ax)
 
     ax.legend()

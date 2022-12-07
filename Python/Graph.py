@@ -174,8 +174,10 @@ class QWGraph(object) :
         dummy = QWGraph(4,mat = su_mat, endpoints = (self.start,self.target))
         temp = self.buffer_trace()
         dummy.retrace(temp)
+        new_code = self.code + "^{}".format(rep)
 
         if HANDLES:
+            new_code = "h({})".format(new_code)
             out = QWGraph.Line(1) + dummy
         else:
             out = QWGraph.Line(0) + dummy
@@ -192,6 +194,7 @@ class QWGraph(object) :
                 out.re_coord[1+2*i] = out.re_coord[1+2*i][::-1]
 
         #out.plot()
+        out.code = new_code
         return out
 
     def __mul__(self, rep) :
