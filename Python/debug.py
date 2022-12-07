@@ -282,6 +282,7 @@ if __name__ == "__main__" :
     #plot_performance_odd_even(step = 1000)
     #comp_evo_vs_phase(a, [2,12], phase_by = .02, by = .05)
 
+
     #comp_size_progression([1,5,20], target = "t", bounds = (3, 30))
     #comp_performance_multi([b,a], TC_vec = [5,20], first = True, step = 1000)
 
@@ -293,6 +294,14 @@ if __name__ == "__main__" :
     a = qwg.Ring(3)
     b = qwg.Ring(4)
     c = qwg.SquareCut()
+
+    # c = qwg.chain(a,2)
+    # print(c.mat)
+    # plot_performance(c, mode = "diag")
+    # print(c.re_coord)
+    # print(c.start,c.target)
+    #c.plot()
+    plt.show()
 
     an = Analyzer( mode = "first", diag = True)
     prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, analyzer= an)
@@ -350,7 +359,8 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first", TC = 20)
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    plot_chain_progression_multi_loglog(bounds = (5,100), points = 50, target = "p", analyzer = an, fast = True)
+    #
+    plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an, fast = True)
 
     #b = qwg.Ring(3)
     #b = qwg.chain(b, 30)
@@ -377,7 +387,7 @@ if __name__ == "__main__" :
     if len(sys.argv) > 1:
         plt.savefig(sys.argv[1])
     else :
-        file = input("salvare risultati su file? (lasciare vuoto per visualizzare)")   
+        file = input("Indicare il nome del file per salvare i risultati (lasciare vuoto per visualizzare)")   
 
         if file == "":
             plt.show() 

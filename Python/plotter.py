@@ -375,7 +375,7 @@ def plot_performance_2(sample_step, target, an, ax = None, verbose = False):
 def set_performance_plot(ax,target = "p", dim = 1):
         
     if dim == 1 :
-        ax.set_xlabel( "$\tetha$")
+        ax.set_xlabel( "$\\theta$")
         ax.set_xlim(0,6.28)
 
         if target == "p":
