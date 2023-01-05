@@ -23,6 +23,12 @@ def set_graph( an : Analyzer, graph : QWGraph):
     an.set_gr(graph)
     return an
 
+def create_c(dist):
+    return QWGraph.Ring(dist)
+
+def create_ch(dist):
+    return QWGraph.Ring(dist, HANDLES = True)
+
 def unit_list_bounds(bounds, unit):
 
     b_0 = max(0, bounds[0]// unit.distance())
@@ -256,24 +262,37 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def C_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
+    def C_progression_multiprocess(self, bounds = None, step = 1, odd = False, select = None, analyzer : Analyzer = None, HANDLES = False, 
+     **kwargs) :
 
         collection = QWGraphCollection( analyzer=analyzer)
 
         assert bounds or np.any(select)
+        
+        #start with an odd cycle
+        offset = 1 if odd else 0
+
+        #account fo extra distance
+        if HANDLES:
+            offset -= 4 
+
 
         if np.any(select):
             drange = select
         else :
-            drange = np.arange(bounds[0], bounds[1], step)
+            drange = np.arange(bounds[0]*2 + offset, bounds[1]*2 + offset, step)
 
         n_proc = os.cpu_count()*2  
         greeting_string = "C progression: Starting pool creation with {} process" 
         print(greeting_string.format(n_proc))
 
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.imap(QWGraph.Ring, drange ), total=len(drange)):
-                collection.add(_)
+            if HANDLES :
+                for _ in tqdm.tqdm(pool.imap(create_ch, drange ), total=len(drange)):
+                    collection.add(_)
+            else :
+                for _ in tqdm.tqdm(pool.imap(create_c, drange ), total=len(drange)):
+                    collection.add(_)
 
             pool.close()
             pool.join()

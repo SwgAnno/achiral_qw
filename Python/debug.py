@@ -304,9 +304,9 @@ if __name__ == "__main__" :
     plt.show()
 
     an = Analyzer( mode = "first", diag = True)
-    prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, analyzer= an)
+    #prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, analyzer= an)
 
-    print ( [gr.code for gr in prog.get_list()])
+    #print ( [gr.code for gr in prog.get_list()])
 
     #prog.transport_time_lm()
 
@@ -360,8 +360,8 @@ if __name__ == "__main__" :
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
     #
-    plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an, fast = True)
-    plot_chain_ch_progression(bounds = (5,100), loglog = True, target = "p", analyzer = an)
+    #plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an, fast = True)
+    plot_chain_ch_progression(bounds = (5,30), loglog = False, target = "p", analyzer = an)
 
     #b = qwg.Ring(3)
     #b = qwg.chain(b, 30)
