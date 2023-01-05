@@ -1,25 +1,39 @@
 from simulator import *
 import numpy as np
+import istarmap
 import multiprocessing  as mp
 import os, copy
+from itertools import repeat
 from Graph import QWGraph as qgw
 from Graph import *
 import scipy.stats as stats
 import tqdm
 
-GET_DATA_MULTIPROCESS = True
+MULTIPROCESS = True
 
-def get_gr_t_data( an):
+def get_gr_t_data( an : Analyzer,):
     return an.evaluate(target="t")
 
-def get_gr_p_data(an):
+def get_gr_p_data( an : Analyzer,):
     return an.evaluate(target = "p")
 
-def unit_list(bounds, unit):
+def set_graph( an : Analyzer, graph : QWGraph):
+
+    an = copy.deepcopy(an)
+    an.set_gr(graph)
+    return an
+
+def unit_list_bounds(bounds, unit):
 
     b_0 = max(0, bounds[0]// unit.distance())
 
     return np.arange(b_0, bounds[1]// unit.distance())
+
+def unit_list( select, unit):
+
+    num_unit = (select -2)// unit.distance()
+
+    return num_unit
 
 class QWGraphCollection(object) :
 
@@ -30,9 +44,9 @@ class QWGraphCollection(object) :
         self._analyzer = analyzer
         self._name = name
 
-        global GET_DATA_MULTIPROCESS
+        global MULTIPROCESS
 
-        if GET_DATA_MULTIPROCESS:
+        if MULTIPROCESS:
             self.get_data = self.get_data_multiprocess
         else :
             self.get_data = self.get_data_singleprocess
@@ -63,19 +77,17 @@ class QWGraphCollection(object) :
 
         return x , data
 
-    def get_data_multiprocess( self, target = "p", diag = True, opt_mode = None, opt_phi = None, x_mode = "dist"):
+    def get_data_multiprocess( self, target = "p", x_mode = "dist"):
 
         graphs = self.get_list()
         tester = self.get_analyzer()
         N = len(graphs)
         out = []
 
-        testers = [ copy.deepcopy(tester) for i in range(N)]
-        for i in range(N):
-            testers[i].set_gr(graphs[i])
-
         global get_gr_t_data
         global get_gr_p_data
+        global set_graph
+
         if target == "t":
             get_gr_data = get_gr_t_data
         else:
@@ -86,9 +98,17 @@ class QWGraphCollection(object) :
         greeting_string = self.get_name() +" collection: Starting pool evaluation with {} process" 
         print(greeting_string.format(n_proc))
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.map(get_gr_data, testers), total=len(testers)):
+
+            input_vec = zip([tester]* len(graphs), graphs)
+            testers = []
+
+            print("Data Setup")
+            for _ in tqdm.tqdm(pool.istarmap(set_graph, input_vec), total=len(testers)):
+                testers.append(_)
+
+            print("Evaluation")
+            for _ in tqdm.tqdm(pool.imap(get_gr_data, testers), total=len(testers)):
                 out.append(_)
-            out = pool.map(get_gr_data, testers)
             data = np.array(out)
 
             pool.close()
@@ -145,36 +165,78 @@ class QWGraphCollection(object) :
 
 class CollectionBuilder(object) :
 
-    def from_list( gr_list : list[QWGraph], analyzer : Analyzer = None) -> QWGraphCollection :
+    def __init__(self):
 
-        cb = QWGraphCollection( analyzer=analyzer)
+        global MULTIPROCESS
 
-        for gr in gr_list :
-            cb.add( gr )
+        if MULTIPROCESS:
+            self.chain_progression = self.chain_progression_multiprocess
+            self.P_progression = self.P_progression_multiprocess
+            self.C_progression = self.C_progression_multiprocess
+        else :
+            self.chain_progression = self.chain_progression_singleprocess
+            self.P_progression = self.P_progression_singleprocess
+            self.C_progression = self.C_progression_singleprocess
 
-        return cb
 
-    def P_progression( bounds = None, step = 1, select : list[int] = None, analyzer : Analyzer = None) :
+    def from_list(self, gr_list , analyzer : Analyzer = None) -> QWGraphCollection :
 
-        cb = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphCollection( analyzer=analyzer)
 
-        assert bounds or select
+        for gr in gr_list:
+            collection.add( gr )
 
-        if select != None:
+        return collection
+
+    def P_progression_singleprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None) :
+
+        collection = QWGraphCollection( analyzer=analyzer)
+        collection.get_analyzer().set_opt_mode("none")
+
+        assert bounds or np.any(select)
+
+        if np.any(select):
             drange = select
         else :
             drange = np.arange(bounds[0], bounds[1], step)
 
         for d in drange :
-            cb.add( qgw.Line(d))
+            collection.add( qgw.Line(d))
 
-        return cb
+        return collection
 
-    def C_progression( bounds = None, step = 1, odd = False, select : list[int] = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
+    def P_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
 
-        cb = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphCollection( analyzer=analyzer)
+        collection.get_analyzer().set_opt_mode("none")
 
-        assert bounds or select
+        assert bounds or np.any(select)
+
+        if np.any(select):
+            drange = select
+        else :
+            drange = np.arange(bounds[0], bounds[1], step)
+
+        n_proc = os.cpu_count()*2  
+        greeting_string = "P progression: Starting pool creation with {} process" 
+        print(greeting_string.format(n_proc))
+
+        with mp.Pool( n_proc) as pool:
+            for _ in tqdm.tqdm(pool.imap(QWGraph.Line, drange ), total=len(drange)):
+                collection.add(_)
+
+            pool.close()
+            pool.join()
+
+        return collection
+
+
+
+    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select : list[int] = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
+
+        collection = QWGraphCollection( analyzer=analyzer)
+
+        assert bounds or np.any(select)
 
         #start with an odd cycle
         offset = 1 if odd else 0
@@ -184,43 +246,95 @@ class CollectionBuilder(object) :
             offset -= 4 
 
 
-        if select != None:
+        if np.any(select):
             drange = select
         else :
             drange = np.arange(bounds[0]*2 + offset, bounds[1]*2 + offset, step)
 
         for d in drange :
-            cb.add( qgw.Ring(d, HANDLES = HANDLES, **kwargs))
+            collection.add( qgw.Ring(d, HANDLES = HANDLES, **kwargs))
 
-        return cb
+        return collection
 
-    def base_progression( g_type, **kwargs):
+    def C_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
+
+        collection = QWGraphCollection( analyzer=analyzer)
+
+        assert bounds or np.any(select)
+
+        if np.any(select):
+            drange = select
+        else :
+            drange = np.arange(bounds[0], bounds[1], step)
+
+        n_proc = os.cpu_count()*2  
+        greeting_string = "C progression: Starting pool creation with {} process" 
+        print(greeting_string.format(n_proc))
+
+        with mp.Pool( n_proc) as pool:
+            for _ in tqdm.tqdm(pool.imap(QWGraph.Ring, drange ), total=len(drange)):
+                collection.add(_)
+
+            pool.close()
+            pool.join()
+
+        return collection
+
+    def base_progression(self, g_type, **kwargs):
         """
         wrapper for the 3 basic standard progression
         """
 
         if g_type == "P":
-            return CollectionBuilder.P_progression(**kwargs)
+            return self.P_progression(**kwargs)
         if g_type == "C":
-            return CollectionBuilder.C_progression(**kwargs)
+            return self.C_progression(**kwargs)
         if g_type == "Ch":
-            return CollectionBuilder.C_progression(HANDLES = True, **kwargs)
+            return self.C_progression(HANDLES = True, **kwargs)
+        else:
+            raise ValueError("g_type not supported in base_progression")
 
-    def chain_progression( gr_unit, bounds = None, step = 1, select : list[int] = None, analyzer: Analyzer = None, **kwargs) :
+    def chain_progression_singleprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
 
-        cb = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphCollection( analyzer=analyzer)
 
-        assert bounds or select
+        assert bounds or np.any(select)
 
-        if select != None:
-            drange = select
+        if np.any(select):
+            drange = unit_list(select, gr_unit)
         else :
-            drange = unit_list( bounds, gr_unit)
+            drange = unit_list_bounds( bounds, gr_unit)
 
         for d in drange :
-            cb.add( qgw.chain( gr_unit, rep = d, **kwargs))
+            collection.add( qgw.chain( gr_unit, rep = d, **kwargs))
 
-        return cb
+        return collection
+
+    def chain_progression_multiprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer = None, **kwargs):
+        collection = QWGraphCollection( analyzer=analyzer)
+
+        assert bounds or np.any(select)
+
+        if np.any(select):
+            drange = unit_list(select, gr_unit)
+        else :
+            drange = unit_list_bounds( bounds, gr_unit)
+
+
+        n_proc = os.cpu_count()*2  
+        greeting_string = gr_unit.code +" chain progression: Starting pool creation with {} process" 
+        print(greeting_string.format(n_proc))
+
+        input_vec = [(gr_unit, rep) for rep in drange]
+
+        with mp.Pool( n_proc) as pool:
+            for _ in tqdm.tqdm(pool.istarmap(QWGraph.chain, input_vec ), total=len(drange)):
+                collection.add(_)
+
+            pool.close()
+            pool.join()
+
+        return collection
 
 
 #####################################à
@@ -232,6 +346,6 @@ def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
     """
 
     an = Analyzer( mode = "first", opt_mode= "none")
-    line_collection = CollectionBuilder.P_progression( bounds, analyzer=an)
+    line_collection = CollectionBuilder().P_progression( bounds, analyzer=an)
 
     return line_collection.get_data( target = target, x_mode = x_mode)

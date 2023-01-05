@@ -235,15 +235,12 @@ def comp_size_progression(TC_vec = [1,5,20], **kwargs):
 
 
 
-def plot_chain_progression_multi( bounds = (3,20), loglog = False, target = "p", analyzer = None):
+def plot_chain_progression_multi( bounds = (3,20), target = "p", analyzer = None):
     """
     Example plot of progression for the 3 best chain graph families
     """
 
     fig, ax = plt.subplots(1,1, figsize = (6,5))
-    if loglog:
-        ax.set_xscale("log")
-        ax.set_yscale("log")
 
     set_progression_plot(ax, x_mode = "dist", target="p")
     ax.set_ylim(0.1,1)
@@ -253,6 +250,53 @@ def plot_chain_progression_multi( bounds = (3,20), loglog = False, target = "p",
     plot_chain_progression( QWGraph.SquareCut(), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
     plot_line_data(target = target, ax = ax)
 
+    ax.legend()
+    
+    return fig, ax
+
+def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = "p", analyzer = None, fast = False):
+
+
+    fig, ax = plt.subplots(1,1, figsize = (6,5))
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+
+    select = np.geomspace(*bounds, num = points, dtype=int)
+    select = set(select)
+    select = [x for x in select]
+    select.sort()
+    select = np.array(select)
+
+    print(select)
+
+    if fast:
+        if analyzer == None:
+            analyzer = Analyzer()
+        
+        analyzer.set_opt_mode("fix")
+        analyzer.set_diag(True)
+
+
+    if fast:
+        analyzer.set_gr(QWGraph.Ring(3))
+        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
+    plot_chain_progression( QWGraph.Ring(3)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
+
+    if fast:
+        analyzer.set_gr(QWGraph.Ring(4))
+        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
+    plot_chain_progression( QWGraph.Ring(4)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
+
+    if fast:
+        analyzer.set_gr(QWGraph.SquareCut())
+        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
+    plot_chain_progression( QWGraph.SquareCut(), select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
+
+    plot_base_progression(  "P", select = select, target = target, label = "P", ax = ax)
+
+    #log scale doesn't like integer ticks (as enforced by standard_progresion)
+    ax.set_xticks( np.geomspace(*bounds, num = 10, dtype=int))
+    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
     ax.legend()
     
     return fig, ax

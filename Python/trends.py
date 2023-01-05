@@ -284,7 +284,7 @@ def plot_base_progression(g_type, target = "p", \
 
         set_progression_plot(ax, x_mode = x_mode, target = target)
 
-    prog = CollectionBuilder.base_progression(g_type= g_type, **kwargs)
+    prog = CollectionBuilder().base_progression(g_type= g_type, **kwargs)
     plot_standard_progression(prog, ax = ax, label = label)
 
     #Pass parameter for further additions
@@ -305,7 +305,7 @@ def plot_chain_progression(gr_unit, target = "p", \
 
         set_progression_plot(ax, x_mode = x_mode, target = target)
 
-    prog = CollectionBuilder.chain_progression(gr_unit = gr_unit, **kwargs)
+    prog = CollectionBuilder().chain_progression(gr_unit = gr_unit, **kwargs)
     plot_standard_progression(prog, ax = ax, label = label)
     
     #Pass parameter for further additions

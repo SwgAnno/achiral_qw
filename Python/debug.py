@@ -5,6 +5,7 @@ from simulator import *
 from trends import *
 from article import *
 from collection import *
+import sys
 
 import matplotlib.pyplot as plt
 
@@ -281,6 +282,7 @@ if __name__ == "__main__" :
     #plot_performance_odd_even(step = 1000)
     #comp_evo_vs_phase(a, [2,12], phase_by = .02, by = .05)
 
+
     #comp_size_progression([1,5,20], target = "t", bounds = (3, 30))
     #comp_performance_multi([b,a], TC_vec = [5,20], first = True, step = 1000)
 
@@ -293,8 +295,16 @@ if __name__ == "__main__" :
     b = qwg.Ring(4)
     c = qwg.SquareCut()
 
+    # c = qwg.chain(a,2)
+    # print(c.mat)
+    # plot_performance(c, mode = "diag")
+    # print(c.re_coord)
+    # print(c.start,c.target)
+    #c.plot()
+    plt.show()
+
     an = Analyzer( mode = "first", diag = True)
-    prog = CollectionBuilder.C_progression( bounds = (4,38), step = 2, analyzer= an)
+    prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, analyzer= an)
 
     print ( [gr.code for gr in prog.get_list()])
 
@@ -332,9 +342,7 @@ if __name__ == "__main__" :
     # a = qwg.chain(a,32)
     # plot_performance(a, mode = "diag")
 
-    plt.show()
-
-    #b = qwg.Ring(51)
+    b = qwg.Ring(50)
     #b.re_coord[0] = (2,1)
     #plot_performance(b)
     #b.rephase(1j)
@@ -351,8 +359,21 @@ if __name__ == "__main__" :
     an = Analyzer(mode = "first")
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    #plot_chain_progression_multi(bounds = (5,150), loglog = True, target = "p", analyzer = an)
+    #
+    plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an, fast = True)
     plot_chain_ch_progression(bounds = (5,100), loglog = True, target = "p", analyzer = an)
+
+    #b = qwg.Ring(3)
+    #b = qwg.chain(b, 30)
+    #b.re_coord[0] = (2,1)
+    #plot_performance(b)
+    #b.rephase( np.repeat(-1j, len(b.re_coord)))
+    #print(b.mat)
+
+    #b.krylov_basis(mode = "basis_plot")
+    #b.krylov_basis(mode = "link_plot")
+    #plot_evo_mat_heatmap(b)
+    #plot_chain_progression_multi(bounds = (5,150), loglog = True, target = "p", analyzer = an)
     #plt.show()
 
 
@@ -364,9 +385,17 @@ if __name__ == "__main__" :
     #time_chain_progression_lm(a)
 
     #t_size_progression_phases( bounds = (4,16), step = 2, analyzer = an).legend()
-    plt.show()
 
-    plt.savefig("debug.png")
+
+    if len(sys.argv) > 1:
+        plt.savefig(sys.argv[1])
+    else :
+        file = input("Indicare il nome del file per salvare i risultati (lasciare vuoto per visualizzare)")   
+
+        if file == "":
+            plt.show() 
+        else :
+            plt.savefig(file)
 
     ######################
     #theta as char
