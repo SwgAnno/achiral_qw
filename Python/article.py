@@ -257,6 +257,29 @@ def plot_chain_progression_multi( bounds = (3,20), loglog = False, target = "p",
     
     return fig, ax
 
+def plot_chain_ch_progression( bounds = (3,20), loglog = False, target = "p", analyzer = None):
+    """
+    Progression between C3/4 chain CH an P classes
+    """
+
+    fig, ax = plt.subplots(1,1, figsize = (6,5))
+    if loglog:
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+
+    set_progression_plot(ax, x_mode = "dist", target="p")
+    ax.set_ylim(0.1,1)
+
+    plot_chain_progression( QWGraph.Ring(3), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
+    #plot_chain_progression( QWGraph.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
+    plot_base_progression( "Ch", bounds = bounds,step = 2,target = target, ax = ax, analyzer = analyzer)
+    plot_line_data(target = target, ax = ax)
+
+    ax.legend()
+    
+    return fig, ax
+
+
 def plot_odd_even_progression( bounds = (3,12),target = "p", ax = None, **kwargs) :
     """
     Show differences in behaviour between odd and even C graph

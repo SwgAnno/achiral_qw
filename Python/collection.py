@@ -170,19 +170,27 @@ class CollectionBuilder(object) :
 
         return cb
 
-    def C_progression( bounds = None, step = 1, select : list[int] = None, analyzer : Analyzer = None, **kwargs) :
+    def C_progression( bounds = None, step = 1, odd = False, select : list[int] = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
 
         cb = QWGraphCollection( analyzer=analyzer)
 
         assert bounds or select
 
+        #start with an odd cycle
+        offset = 1 if odd else 0
+        
+        #account fo extra distance
+        if HANDLES:
+            offset -= 4 
+
+
         if select != None:
             drange = select
         else :
-            drange = np.arange(bounds[0], bounds[1], step)
+            drange = np.arange(bounds[0]*2 + offset, bounds[1]*2 + offset, step)
 
         for d in drange :
-            cb.add( qgw.Ring(d, **kwargs))
+            cb.add( qgw.Ring(d, HANDLES = HANDLES, **kwargs))
 
         return cb
 

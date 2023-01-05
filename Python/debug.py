@@ -306,9 +306,9 @@ if __name__ == "__main__" :
     #chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
     #inspect_chain_first_maxima(b, bounds = (1,30), by = .02)
     #comp_t_chain_progression([a,b,c],mode = "best", target = "t", unit_bounds = (1,30), l_ref = True )
-    #comp_best_t_chain_progression([a,b,c], target = "t", unit_bounds = (1,30), l_ref = True )
+    #comp_best_t_chain_progression([a,b,c], target = "t", bounds = (4,20), l_ref = True )
 
-    t_chain_progression_phases(a, bounds = (1,40), sample_step = 4, mode = "first").legend()
+    #t_chain_progression_phases(a, bounds = (1,40), sample_step = 4, mode = "first").legend()
 
     #multi_2_phases_example(sample = 200)
 
@@ -348,10 +348,11 @@ if __name__ == "__main__" :
     #a.krylov_basis(mode = "basis_plot")
     #a.krylov_basis(mode = "link_plot")
 
-    an = Analyzer(mode = "first", TC = 20)
+    an = Analyzer(mode = "first")
     #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
-    #plot_chain_progression_multi(bounds = (3,20), loglog = True, target = "p", analyzer = an)
+    #plot_chain_progression_multi(bounds = (5,150), loglog = True, target = "p", analyzer = an)
+    plot_chain_ch_progression(bounds = (5,100), loglog = True, target = "p", analyzer = an)
     #plt.show()
 
 
