@@ -1,10 +1,9 @@
-from concurrent.futures.thread import _shutdown
-from datetime import time
-from itertools import chain
-from simulator import *
-from bessel import *
+from achiralqw.simulator import Analyzer, SESolver
+from achiralqw.graph import QWGraph
+import achiralqw.bessel as bessel
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import numpy as np
 import matplotlib.colors as colors
 from matplotlib.ticker import MaxNLocator
 
@@ -157,7 +156,7 @@ def plot_line_bessel_evolution(l = 5, end = 30):
 
     for t in grid:
         for i in range(l):
-            eval[i].append( line_evo_bessel(l-1,i,t))
+            eval[i].append( bessel.line_evo_bessel(l-1,i,t))
 
     fig, ax = plt.subplots()
 
@@ -177,7 +176,7 @@ def plot_ring_bessel_evolution(l = 5, end = 30):
 
     for t in grid:
         for i in range(l):
-            eval[i].append( ring_evo_bessel(l,i,t))
+            eval[i].append( bessel.ring_evo_bessel(l,i,t))
 
     fig, ax = plt.subplots()
 
@@ -204,7 +203,7 @@ def plot_line_vs_bessel(n = 5, l= None, end = 30, trace_conn = False):
     grid = np.arange(0,end, .1)
     eval = []
     for t in grid:
-        eval.append( line_evo_bessel(n,l,t))
+        eval.append( bessel.line_evo_bessel(n,l,t))
 
     ax.plot(grid,eval, label = "Bessel")
     ax.legend()
@@ -221,7 +220,7 @@ def plot_ring_vs_bessel(l = 5, end = 30):
     grid = np.arange(0,end, .1)
     eval = []
     for t in grid:
-        eval.append( ring_evo_bessel(l,None,t)/2)
+        eval.append( bessel.ring_evo_bessel(l,None,t)/2)
 
     ax.plot(grid,eval, label = "Bessel")
     ax.legend()

@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import *
+from scipy.special import jv
 
 def line_evo_bessel(n, l = None, x = .0): 
 

@@ -1,10 +1,10 @@
-from graph import QWGraph as qwg
-from graph import *
-from plotter import *
-from simulator import *
-from trends import *
-from article import *
-from collection import *
+from achiralqw.graph import QWGraph as qwg
+from achiralqw.graph import *
+from achiralqw.plotter import *
+from achiralqw.simulator import *
+from achiralqw.trends import *
+from achiralqw.article import *
+from achiralqw.collection import *
 import sys
 
 import matplotlib.pyplot as plt
@@ -361,20 +361,20 @@ if __name__ == "__main__" :
     #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
     #
     #plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an, fast = True)
-    plot_chain_ch_progression(bounds = (5,30), loglog = False, target = "p", analyzer = an)
+    #plot_chain_ch_progression(bounds = (5,30), loglog = False, target = "p", analyzer = an)
 
-    #b = qwg.Ring(3)
-    #b = qwg.chain(b, 30)
-    #b.re_coord[0] = (2,1)
-    #plot_performance(b)
-    #b.rephase( np.repeat(-1j, len(b.re_coord)))
-    #print(b.mat)
+    b = qwg.Ring(3)
+    b = qwg.chain(b, 30)
+    b.re_coord[0] = (2,1)
+    plot_performance(b, mode = "diag")
+    b.rephase( np.repeat(-1j, len(b.re_coord)))
+    print(b.mat)
 
-    #b.krylov_basis(mode = "basis_plot")
-    #b.krylov_basis(mode = "link_plot")
-    #plot_evo_mat_heatmap(b)
-    #plot_chain_progression_multi(bounds = (5,150), loglog = True, target = "p", analyzer = an)
-    #plt.show()
+    b.krylov_basis(mode = "basis_plot")
+    b.krylov_basis(mode = "link_plot")
+    plot_evo_mat_heatmap(b, TC = 4)
+    plot_chain_progression_multi(bounds = (5,50), target = "p", analyzer = an)
+    plt.show()
 
 
     #odd_even_time_lm(HANDLES = False)

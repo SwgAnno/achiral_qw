@@ -1,9 +1,14 @@
 #list of methonds to draw specific plots in the article
 
-from trends import *
-from plotter import *
-from collection import *
-from matplotlib.pyplot import figure
+from achiralqw.trends import *
+from achiralqw.plotter import *
+from achiralqw.graph import QWGraph
+from achiralqw.simulator import Analyzer
+from achiralqw.collection import CollectionBuilder, get_line_data
+import matplotlib
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 def odd_even_time_lm( L_ref = True, HANDLES = False):
     """

@@ -2,6 +2,7 @@ import multiprocessing.pool as mpp
 
 #do it yourself implementation of istarmap for multiprocess collection creation
 # https://stackoverflow.com/questions/57354700/starmap-combined-with-tqdm
+
 def istarmap(self, func, iterable, chunksize=1):
     """starmap-version of imap
     """

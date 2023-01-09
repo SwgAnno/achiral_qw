@@ -1,4 +1,4 @@
-from graph import *
+from achiralqw.graph import QWGraph
 import numpy as np
 from scipy import optimize as opt
 import qutip as qt

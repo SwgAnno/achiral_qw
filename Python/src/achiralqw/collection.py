@@ -1,11 +1,10 @@
-from simulator import *
+from achiralqw.simulator import Analyzer
 import numpy as np
-import istarmap
+import achiralqw.istarmap
 import multiprocessing  as mp
 import os, copy
 from itertools import repeat
-from graph import QWGraph as qgw
-from graph import *
+from achiralqw.graph import QWGraph
 import scipy.stats as stats
 import tqdm
 
@@ -207,7 +206,7 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0], bounds[1], step)
 
         for d in drange :
-            collection.add( qgw.Line(d))
+            collection.add( QWGraph.Line(d))
 
         return collection
 
@@ -258,7 +257,7 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0]*2 + offset, bounds[1]*2 + offset, step)
 
         for d in drange :
-            collection.add( qgw.Ring(d, HANDLES = HANDLES, **kwargs))
+            collection.add( QWGraph.Ring(d, HANDLES = HANDLES, **kwargs))
 
         return collection
 
@@ -325,7 +324,7 @@ class CollectionBuilder(object) :
             drange = unit_list_bounds( bounds, gr_unit)
 
         for d in drange :
-            collection.add( qgw.chain( gr_unit, rep = d, **kwargs))
+            collection.add( QWGraph.chain( gr_unit, rep = d, **kwargs))
 
         return collection
 

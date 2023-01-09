@@ -1,11 +1,11 @@
-from simulator import *
-from graph import *
-from bessel import *
-from collection import *
+from achiralqw.simulator import Analyzer
+from achiralqw.graph import QWGraph
+from achiralqw.bessel import *
+from achiralqw.collection import CollectionBuilder, get_line_data
 from scipy.optimize import minimize_scalar
-from plotter import set_progression_plot
+from achiralqw.plotter import set_progression_plot
+import matplotlib.pyplot as plt
 
-from collection import *
 
 # plot tick API
 from matplotlib.ticker import MaxNLocator
