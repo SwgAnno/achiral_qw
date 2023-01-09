@@ -5,7 +5,7 @@ The code was born as a collection of unorganized R scripts, it has now been full
 
 ## Features
 
-The project mainly consists in three levels, each one building upon the previous one: the base classes QWGraph and QWGraphCollection, the Simulator and Analyzer classes and lastly all the general purpose plotting and analysis methods.
+The Python project mainly consists in three levels, each one building upon the previous one: the base classes QWGraph and QWGraphCollection, the Simulator and Analyzer classes and lastly all the general purpose plotting and analysis methods.
 
 Graph.py : QWGraph is the basic object for almost any task, it stores and manages all the useful information that are required to simulate a Chiral Quantum Walk on a specific graph
 
