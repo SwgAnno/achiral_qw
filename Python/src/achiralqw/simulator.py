@@ -1,4 +1,4 @@
-from Graph import *
+from graph import *
 import numpy as np
 from scipy import optimize as opt
 import qutip as qt

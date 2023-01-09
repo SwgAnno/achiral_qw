@@ -1,5 +1,5 @@
-from Graph import QWGraph as qwg
-from Graph import *
+from graph import QWGraph as qwg
+from graph import *
 from plotter import *
 from simulator import *
 from trends import *

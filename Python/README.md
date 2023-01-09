@@ -1,3 +1,5 @@
+(github README.md copypaste)
+
 # achiral_qw
 
 The aim of this project was to provide a Quantum Walk numerical simulation tool for my B.Sc. thesis project which could support and analyze the behaviour of general Chiral Quantum Walks.

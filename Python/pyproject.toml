@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "achiralqw"
+version = "0.0.1"
+authors = [
+  { name="Emilio Annoni", email="emilio.annoni@studenti.unimi.it" },
+]
+description = "Special purpose& totally non professional Achiral Quantum Walks simulation tool"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/SwgAnno/achiral_qw"
+"Bug Tracker" = "https://github.com/SwgAnno/achiral_qw/issues"

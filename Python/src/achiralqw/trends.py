@@ -1,5 +1,5 @@
 from simulator import *
-from Graph import *
+from graph import *
 from bessel import *
 from collection import *
 from scipy.optimize import minimize_scalar

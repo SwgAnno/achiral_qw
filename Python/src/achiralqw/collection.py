@@ -4,8 +4,8 @@ import istarmap
 import multiprocessing  as mp
 import os, copy
 from itertools import repeat
-from Graph import QWGraph as qgw
-from Graph import *
+from graph import QWGraph as qgw
+from graph import *
 import scipy.stats as stats
 import tqdm
 
