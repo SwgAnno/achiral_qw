@@ -21,7 +21,7 @@ bessel : Mainly math, nothing really useful eventually
 
 ### Examples
 
-The folder "Python/examples" unsurprisingly contains various examples of usage of mpst of the objects and methods of the package
+The folder "Python/examples" unsurprisingly contains various examples of usage of most of the objects and methods of the package (Work in progress)
 
 ## Installation
 
@@ -42,7 +42,7 @@ You can now check the version of 'achiralqw' you have installed by using the fol
 pip show achiralqw
 ```
 
-### Contribution
+## Contribution
 
 Although till now this has been a one man project, the code has grown quite big and I'm totally open to contribution.
 Just email me at emilio.annoni@studenti.unimi.it

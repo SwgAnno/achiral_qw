@@ -566,7 +566,7 @@ class QWGraph(object) :
 
     #construct a specific graph with the respective code number with variadic arguments
 
-    def Graph_from_code(code , *args):
+    def graphFromCode(code , *args):
 
         if code == 0:
             return QWGraph.Line(args)
@@ -576,7 +576,7 @@ class QWGraph(object) :
             return QWGraph.Ring(args)
 
     def gfc(code, *args):
-        return QWGraph.Graph_from_code(code, args)
+        return QWGraph.graphFromCode(code, args)
 
 
     #Ring graph constructor
@@ -717,10 +717,10 @@ class QWGraph(object) :
         return len(self.re_coord)
 
     #get a visual rapresentation of the graph (relies on igraph)
-    def plot(self) :
+    def plot(self, ax = None) :
 
         ref = self.to_networkx()
-        nx.draw_spring(ref, with_labels = True)
+        nx.draw_spring(ref, with_labels = True, ax = ax)
 
         # names = []
         # for i in range(self.N):
