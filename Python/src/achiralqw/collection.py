@@ -4,7 +4,7 @@ import achiralqw.istarmap
 import multiprocessing  as mp
 import os, copy
 from itertools import repeat
-from achiralqw.graph import QWGraph
+from achiralqw.graph import QWGraph, QWGraphBuilder
 import scipy.stats as stats
 import tqdm
 
@@ -23,10 +23,10 @@ def set_graph( an : Analyzer, graph : QWGraph):
     return an
 
 def create_c(dist):
-    return QWGraph.Ring(dist)
+    return QWGraphBuilder.Ring(dist)
 
 def create_ch(dist):
-    return QWGraph.Ring(dist, HANDLES = True)
+    return QWGraphBuilder.Ring(dist, HANDLES = True)
 
 def unit_list_bounds(bounds, unit):
 
@@ -206,7 +206,7 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0], bounds[1], step)
 
         for d in drange :
-            collection.add( QWGraph.Line(d))
+            collection.add( QWGraphBuilder.Line(d))
 
         return collection
 
@@ -227,7 +227,7 @@ class CollectionBuilder(object) :
         print(greeting_string.format(n_proc))
 
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.imap(QWGraph.Line, drange ), total=len(drange)):
+            for _ in tqdm.tqdm(pool.imap(QWGraphBuilder.Line, drange ), total=len(drange)):
                 collection.add(_)
 
             pool.close()
@@ -257,7 +257,7 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0]*2 + offset, bounds[1]*2 + offset, step)
 
         for d in drange :
-            collection.add( QWGraph.Ring(d, HANDLES = HANDLES, **kwargs))
+            collection.add( QWGraphBuilder.Ring(d, HANDLES = HANDLES, **kwargs))
 
         return collection
 
@@ -324,7 +324,7 @@ class CollectionBuilder(object) :
             drange = unit_list_bounds( bounds, gr_unit)
 
         for d in drange :
-            collection.add( QWGraph.chain( gr_unit, rep = d, **kwargs))
+            collection.add( gr_unit.chain( rep = d, **kwargs))
 
         return collection
 
@@ -346,7 +346,7 @@ class CollectionBuilder(object) :
         input_vec = [(gr_unit, rep) for rep in drange]
 
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.istarmap(QWGraph.chain, input_vec ), total=len(drange)):
+            for _ in tqdm.tqdm(pool.istarmap(QWGraphBuilder.chain, input_vec ), total=len(drange)):
                 collection.add(_)
 
             pool.close()

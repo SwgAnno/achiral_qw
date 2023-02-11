@@ -1,9 +1,10 @@
 from achiralqw.simulator import Analyzer, SESolver
-from achiralqw.graph import QWGraph
+from achiralqw.graph import QWGraph, QWGraphBuilder
 import achiralqw.bessel as bessel
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
+import networkx as nx
 import matplotlib.colors as colors
 from matplotlib.ticker import MaxNLocator
 
@@ -11,9 +12,130 @@ from matplotlib.ticker import MaxNLocator
 TC = 1
 qut = False
 
+def plot_qwgraph(gr: QWGraph, ax = None):
+    """
+    General graph visualization tool
+    """
 
+    ref = gr.to_networkx()
+    nx.draw_spring(ref, with_labels = True, ax  = ax)
 
-def plot_evo_mat(gr , start = 0, end = None, by = .1, filter = None, TC = None, ax = None):
+    #todo: more accurate plotting
+
+        # names = []
+        # for i in range(self.N):
+        #     names.append(str(i))
+
+        # cols = []
+        # for e in ref.es:
+        #     if e.tuple in self.re_coord or e.tuple[::-1] in self.re_coord:
+        #         cols.append("red")
+        #     else :
+        #         cols.append("black")
+
+        # v_cols = ["yellow"]* self.N
+        # v_cols[self.start] = "green"
+        # v_cols[self.target] = "red"
+
+        # ref.vs["label"] = names
+        # ref.vs["color"] = v_cols
+        # ref.es["color"] = cols
+        # ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
+
+def plot_graph_eigenbasis(gr: QWGraph):
+    """
+    Represent eigenvector basis in the site basis with
+    modulus of projection(left plot)
+    argument of projection(right plot)
+    """
+
+    x_range = np.arange(0,gr.N)
+    y_range = np.arange(0,len(gr.eig_vec))
+
+    modulus = np.zeros( ( gr.N, len(gr.eig_vec)) )
+    phase = np.zeros( ( gr.N, len(gr.eig_vec)) )
+
+    for j in range(len(gr.eig_val)) :
+        modulus[:,j] = np.abs( gr.eig_vec[j])
+        phase[:,j] = np.angle( gr.eig_vec[j])
+
+    fig, ax = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True)
+
+    c1 = ax[0].pcolormesh(x_range, y_range, modulus, label = "mod")
+    c2 = ax[1].pcolormesh(x_range, y_range, phase, label = "phase")
+
+    fig.colorbar(c1, ax = ax[0])
+    fig.colorbar(c2, ax = ax[1])
+
+    ax[0].set_title("Projection modulus")
+    ax[1].set_title("Relative phase")
+    
+    for stuff in ax :    
+        stuff.set_xlabel('site')
+        stuff.set_ylabel('eig_n')
+
+    return fig, ax
+
+def plot_krylov_basis(gr : QWGraph, **kwargs):
+    """
+    Represent krylov basis vector in the site basis with
+    modulus of projection(left plot)
+    argument of projection(right plot)
+    """
+
+    k_basis, k_E, k_A = gr.krylov_basis(**kwargs)
+
+    modulus = np.zeros( (len(k_basis),gr.N))
+    phase = np.zeros( (len(k_basis),gr.N))
+
+    for j in range(len(k_basis)) :
+        modulus[j,:] = np.abs( k_basis[j][:,0])
+        phase[j,:] = np.angle( k_basis[j][:,0])
+
+    x_range = np.arange(0,gr.N)
+    y_range = np.arange(0,len(k_basis))
+
+    fig, axx = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True, figsize=(8, 4))
+
+    c1 = axx[0].pcolormesh(x_range, y_range, modulus, label = "mod")
+    c2 = axx[1].pcolormesh(x_range, y_range, phase, label = "phase")
+
+    fig.colorbar(c1, ax = axx[0])
+    fig.colorbar(c2, ax = axx[1])
+
+    axx[0].set_title("Projection modulus")
+    axx[1].set_title("Relative phase")
+    
+    for ax in axx :    
+        ax.set_xlabel('site')
+        ax.set_ylabel('k_n')
+
+    return fig, ax
+
+def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs):
+    """
+    Plot coupling between krylov basis states in a scatter plot
+    """
+
+    k_basis, k_E, k_A = gr.krylov_basis(**kwargs)
+    
+    k_A = k_A[1:]
+    
+    if ax == None:
+        fig, ax = plt.subplots()
+
+    x = np.arange(1,len(k_A)+1)
+    
+    ax.scatter(x, k_A, label = "couplings")
+    
+    ax.set_xlabel('i')
+    ax.set_ylabel('a')
+
+    ax.legend()
+    
+    return ax
+
+def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC = None, ax = None):
     """
     Plot probability evolution on each and every site of the graph
     todo: discuss show buffering option   
@@ -194,7 +316,7 @@ def plot_line_vs_bessel(n = 5, l= None, end = 30, trace_conn = False):
     if l == None:
         l = n
 
-    gr = QWGraph.Line(n+1)
+    gr = QWGraphBuilder.Line(n+1)
     if trace_conn:
         gr.retrace_conn()
 
@@ -213,7 +335,7 @@ def plot_line_vs_bessel(n = 5, l= None, end = 30, trace_conn = False):
 #compare ring evolution on target site with analytical dynamics with bessel functions
 def plot_ring_vs_bessel(l = 5, end = 30):
 
-    gr = QWGraph.Ring(l)
+    gr = QWGraphBuilder.Ring(l)
 
     fig,ax = plot_evo_mat(gr, end = end,filter = "target", show = False)
 

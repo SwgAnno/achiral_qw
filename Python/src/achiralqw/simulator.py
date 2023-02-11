@@ -1,4 +1,4 @@
-from achiralqw.graph import QWGraph
+from achiralqw.graph import QWGraphBuilder
 import numpy as np
 from scipy import optimize as opt
 import qutip as qt
@@ -208,7 +208,7 @@ class SESolver(object):
 
 class Analyzer(object):
 
-    def __init__(self, gr = QWGraph.Line(2), event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = None, diag = True):
+    def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = None, diag = True):
         self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s
@@ -576,9 +576,9 @@ class Analyzer(object):
 #########
 
 if __name__ == "__main__" :
-    a = QWGraph.Ring(6)
+    a = QWGraphBuilder.Ring(6)
 
-#    c = QWGraph.chain(a,5)
+#    c = a.chain,5)
 
     test = Analyzer(a, qutip = True)
 
