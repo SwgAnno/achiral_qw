@@ -95,23 +95,42 @@ class QWGraph(object) :
 
         return out
 
-    def rephase(self, phi = [1j]) :
+    def rephase(self, phi_vec = [0]) :
         """
-        assign new phase value to the rephasing cycle links
-        Note: this does not thange their magnitude
-        """
-        
-        if isinstance(phi, (list, np.ndarray)):
-            if( len( self.re_coord) != len(phi)):
-                print("rephase() error: wrong number of phases given")
-                return()
-        else :
-            phi = [phi]
+        Assign new phase value to the phased cycle links
+        Note: new phases values are inerpreted as being in radians!!!
+        The operation does not change the coupling magnitude
 
-        for i in range(len(phi)) :
-            p = self.re_coord[i]
-            self.mat[p[0]][p[1]] = -1*phi[i]* np.abs(self.mat[p[0]][p[1]])
-            self.mat[p[1]][p[0]] = np.conjugate(self.mat[p[0]][p[1]])
+        Args:
+        phi_vec -> vector of phases, has to be of the same length as re_coord
+
+        """
+        if isinstance(phi_vec, (list, np.ndarray)):
+            if( len( self.re_coord) != len(phi_vec)):
+                raise ValueError("rephase() error: wrong number of phases given")
+        else :
+            # phi_vec is a single float: format to a numpy vector
+            temp = phi_vec
+            phi_vec = np.empty(1)
+            phi_vec[0] = temp
+
+        exp_vec = np.exp(1j * phi_vec)
+
+        for i, edge in enumerate(self.re_coord) :
+            self.mat[edge[0]][edge[1]] = -1* np.abs(self.mat[edge[0]][edge[1]])* exp_vec[i]
+            self.mat[edge[1]][edge[0]] = np.conjugate(self.mat[edge[0]][edge[1]])
+
+    def get_phases(self):
+        """
+        Return the vector of phases in radians of the phased links
+        """
+
+        out = np.empty(len(self.re_coord))
+
+        for i,edge in enumerate(self.re_coord) :
+            out[i] = np.angle(self.mat[edge[0]][edge[1]])
+
+        return out
 
     def recouple(self, pos, value):
         """
@@ -353,7 +372,7 @@ class QWGraph(object) :
             for j in range(len(self.eig_vec)) :
                 print(j, ") \t", self.eig_vec[j])
 
-    def krylov_basis( self, start_state = None, mode = "default"):
+    def krylov_basis( self, start_state = None, mode = ""):
         """
         Compute krylov basis relative to the start state of the graph and eventually print some details
 
@@ -415,7 +434,7 @@ class QWGraph(object) :
             for a in k_A:
                 print( a, "\t")
 
-        else :
+        elif mode != "" :
             for i in range(len(k_basis)):
                 vec = " "
                 for elem in k_basis[i] :

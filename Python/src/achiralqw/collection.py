@@ -346,7 +346,7 @@ class CollectionBuilder(object) :
         input_vec = [(gr_unit, rep) for rep in drange]
 
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.istarmap(QWGraphBuilder.chain, input_vec ), total=len(drange)):
+            for _ in tqdm.tqdm(pool.istarmap(QWGraph.chain, input_vec ), total=len(drange)):
                 collection.add(_)
 
             pool.close()

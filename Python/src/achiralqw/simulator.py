@@ -3,10 +3,11 @@ import numpy as np
 from scipy import optimize as opt
 import qutip as qt
 
-#helper function to get a discrete sample of modulus 1 complex numbers
 def phase_sample(step = 100):
-    sample = np.linspace(0, np.pi*2, step)
-    return np.exp(1j * sample)
+    """
+    helper function to get a discrete sample of phase values between 0 and 2*pi
+    """
+    return np.linspace(0, np.pi*2, step)
 
 #DIY optimization method
 #it divides the sample bounds into n smaller sections
@@ -70,6 +71,8 @@ def format_qutip_time( t):
     else:
         return t,False
 
+
+#todo: differentiate QutipSESolver and EigenSESolver
 
 #general purpose class to handle the time evolution computation of the QW
 class SESolver(object):
@@ -223,10 +226,8 @@ class Analyzer(object):
 
         if phi_vec == None:
             phi_vec = np.repeat(0,self.dim())
-
-        else :
-            p = np.exp(1j * phi_vec)
-            self.solver.rephase_gr(p)
+        
+        self.solver.rephase_gr(phi_vec)
 
         sample =np.arange(bounds[0], bounds[1], step)
 
@@ -323,8 +324,7 @@ class Analyzer(object):
         if not np.any(phi_vec):
             phi_vec = np.repeat(0,self.dim())
 
-        p = np.exp(1j * phi_vec)
-        self.solver.rephase_gr(p)
+        self.solver.rephase_gr(phi_vec)
 
         if not t:
             return self.locate_max()[1]
@@ -336,8 +336,7 @@ class Analyzer(object):
 
         #print(phi)
 
-        p = np.exp(1j * phi)
-        self.solver.rephase_gr( np.repeat( p, self.dim() ))
+        self.solver.rephase_gr( np.repeat( phi, self.dim() ))
         
         if not t:
             return self.locate_max()[1]
@@ -365,9 +364,9 @@ class Analyzer(object):
 
             i = it.multi_index
             
-            phi_vec = []
+            phi_vec = np.empty(self.dim())
             for j in range(self.dim()):
-                phi_vec.append(grid[j][i])
+                phi_vec[j] = grid[j][i]
 
             self.solver.rephase_gr(phi_vec)
             out[i] = self.locate_max()[target]
@@ -428,6 +427,7 @@ class Analyzer(object):
         return sol["x"], -1*perf(sol["x"])
 
     #check for just +-1 +-i
+    #todo: does it work???
     def optimum_phase_smart(self):
 
         if self.dim() == 0 :
@@ -462,9 +462,9 @@ class Analyzer(object):
 
             i = it.multi_index
             
-            phi_vec = []
+            phi_vec = np.empty(self.dim())
             for j in range(self.dim()):
-                phi_vec.append(grid[j][i])
+                phi_vec[j] = grid[j][i]
 
             self.solver.rephase_gr(phi_vec)
             cur = self.locate_max()[1]

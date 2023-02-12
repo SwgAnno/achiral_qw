@@ -83,7 +83,7 @@ def plot_krylov_basis(gr : QWGraph, **kwargs):
     argument of projection(right plot)
     """
 
-    k_basis, k_E, k_A = gr.krylov_basis(**kwargs)
+    k_basis, k_E, k_A = gr.krylov_basis(mode = "",**kwargs)
 
     modulus = np.zeros( (len(k_basis),gr.N))
     phase = np.zeros( (len(k_basis),gr.N))
@@ -117,7 +117,7 @@ def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs):
     Plot coupling between krylov basis states in a scatter plot
     """
 
-    k_basis, k_E, k_A = gr.krylov_basis(**kwargs)
+    k_basis, k_E, k_A = gr.krylov_basis(mode = "",**kwargs)
     
     k_A = k_A[1:]
     
@@ -240,15 +240,13 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     seq = np.arange(start,end,by)
     phase_seq = np.arange(0,2*np.pi, phase_by)
 
-    phase_vec = np.exp( 1j * phase_seq)
-
     data = np.ndarray( (len(phase_seq), len(seq)))
     max_data = np.empty( (2,len(phase_seq)))
     
     an = Analyzer(gr, qutip = qut, mode = "first")
 
-    for i in range( len(phase_vec)):
-        an.rephase_gr( np.repeat( phase_vec[i], \
+    for i in range( len(phase_seq)):
+        an.rephase_gr( np.repeat( phase_seq[i], \
                                   an.dim() ))
 
         data[i:] = an.evo_full( bounds = (start,end), step = by)
