@@ -209,15 +209,28 @@ class SESolver(object):
 #############################################################
 
 
+
 class Analyzer(object):
 
-    def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = None, diag = True):
+    _modes = ["TC", "first"]
+    _opt_modes = ["none", "smart", "fix"]
+
+    def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = "none", diag = True):
         self.solver = SESolver(gr, qutip)
 
         self.event_size = event_s
         self.TIME_CONSTANT = TC
-        self.mode = mode
-        self.opt_mode = opt_mode
+
+        if not mode in Analyzer._modes:
+            raise ValueError("Mode not supported/recognized")
+        else :
+            self.mode = mode
+
+        if not opt_mode in Analyzer._opt_modes:
+            raise ValueError("Opt mode not supported/recognized")
+        else :
+            self.opt_mode = opt_mode
+
         self.fix_phi = None
         self.diag = diag
 
@@ -386,6 +399,7 @@ class Analyzer(object):
         for i in range(len(sample)):
             self.solver.rephase_gr( np.repeat( sample[i], \
                                                self.dim() ))
+
             out[i] = self.locate_max()[target]
 
         return out
@@ -440,15 +454,16 @@ class Analyzer(object):
             best = 0
 
             for phase in sample:
-                
-                self.solver.rephase_gr(phase)
+
+                diag_phase = np.repeat(phase, self.dim()) 
+                self.solver.rephase_gr(diag_phase)
                 cur = self.locate_max()[1]
 
                 if cur > best:
                     best = cur
                     out = phase
 
-            return np.angle(out), self.performance( np.angle(out))
+            return out, self.performance_diag( out)
 
         sample = phase_sample(step = 5)
         n_sample = [sample] * self.dim()
@@ -473,7 +488,7 @@ class Analyzer(object):
                 best = cur
                 out = phi_vec
 
-        return np.angle(out), self.performance( np.angle(out))
+        return out, self.performance( out)
 
     def evaluate(self, target = "p"):
         best_phi = 0
@@ -483,7 +498,7 @@ class Analyzer(object):
         elif self.opt_mode == "smart" :
             best_phi = self.optimum_phase_smart()[0]
         elif self.opt_mode == "fix" :
-            assert self.fix_phi != None
+            assert np.any(self.fix_phi )
             best_phi = self.fix_phi
         else :
             best_phi = self.optimum_phase_minimize()[0]
