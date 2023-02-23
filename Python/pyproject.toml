@@ -10,7 +10,7 @@ authors = [
 ]
 description = "Special purpose& totally non professional Achiral Quantum Walks simulation tool"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.6.9"
 dependencies = [
     'numpy >= 1.4',
     'scipy >= 1.9',
