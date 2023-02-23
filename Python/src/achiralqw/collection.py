@@ -6,6 +6,7 @@ import os, copy
 from itertools import repeat
 from achiralqw.graph import QWGraph, QWGraphBuilder
 import scipy.stats as stats
+from scipy.optimize import curve_fit
 import tqdm
 
 MULTIPROCESS = True
@@ -147,6 +148,58 @@ class QWGraphCollection(object) :
 
         #print(data)
         out = stats.linregress(x, data)
+
+        print("m: ", out.slope, " +- ", out.stderr)
+        print("q: ", out.intercept, " +- ", out.intercept_stderr)
+        print("r: ", out.rvalue)
+
+        return out.slope, out.intercept
+
+    def transport_prob_model( self, mode = "poly"):
+        """
+        Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
+        which represent the power law exponent of its decay
+        """
+        x, data = self.get_data( target = "p")
+
+        #test over y = ax^2 + bx + c
+        if mode == "poly" :
+            param = np.polyfit(np.log(x), np.log(data), deg = 2)
+            
+            print("ax^2: ", param[0])
+            print("bx: ", param[1])
+            print("c: ", param[2])
+
+            return param
+
+        elif mode == "custom": 
+            # test over y = ax + b + c*1/x   
+            def model(x,a,b,c):
+                return a*x + b + c/x
+
+            #first guess
+            p0 = [-.5,2.5,1]
+            param, cov_param = curve_fit(model, np.log(x), np.log(data), p0 = p0)
+
+            print("ax: ", param[0], " +- ", cov_param[0,0])
+            print("b: ", param[1], " +- ", cov_param[1,1])
+            print("c*1/x: ", param[2], " +- ", cov_param[2,2])
+
+            return param
+
+
+        return None
+
+    def transport_prob_loglog_lm( self, mode = "dist"):
+        """
+        Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
+        which represent the power law exponent of its decay
+        """
+        
+        x, data = self.get_data( target = "p")
+
+        #print(data)
+        out = stats.linregress(np.log(x), np.log(data))
 
         print("m: ", out.slope, " +- ", out.stderr)
         print("q: ", out.intercept, " +- ", out.intercept_stderr)
@@ -298,20 +351,6 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def base_progression(self, g_type, **kwargs):
-        """
-        wrapper for the 3 basic standard progression
-        """
-
-        if g_type == "P":
-            return self.P_progression(**kwargs)
-        if g_type == "C":
-            return self.C_progression(**kwargs)
-        if g_type == "Ch":
-            return self.C_progression(HANDLES = True, **kwargs)
-        else:
-            raise ValueError("g_type not supported in base_progression")
-
     def chain_progression_singleprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
 
         collection = QWGraphCollection( analyzer=analyzer)
@@ -353,6 +392,46 @@ class CollectionBuilder(object) :
             pool.join()
 
         return collection
+
+    def base_progression(self, g_type, **kwargs):
+        """
+        wrapper for the 3 basic standard progression
+        """
+
+        if g_type == "P":
+            return self.P_progression(**kwargs)
+        if g_type == "C":
+            return self.C_progression(**kwargs)
+        if g_type == "Ch":
+            return self.C_progression(HANDLES = True, **kwargs)
+        else:
+            raise ValueError("g_type not supported in base_progression")
+
+    def log_progression( self, g_type, bounds, points = 10, **kwargs):
+        """
+        get a standard progression evenly spread out on a log scale
+        """
+
+        select = np.geomspace(*bounds, num = points, dtype=int)
+        select = set(select)
+        select = [x for x in select]
+        select.sort()
+        select = np.array(select)
+
+        return CollectionBuilder.base_progression(self, g_type, select = select, **kwargs)
+
+    def log_chain_progression( self, gr_unit, bounds, points = 10, **kwargs):
+        """
+        get a standard progression evenly spread out on a log scale
+        """
+
+        select = np.geomspace(*bounds, num = points, dtype=int)
+        select = set(select)
+        select = [x for x in select]
+        select.sort()
+        select = np.array(select)
+
+        return self.chain_progression(gr_unit, select = select, **kwargs)
 
 
 #####################################à
