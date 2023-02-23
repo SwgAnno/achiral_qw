@@ -13,7 +13,7 @@ readme = "README.md"
 requires-python = ">=3.6.9"
 dependencies = [
     'numpy >= 1.4',
-    'scipy >= 1.5.4,
+    'scipy >= 1.5.4',
     'matplotlib >= 3.0',
     'qutip >= 4.0',
     'networkx >= 2.0',
