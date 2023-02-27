@@ -651,7 +651,7 @@ class QWGraphBuilder(object):
         raise NotImplementedError("to be implemented")
 
     @staticmethod
-    def Ring(N : int, HANDLES : bool = False, E : float  = 0) -> QWGraph:
+    def Ring(N : int, HANDLES : bool = False, E : float  = 0, COMPUTE_EIGEN = False) -> QWGraph:
         """
         Ring graph constructor
         """
@@ -680,10 +680,13 @@ class QWGraphBuilder(object):
         if HANDLES :
             return out.add_handles(1)
 
+        if COMPUTE_EIGEN:
+            out.update_eigen()
+
         return out
 
     @staticmethod
-    def Line(N : int , E : float = 0, speedup : float = None) -> QWGraph:
+    def Line(N : int , E : float = 0, speedup : float = None, COMPUTE_EIGEN = False) -> QWGraph:
         """
         Line graph constructor
         """
@@ -710,12 +713,14 @@ class QWGraphBuilder(object):
 
         out.start = 0
         out.target = N-1
-        
+
+        if COMPUTE_EIGEN:
+            out.update_eigen()
 
         return out
 
     @staticmethod
-    def Parallel(paths : int , p_len : int , E : float = 0) -> QWGraph:
+    def Parallel(paths : int , p_len : int , E : float = 0, COMPUTE_EIGEN = False) -> QWGraph:
         """
         Multi path element graph constructor
         """
@@ -736,11 +741,13 @@ class QWGraphBuilder(object):
         out = QWGraphBuilder.fromIgraph(ref)
         out.retrace_E(E)
         
-        
+        if COMPUTE_EIGEN:
+            out.update_eigen()
+
         return out
 
     @staticmethod
-    def SquareCut(E  : float = 0) -> QWGraph:
+    def SquareCut(E  : float = 0, COMPUTE_EIGEN = False) -> QWGraph:
         """
         C4 with extra start to and cut and straight rephasal links
         """
@@ -749,6 +756,9 @@ class QWGraphBuilder(object):
         out = out.cut( (0,3))
         out.re_coord = [(1,3),(2,3)]
         out.code = "DiC4"
+
+        if COMPUTE_EIGEN:
+            out.update_eigen()
 
         return out
 
