@@ -143,10 +143,12 @@ class QWGraph(object) :
         self.mat[pos[0]][pos[1]] = value
         self.mat[pos[0]][pos[1]] = np.conjugate(value)
 
-    #add ("cut") the edges specified in the vector as tuples
     def cut(self, cut_vec):
         """
         Create a new edge, rephasing links are going to be recomputed
+
+        ##Arguments
+        cut_vec : list[(int,int)] -> list of the new edges to insert in the graph
         """
 
         #print(self.code, cut_vec)
@@ -597,6 +599,7 @@ class QWGraph(object) :
 
 class QWGraphBuilder(object):
 
+    @staticmethod
     def graphFromCode(code : str, *args) -> QWGraph:
         """
         Construct a specific graph with the respective code number with variadic arguments
@@ -609,12 +612,14 @@ class QWGraphBuilder(object):
         if code == 2 :
             return QWGraphBuilder.Ring(args)
 
+    @staticmethod
     def gfc(code : str, *args) -> QWGraph:
         """
         wrapper for GraphFromCode
         """
         return QWGraphBuilder.Graph_from_code(code, args)
 
+    @staticmethod
     def fromIgraph( ig, E = 0, ends = None) :
         """
         return QWGraph instance from a igraph object
@@ -641,9 +646,11 @@ class QWGraphBuilder(object):
         return out
 
     #todo : finish this thing
+    @staticmethod
     def fromNetworkx( nx_graph, E = 0, ends = None):
         raise NotImplementedError("to be implemented")
 
+    @staticmethod
     def Ring(N : int, HANDLES : bool = False, E : float  = 0) -> QWGraph:
         """
         Ring graph constructor
@@ -675,6 +682,7 @@ class QWGraphBuilder(object):
 
         return out
 
+    @staticmethod
     def Line(N : int , E : float = 0, speedup : float = None) -> QWGraph:
         """
         Line graph constructor
@@ -706,6 +714,7 @@ class QWGraphBuilder(object):
 
         return out
 
+    @staticmethod
     def Parallel(paths : int , p_len : int , E : float = 0) -> QWGraph:
         """
         Multi path element graph constructor
@@ -730,6 +739,7 @@ class QWGraphBuilder(object):
         
         return out
 
+    @staticmethod
     def SquareCut(E  : float = 0) -> QWGraph:
         """
         C4 with extra start to and cut and straight rephasal links
@@ -754,11 +764,3 @@ def get_list_x(gr_list, x_mode = "size"):
             out.append(i)
 
     return out
-
-############################
-
-if __name__ == "__main__":
-    a = QWGraphBuilder.Parallel(4,3)
-
-    a.plot()
-
