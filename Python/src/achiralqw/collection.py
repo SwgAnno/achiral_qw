@@ -290,7 +290,7 @@ class CollectionBuilder(object) :
 
 
 
-    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select : list[int] = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
+    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
 
         collection = QWGraphCollection( analyzer=analyzer)
 
