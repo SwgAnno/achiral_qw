@@ -1,4 +1,4 @@
-from achiralqw.simulator import Analyzer, SESolver
+from achiralqw.simulator import Analyzer, SESolver, EigenSESolver, QutipSESolver
 from achiralqw.graph import QWGraph, QWGraphBuilder
 import achiralqw.bessel as bessel
 import matplotlib.pyplot as plt
@@ -11,6 +11,10 @@ from matplotlib.ticker import MaxNLocator
 #todo: decide on the fate of those global variables
 TC = 1
 qut = False
+
+
+##############################################
+# Graph info plotting
 
 def plot_qwgraph(gr: QWGraph, ax = None):
     """
@@ -135,7 +139,10 @@ def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs):
     
     return ax
 
-def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC = None, ax = None):
+ ####################################
+ # Simple evolution plotting
+
+def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC = None, solver = EigenSESolver(), ax = None):
     """
     Plot probability evolution on each and every site of the graph
     todo: discuss show buffering option   
@@ -149,8 +156,7 @@ def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC
 
     seq = np.arange(start,end,by)
     
-    solver = SESolver(gr, qutip = qut)
-    evo = solver.evo_p_psi( gr.get_start_state(qut), seq)
+    evo = solver.evolve_state_p(gr, gr.get_start_state(qut), seq)
 
     print("Grid-wise maximum: ", max(evo[gr.target][:]))
 
@@ -181,7 +187,7 @@ def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC
     ax.legend()
     return ax
 
-def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC = None, fig = None, ax = None):
+def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC = None, fig = None, solver = EigenSESolver(), ax = None):
     """
     Display probability evolution on each node of a graph in a 2D heatmap
     """
@@ -194,8 +200,7 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
 
     seq = np.arange(start,end,by)
     
-    solver = SESolver(gr, qutip = qut)
-    evo = solver.evo_p_psi( gr.get_start_state(qut), seq)
+    evo = solver.evolve_state_p(gr,  gr.get_start_state(qut), seq)
 
     print("Grid-wise maximum: ", max(evo[gr.target][:]))
 
@@ -347,22 +352,18 @@ def plot_ring_vs_bessel(l = 5, end = 30):
 
     plt.show()
 
-def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None, ax = None):
+def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None, solver = EigenSESolver(), ax = None):
     """
     Comparison between target site probability and its derivative
     """
     assert end or TC , "plot_evo_vs_derivative error, no time bounds given"
     if not end:
         end = gr.distance()*TC
-    global qut
-
-    print(qut)
     
     seq = np.arange(start,end,by)
     
-    solver = SESolver(gr,qutip = qut)
-    evo = solver.target_p(seq)
-    deriv = solver.target_p_prime(seq)
+    evo = solver.evolve_default_p(gr, seq)
+    deriv = solver.evolve_default_p_deriv(gr, seq)
 
     if ax == None :
         fig, ax = plt.subplots()
