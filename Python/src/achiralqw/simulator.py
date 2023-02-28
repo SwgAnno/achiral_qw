@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from achiralqw.graph import QWGraphBuilder, QWGraph
 import numpy as np
 from scipy import optimize as opt
@@ -75,138 +76,89 @@ def format_qutip_time( t):
 #todo: differentiate QutipSESolver and EigenSESolver
 
 
-#general purpose class to handle the time evolution computation of the QW
+
 class SESolver(object):
+    """
+    Absrtact class that define the interface for a Evolution solver for QWGraphs
+    """
 
-    def __init__(self, gr, qutip = False):
-        self.gr = gr
+    def __init__():
+        pass
 
-        self.gr.update_eigen()
-        self.set_qutip(qutip)
+    @abstractmethod
+    def evolve_state( self, gr : QWGraph, psi, t):
+        """
+        Solve the Schrodinger equation for a given pure state in the site basis
+        Return the projection of the resulting state on each state
+        """
+        pass
+
+    #todo check correctness
+    @abstractmethod
+    def evolve_state_deriv(self, gr : QWGraph, psi,t):
+        """
+        Compute the derivative of an evolving state at time t (Schrodinger equation)
+        """
+        pass
+
+    @abstractmethod
+    def evolve_state_p(self, gr, psi, t) :
+        """
+        Solve the Schrodinger equation for a given pure state in the site basis
+        Return the squared modulus (on site probability) of the resulting state on each state
+        """
+        pass
+
+    @abstractmethod
+    def evolve_state_p_deriv(self, gr, psi, t):
+        """
+        Compute the derivative of the localization probability on each site at time t ( evolving psi according to Schrodinger equation)
+        """
+        pass
+
+    @abstractmethod
+    def evolve_default(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state :
+        Solves Schrodinger equation for a state localized on the graph start site
+        Only returns resulting projection on the target site
+        """
+        pass
+
+    @abstractmethod
+    def evolve_default_deriv(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state_deriv :
+        Compute derivative according to Schrodinger equation for a state localized on the graph start site
+        Only returns resulting projection on the target site
+        """
+        pass
+    @abstractmethod
+    def evolve_default_p(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state_p :
+        Solves Schrodinger equation for a state localized on the graph start site
+        Only returns localization probability of the target site
+        """
+        pass
+
+    @abstractmethod
+    def evolve_default_p_deriv(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state__p_deriv :
+        Compute derivative of localization probability according to Schrodinger equation
+        Start state is localized on the grahp start site
+        Only returns resulting projection on the target site
+        """
+        pass
+
 
     
-    # decompose and recompose localized state basis into matrix eigenvectors basis
-    def decompose_localized(self, local_A) :
-        return  self.gr.eig_vec.conj().T.dot(local_A)
-
-    def recompose(self, eigen_A):
-        return self.gr.eig_vec.dot(eigen_A)
-
-
-    #return exponential map in eigenvector basis as column vector
-    def exp_map(self,t):
-        return np.exp(-1j * np.outer( self.gr.eig_val, t) )
-
-    #evolve state in the localized basis/ get evolved probability amplitudes
-    def evo_psi(self, psi, t):
-
-        #carry on calculation in  H eigenvector basis
-        A_t = self.decompose_localized(psi) *self.exp_map(t)
-
-        return self.recompose( A_t)
-
-    #evolve the desired state,
-    #get results as sheer probability (p_psi)
-    # or their respective derivatives (p_psi_prime)
-    
-    def evo_p_psi(self, psi, t):
-        if self.qut:
-            H = self.gr.get_h()
-
-            E_list = []
-            for i in range(self.gr.N):
-                E_list.append(self.gr.get_projector(i))
-
-            res = qt.sesolve(H, psi, t, E_list)
-
-            return res.expect
-        else:
-            return np.abs(self.evo_psi(psi, t))**2
-
-    def evo_p_psi_prime(self, psi, t):
-   
-        A_t = self.decompose_localized(psi)*self.exp_map(t)
-
-        A_t_prime = self.gr.eig_val* A_t
-
-        #get probability derivative as 2Re[(a)(a*)']
-        out = self.recompose(A_t) * np.conjugate(self.recompose(A_t_prime))
-
-        return -2* np.imag(out)
-
-
-    #helper function to do optimization on
-    #get localization probability on target site or its derivative
-    # with the eigenvalue evolution method (p/p_prime_old)
-    # or Qutip solvers (p/p_prime_qut)
-    
-    def target_p_old(self, t):
-        return   self.evo_p_psi(self.gr.get_start_state(), t)[self.gr.target,:]
-    
-    def target_p_qut(self, t):
-        #qutip has problems with non list input
-        #and with evaulation times not starting with 0
-        t, strip = format_qutip_time(t)
-        
-        psi_0 = self.gr.get_start_state(qut = True)
-        H = self.gr.get_h()
-        E = self.gr.get_projector()
-
-
-        res = qt.sesolve(H, psi_0, t, [E])
-
-        if strip:
-            return res.expect[0][1:]
-        else:
-            return res.expect[0]
-
-    def target_p_prime_old(self, t):
-        return self.evo_p_psi_prime(self.gr.get_start_state(), t)[self.gr.target,:]
-
-    def target_p_prime_qut(self, t):
-        
-        #qutip has problems with non list input
-        #and with evaulation times not starting with 0
-        t, strip = format_qutip_time(t)
-            
-        psi_0 = self.gr.get_start_state(qut = True)
-        H = self.gr.get_h()
-        E_prime = -1j * qt.commutator( self.gr.get_projector(), H)
-
-        res = qt.sesolve(H, psi_0, t, [E_prime])
-
-        if strip:
-            return res.expect[0][1:]
-        else:
-            return res.expect[0]
-    
-    #not very useful getter/setter but it makes the implementation transparent
-    def get_gr(self):
-        return self.gr
-
-    def set_gr(self, gr):
-        self.gr = gr
-        self.gr.update_eigen()
-
-    def get_qutip(self):
-        return self.qut
-
-    def set_qutip(self, qutip):
-        self.qut = qutip
-        
-        if not qutip:
-            self.target_p = self.target_p_old
-            self.target_p_prime = self.target_p_prime_old
-        else:
-            self.target_p = self.target_p_qut
-            self.target_p_prime =  self.target_p_prime_qut
-
-    def rephase_gr(self, phi_vec):
-        self.gr.rephase(phi_vec)
-        self.gr.update_eigen()
-
 
 class EigenSESolver(SESolver) :
+    """
+    Schrodinger equation solver for QWGraph that uses eigenvector basis to decompose and evolve the starting state
+    """
 
     def __init__(self):
         pass
@@ -235,7 +187,10 @@ class EigenSESolver(SESolver) :
         return np.exp(-1j * np.outer( eig_val, t) )
 
     def evolve_state( self, gr : QWGraph, psi, t):
-
+        """
+        Solve the Schrodinger equation for a given pure state in the site basis
+        Return the projection of the resulting state on each state
+        """
 
         #carry on calculation in  H eigenvector basis
         A_t = EigenSESolver._to_eiegn_basis(gr.eig_vec, psi) * EigenSESolver._exp_map(gr.eig_val, t)
@@ -244,14 +199,23 @@ class EigenSESolver(SESolver) :
 
     #todo check correctness
     def evolve_state_deriv(self, gr : QWGraph, psi,t):
-        
-        return -1j * gr.mat.dot(psi)
+        """
+        Compute the derivative of an evolving state at time t (Schrodinger equation)
+        """
+        psi_t = self.evolve_state(gr, psi,t)
+        return -1j * gr.mat.dot(psi_t)
 
     def evolve_state_p(self, gr, psi, t) :
-        
+        """
+        Solve the Schrodinger equation for a given pure state in the site basis
+        Return the squared modulus (on site probability) of the resulting state on each state
+        """
         return np.power(np.abs(self.evolve_state(gr, psi, t)), 2)
 
     def evolve_state_p_deriv(self, gr, psi, t):
+        """
+        Compute the derivative of the localization probability on each site at time t ( evolving psi according to Schrodinger equation)
+        """
            
         A_t = EigenSESolver._to_eiegn_basis(gr.eig_vec, psi) * EigenSESolver._exp_map(gr.eig_val, t)
 
@@ -263,18 +227,42 @@ class EigenSESolver(SESolver) :
         return -2* np.imag(out)
 
     def evolve_default(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state :
+        Solves Schrodinger equation for a state localized on the graph start site
+        Only returns resulting projection on the target site
+        """
         return   self.evolve_state(gr, gr.get_start_state(), t)[gr.target, :]
     
     def evolve_default_deriv(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state_deriv :
+        Compute derivative according to Schrodinger equation for a state localized on the graph start site
+        Only returns resulting projection on the target site
+        """
         return self.evolve_state_deriv(gr, gr.get_start_state(), t)[gr.target, :]
 
     def evolve_default_p(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state_p :
+        Solves Schrodinger equation for a state localized on the graph start site
+        Only returns localization probability of the target site
+        """
         return self.evolve_state_p(gr, gr.get_start_state(), t)[gr.target, :]
 
     def evolve_default_p_deriv(self, gr : QWGraph, t):
+        """
+        wrapper for evolve state__p_deriv :
+        Compute derivative of localization probability according to Schrodinger equation
+        Start state is localized on the grahp start site
+        Only returns resulting projection on the target site
+        """
         return self.evolve_state_p_deriv(gr, gr.get_start_state(), t)[gr.target, :]
 
 class QutipSESolver(SESolver):
+    """
+    Schrodinger Equation solver on a QWGraph that uses Qutip library
+    """
     
     def __init__(delf):
         pass
@@ -290,8 +278,9 @@ class QutipSESolver(SESolver):
     #todo check correctness
     def evolve_state_deriv(self, gr : QWGraph, psi,t):
         
-        psi = qt.Qobj(psi)
-        return -1j * gr.get_h() * psi 
+        psi_t = self.evolve_state(gr, psi, t)
+        psi_t = qt.Qobj(psi_t)
+        return -1j * gr.get_h() * psi_t 
 
     def evolve_state_p(self, gr, psi, t) :
         
@@ -343,12 +332,32 @@ class QutipSESolver(SESolver):
 
 
 class Analyzer(object):
+    """
+    Class that wraps around a QWGraph and extracts/computes information on its evolution
+    The criteria on which thos information are extracted depends on its state
+
+    In particular one can vary:
+
+    Best maximum criterium:
+    -TC : best maximum for a given choice of phases is the result of a optimization routine on a linearly scaling window
+    -first : best maximum for a given phase choice is the first maximum encountered
+
+    Best phase choice algorithm:
+    -none : no phase optimization
+    -smart : choose the best among multiple of pi/2
+    -fix : no phase optimization (but arbitraty choice of a fixed phase stored in fix_phi)
+
+    Solver backend:
+    -eigen :  SESolver is a EigenSESolver
+    -qutip : SESolver is QutipSESolver
+
+    """
 
     _modes = ["TC", "first"]
     _opt_modes = ["none", "smart", "fix"]
     _solver_modes = ["eigen", "qutip"]
 
-    def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, qutip = False, mode = "TC", opt_mode = "none",solver_mode = "eigen", diag = True):
+    def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, mode = "TC", opt_mode = "none",solver_mode = "eigen", diag = True):
 
         
         if not solver_mode in Analyzer._solver_modes:
@@ -377,13 +386,24 @@ class Analyzer(object):
 
         self._graph = gr 
 
-    #get evolution on target site
-    def evo_full(self, phi_vec = None, bounds =(0,10), step = .1):
+    def evo_full(self, phase_vec = None, bounds =(0,10), step = .1):
+        """
+        Return the evolution of localization probability on the target state
+        Sampled on a mesh of points defined by bounds and step
 
-        if phi_vec == None:
-            phi_vec = np.repeat(0,self.dim())
+        #Arguments
+        phase_vec : list(float) -> phase choice for the rephasing links
+        bounds : (float,float) ->
+        step : float -> interval that separates sample points
+
+        #Returns
+        list[float] -> the evolution sampled on the mesh
+        """
+
+        if phase_vec == None:
+            phase_vec = np.repeat(0,self.dim())
         
-        self.rephase_graph(phi_vec)
+        self.rephase_graph(phase_vec)
 
         sample =np.arange(bounds[0], bounds[1], step)
 
@@ -393,92 +413,131 @@ class Analyzer(object):
 
     #get stationary points in probability evolution on the target stite
     def deriv_roots(self):
+        """
+        Compute a list of the position of "all" the stationary point of the probability evolution
+
+        #todo: implement it??
+        """
         
         pass
 
     def locate_max(self):
+        """
+        Localize the "Best Maximum" according to the chosen criteria and phases
 
+        wrapper for _locate_max_TC and _locate_max_first
+        """
+
+        if self.mode == "TC" :
+            return self._locate_max_TC()
+
+        elif self.mode == "first" :
+            return self._locate_max_first()
+
+    def _locate_max_TC(self):
+        """
+        Localize the Best Maximum according to TC criterium:
+        -Search on a linarly scaling widonws defined as TC*graph.distance()
+        -Devide the time window in smaller intervals and perform a standard optimization routine on each one
+        -Best Maximum is the highest maximum found
+
+        #Returns
+        (float,float) -> time at which betst maximum occurs, best probability
+
+        """
         # minimize works fine for TC near 1 (aka few maxima actually there)
         # Not reliable for higher TC
         # therefore we split the search interval into
         # smaller pieces according to a reference "event size"
+          
+        start = 0
+        end = self.max_search_time()
+        def f(t):
+            return -1*self.solver.evolve_default_p( self._graph, t)
+
+        def f_prime(t):
+            return -1*self.solver.evolve_default_p_deriv( self._graph, t)
+
+        b_vec = np.linspace(start,end, (end-start)//self.event_size + 2)
+        sol_vec = np.empty( len(b_vec)-1)
         
-        if self.mode == "TC":      
-            start = 0
-            end = self.max_search_time()
-            def f(t):
-                return -1*self.solver.evolve_default_p( self._graph, t)
-
-            def f_prime(t):
-                return -1*self.solver.evolve_default_p_deriv( self._graph, t)
-
-            b_vec = np.linspace(start,end, (end-start)//self.event_size + 2)
-            sol_vec = np.empty( len(b_vec)-1)
+        for i in range( len(b_vec)-1):
             
-            for i in range( len(b_vec)-1):
-                
-                sol = opt.minimize(f, \
-                                   x0 = (b_vec[i]+b_vec[i+1])/2, \
-                                   bounds = [(b_vec[i],b_vec[i+1])], \
-                                   jac = f_prime)
-                
-                sol_vec[i] = sol.x[0]
+            sol = opt.minimize(f, \
+                                x0 = (b_vec[i]+b_vec[i+1])/2, \
+                                bounds = [(b_vec[i],b_vec[i+1])], \
+                                jac = f_prime)
             
-            probs = self.solver.evolve_default_p( self._graph, sol_vec)
-            return ( sol_vec[np.argmax(probs)], max(probs))
+            sol_vec[i] = sol.x[0]
+        
+        probs = self.solver.evolve_default_p( self._graph, sol_vec)
+        return ( sol_vec[np.argmax(probs)], max(probs))
 
-        #digits are definitely note carefully researched, a check is needed
-        if self.mode == "first" :
-            start = .001
-            end = self._graph.distance()/4
-            exp_scale = 1.5
-            evt_sample_scale = .1
-            sign_change_safe = -1e-24
-            maxiter = 10
+    def _locate_max_first(self):
+        """
+        Localize best maximum according to first maximum criterion
+        Sample the evolution probability on subsequent interval,
+        which increas exponentially as no sign invertion is found
 
-            res = None
-            for i in range(maxiter) :
-                #print("looking for first max in "+ str(start) +" - "+ str(end) )
+        When the first sign inversion is found perform an optimization routine ( root_scalar) on that interval
 
-                sample = np.linspace(start, end, int((end-start)//(self.event_size* evt_sample_scale))+2)
+        #Returns
+        (float,float) -> time at which betst maximum occurs, best probability
+        """
+        #todo :digits are definitely note carefully researched, a check is needed
 
-                #print(sample)
-                deriv_evo = self.solver.evolve_default_p_deriv( self._graph, sample)
+        start = .001
+        end = self.get_gr().distance()/4
+        exp_scale = 1.5
+        evt_sample_scale = .1
+        sign_change_safe = -1e-24
+        maxiter = 10
 
-                for i in range(len(sample)-1):
+        res = None
+        for i in range(maxiter) :
+            #print("looking for first max in "+ str(start) +" - "+ str(end) )
 
-                    if deriv_evo[i]*deriv_evo[i+1] < sign_change_safe :
+            sample = np.linspace(start, end, int((end-start)//(self.event_size* evt_sample_scale))+2)
+
+            #print(sample)
+            deriv_evo = self.solver.evolve_default_p_deriv( self._graph, sample)
+
+            for i in range(len(sample)-1):
+
+                if deriv_evo[i]*deriv_evo[i+1] < sign_change_safe :
 ##                        print("Found deriv sign inversion at  " \
 ##                              + str(sample[i]) +" - " \
 ##                              + str(sample[i+1]) )
 ##                        print("   -Derivative values at extrama:  " \
 ##                              + str(deriv_evo[i]) +" - " \
 ##                              + str(deriv_evo[i+1]) )
-                        if deriv_evo[i]*deriv_evo[i+1] >= 0:
-                            pass
-                        else :
+                    if deriv_evo[i]*deriv_evo[i+1] >= 0:
+                        pass
+                    else :
 
-                            def obj(t):
-                                return self.solver.evolve_default_p_deriv(self._graph, t)
-                            res = opt.root_scalar( obj, \
-                                                    bracket = [sample[i], \
-                                                                sample[i+1]])
-                        break
-                        #find solution
-                if res:
+                        def obj(t):
+                            return self.solver.evolve_default_p_deriv(self._graph, t)
+                        res = opt.root_scalar( obj, \
+                                                bracket = [sample[i], \
+                                                            sample[i+1]])
                     break
-                else :
-                    start, end = sample[-1], (end + (end-start)*exp_scale)
+                    #find solution
+            if res:
+                break
+            else :
+                start, end = sample[-1], (end + (end-start)*exp_scale)
 
-            if not res:
-                root = end
-            else:
-                root = res.root
+        if not res:
+            root = end
+        else:
+            root = res.root
 
-            return (root, self.solver.evolve_default_p( self._graph, root)[0])
+        return (root, self.solver.evolve_default_p( self._graph, root)[0])
+
 
     #wrapper for locate_max() with desired phases
     def performance(self, phi_vec = None, t = False):
+
 
         if not np.any(phi_vec):
             phi_vec = np.repeat(0,self.dim())
@@ -659,8 +718,6 @@ class Analyzer(object):
             return self.performance(best_phi, t = target_t)
         
 
-    def max_search_time(self):
-        return self._graph.distance() * self.TIME_CONSTANT
     
     def get_TC(self):
         return self.TIME_CONSTANT
@@ -668,6 +725,12 @@ class Analyzer(object):
     def set_TC(self, TC):
         self.TIME_CONSTANT = TC
         
+    def max_search_time(self):
+        """
+        Return the time window size of the TC criterion
+        """
+        return self._graph.distance() * self.TIME_CONSTANT
+
     def get_gr(self):
         return self._graph
 
@@ -679,13 +742,33 @@ class Analyzer(object):
         self._graph.rephase(phi_vec)
         self._graph.update_eigen()
 
+    def dim(self):
+        """
+        Number of free phases of the analyzed graph instance
+        """
+        return self.get_gr().get_phase_n()
+
+    def get_label(self, mode = True):
+        """
+        Generate an automatic plot label that represent the internal state of the Analyzer
+        """
+
+        if not mode:
+            return self.get_gr().code
+
+        mode_label = self.mode
+
+        if self.mode == "TC":
+            mode_label = chr(957) + "=" + str( self.get_TC() )
+
+        return self.get_gr().code + " " + mode_label
+
     def set_fix_phi(self, phi):
         self.fix_phi = phi
 
     def get_fix_phi(self):
         return self.fix_phi
 
-    #get qutip status
     def get_solver(self):
         return self.solver
 
@@ -704,35 +787,12 @@ class Analyzer(object):
     def set_opt_mode(self, opt_mode):
         self.opt_mode = opt_mode
 
-    def get_fix_phi(self):
-        return self.fix_phi
-
-    def set_fix_phi(self, phi):
-        self.fix_phi = phi
-
-    def get_diat(self):
+    def get_diag(self):
         return self.diag
 
     def set_diag(self, diag : bool):
         self.diag = diag
 
-    #number of free phases in the graph instance
-    def dim(self):
-        return self.get_gr().get_phase_n()
-
-    #get automatic plot label according to target graph and analysis mode
-
-    def get_label(self, mode = True):
-
-        if not mode:
-            return self.get_gr().code
-
-        mode_label = self.mode
-
-        if self.mode == "TC":
-            mode_label = chr(957) + "=" + str( self.get_TC() )
-
-        return self.get_gr().code + " " + mode_label
 
 
 

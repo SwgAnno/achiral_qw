@@ -8,11 +8,6 @@ import networkx as nx
 import matplotlib.colors as colors
 from matplotlib.ticker import MaxNLocator
 
-#todo: decide on the fate of those global variables
-TC = 1
-qut = False
-
-
 ##############################################
 # Graph info plotting
 
@@ -152,11 +147,10 @@ def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC
 
     if not end:
         end = gr.distance()*TC
-    global qut
 
     seq = np.arange(start,end,by)
     
-    evo = solver.evolve_state_p(gr, gr.get_start_state(qut), seq)
+    evo = solver.evolve_state_p(gr, gr.get_start_state(), seq)
 
     print("Grid-wise maximum: ", max(evo[gr.target][:]))
 
@@ -196,11 +190,10 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
 
     if not end:
         end = gr.distance()*TC
-    global qut
 
     seq = np.arange(start,end,by)
     
-    evo = solver.evolve_state_p(gr,  gr.get_start_state(qut), seq)
+    evo = solver.evolve_state_p(gr,  gr.get_start_state(), seq)
 
     print("Grid-wise maximum: ", max(evo[gr.target][:]))
 
@@ -240,7 +233,6 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     assert end or TC , "plot_evo_vs_phase error, no time bounds given"
     if not end:
         end = gr.distance()*TC
-    global qut
 
     seq = np.arange(start,end,by)
     phase_seq = np.arange(0,2*np.pi, phase_by)
@@ -248,7 +240,7 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     data = np.ndarray( (len(phase_seq), len(seq)))
     max_data = np.empty( (2,len(phase_seq)))
     
-    an = Analyzer(gr, qutip = qut, mode = "first")
+    an = Analyzer(gr, mode = "first")
 
     for i in range( len(phase_seq)):
         an.rephase_gr( np.repeat( phase_seq[i], \
@@ -387,8 +379,8 @@ def plot_performance(gr, sample_step = 100, target = "p", mode = None, an_mode =
     Generic wrapper to plot transport performance as a function of phases
     actually a router method for graph-specific routines       
     """
-    global qut
-    an = Analyzer(gr, TC = TC, qutip = qut, mode = an_mode)
+
+    an = Analyzer(gr, TC = TC, mode = an_mode)
 
     if mode == "diag":
         return plot_performance_diag(sample_step, target, an, ax, **kwargs)
@@ -484,7 +476,7 @@ def plot_performance_2(sample_step, target, an, ax = None, verbose = False):
 
     set_performance_plot(ax, target = "p", dim = 2)
     
-    c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", vmin = 0, vmax = 1,label = an.solver.gr.code)
+    c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", vmin = 0, vmax = 1,label = an.get_gr().code)
 
     #Pass parameter for further additions
     return ax
