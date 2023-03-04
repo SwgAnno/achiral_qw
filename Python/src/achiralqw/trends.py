@@ -131,7 +131,7 @@ def plot_evo_line_speedup(N, bounds = (0,50,.5),su_bounds = (.01, 10, 1000), fig
         cur = QWGraphBuilder.Line(N, speedup = sample[m])
         an.set_gr(cur)
 
-        data[m,:] = an.evo_full(bounds = bounds[0:2], step = bounds[2] )
+        data[m,:] = an.evolution_grid(bounds = bounds[0:2], step = bounds[2] )
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -166,7 +166,7 @@ def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 1
         cur = gr.chain( rep, speedup = sample[m])
         an.set_gr(cur)
         
-        data[m,:] = an.evo_full(bounds = bounds, step = step)
+        data[m,:] = an.evolution_grid(bounds = bounds, step = step)
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -219,7 +219,7 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
     data = np.empty( ( len(y_sample), len(sample)))
 
     cur = QWGraphBuilder.Line(4)
-    an = Analyzer(cur, mode = "first")
+    an = Analyzer(cur, mode = "first", diag = True)
 
     for m in range( len(y_sample)):
         print("Graph", m, "out of", len(y_sample) )
@@ -228,14 +228,14 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
         cur = gr_unit.chain(rep = y_sample[m], speedup = 1)
         an.set_gr(cur)
 
-        best_phi = an.optimum_phase_minimize( diag= True)[0]
+        best_phi = an.optimum_phase_minimize()[0]
         #print(best_phi)
         
         for i in range(len(sample)):
             cur = gr_unit.chain( rep = y_sample[m], speedup = sample[i])
             an.set_gr(cur)
 
-            data[m,i] = an.performance_diag( phi = best_phi, t = (target !="p"))
+            data[m,i] = an.performance_diag( phi = best_phi, target = target)
 
     if ax == None :
         fig, ax = plt.subplots()

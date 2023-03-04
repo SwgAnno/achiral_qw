@@ -12,10 +12,10 @@ import tqdm
 MULTIPROCESS = True
 
 def get_gr_t_data( an : Analyzer,):
-    return an.evaluate(target="t")
+    return an.performance_best(target="t")
 
 def get_gr_p_data( an : Analyzer,):
-    return an.evaluate(target = "p")
+    return an.performance_best(target = "p")
 
 def set_graph( an : Analyzer, graph : QWGraph):
 
@@ -75,7 +75,7 @@ class QWGraphCollection(object) :
             print (prog_label.format(i/N), end = "\r")
             tester.set_gr(graphs[i])
 
-            data[i] = tester.evaluate(target=target)
+            data[i] = tester.performance_best(target=target)
 
         print(prog_label.format(1))
 

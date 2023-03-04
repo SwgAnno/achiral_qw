@@ -246,7 +246,7 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
         an.rephase_gr( np.repeat( phase_seq[i], \
                                   an.dim() ))
 
-        data[i:] = an.evo_full( bounds = (start,end), step = by)
+        data[i:] = an.evolution_grid( bounds = (start,end), step = by)
         max_data[:,i] = [ an.locate_max()[0], phase_seq[i]]
 
     if ax == None :
@@ -400,7 +400,7 @@ def plot_performance_diag(sample_step, target, an, ax = None):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
-    perf = an.performance_full_diag(sample_step = sample_step, target = target)
+    perf = an.performance_grid_diag(sample_step = sample_step, target = target)
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -420,10 +420,10 @@ def plot_performance_time( sample_step, an, ax = None):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
-    perf = an.performance_full_diag(sample_step = sample_step, target = "p")
+    perf = an.performance_grid_diag(sample_step = sample_step, target = "p")
 
     time = []
-    time = an.performance_full_diag(sample_step = sample_step, target = "t")
+    time = an.performance_grid_diag(sample_step = sample_step, target = "t")
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -446,7 +446,7 @@ def plot_performance_1(sample_step, target, an, ax = None):
 
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance_full(sample_step = sample_step, target = target)
+    perf = an.performance_grid(sample_step = sample_step, target = target)
 
     if ax == None :
         fig, ax = plt.subplots( figsize = (6,5))
@@ -469,7 +469,7 @@ def plot_performance_2(sample_step, target, an, ax = None, verbose = False):
     
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance_full(sample_step = sample_step, target = target)
+    perf = an.performance_grid(sample_step = sample_step, target = target)
 
     if ax == None:
         fig, ax = plt.subplots()

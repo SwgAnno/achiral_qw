@@ -334,7 +334,7 @@ class QutipSESolver(SESolver):
 class Analyzer(object):
     """
     Class that wraps around a QWGraph and extracts/computes information on its evolution
-    The criteria on which thos information are extracted depends on its state
+    The criteria on which those information are extracted depends on its state
 
     In particular one can vary:
 
@@ -386,7 +386,7 @@ class Analyzer(object):
 
         self._graph = gr 
 
-    def evo_full(self, phase_vec = None, bounds =(0,10), step = .1):
+    def evolution_grid(self, phase_vec = None, bounds =(0,10), step = .1):
         """
         Return the evolution of localization probability on the target state
         Sampled on a mesh of points defined by bounds and step
@@ -408,18 +408,6 @@ class Analyzer(object):
         sample =np.arange(bounds[0], bounds[1], step)
 
         return self.solver.evolve_default_p(self._graph, sample)
-
-
-
-    #get stationary points in probability evolution on the target stite
-    def deriv_roots(self):
-        """
-        Compute a list of the position of "all" the stationary point of the probability evolution
-
-        #todo: implement it??
-        """
-        
-        pass
 
     def locate_max(self):
         """
@@ -534,9 +522,23 @@ class Analyzer(object):
 
         return (root, self.solver.evolve_default_p( self._graph, root)[0])
 
+    def deriv_roots(self):
+        """
+        Compute a list of the position of "all" the stationary point of the probability evolution
 
-    #wrapper for locate_max() with desired phases
-    def performance(self, phi_vec = None, t = False):
+        #todo: implement it??
+        """
+        
+        pass
+    
+    def performance(self, phi_vec = None, target = "p"):
+        """
+        Evaluate the transport performance for a given phases configuration
+
+        #Returns
+
+        float -> loc probability for best max (target == "t") of transport time of best max (target == "p")
+        """
 
 
         if not np.any(phi_vec):
@@ -544,25 +546,39 @@ class Analyzer(object):
 
         self.rephase_graph(phi_vec)
 
-        if not t:
+        if target == "p":
             return self.locate_max()[1]
-        else :
+        elif target == "t":
             return self.locate_max()[0]
 
-    #wrapper for locate_max() with desired equal phase
-    def performance_diag(self, phi, t= False):
+    def performance_diag(self, phi, target = "p"):
+        """
+        Evaluate the diag transport performance for a given diag phase
+
+        #Returns
+
+        float -> loc probability for best max (target == "t") of transport time of best max (target == "p")
+        """
 
         #print(phi)
 
         self.rephase_graph( np.repeat( phi, self.dim() ))
         
-        if not t:
+        if target == "p":
             return self.locate_max()[1]
-        else :
+        elif target == "t":
             return self.locate_max()[0]
                 
-    #get full sampled performance as a ndarray
-    def performance_full(self, sample_step = 100, target = "p"):
+            
+    def performance_grid(self, sample_step = 100, target = "p"):
+        """
+        Evaluate the performance function on a fine grid of points
+        Each phase can take #step values in [0,2*pi) 
+
+        #Returns
+
+        ndarray[float] : sample_step^(# phases) array with performance evaluations
+        """
         
         sample = phase_sample(sample_step)
         if target == "p":
@@ -591,8 +607,15 @@ class Analyzer(object):
 
         return out
 
-    #equal phases setting transport performance
-    def performance_full_diag(self, sample_step = 100, target = "p"):
+    def performance_grid_diag(self, sample_step = 100, target = "p"):
+        """
+        Evaluate the diag performance function on a fine grid of points
+        The diag phase can take #step values in [0,2*pi) 
+
+        #Returns
+
+        ndarray[float] : sample_step array with diag performance evaluations
+        """
 
         sample = phase_sample(sample_step)
         if target == "p":
@@ -609,22 +632,78 @@ class Analyzer(object):
 
         return out
 
-    #brute force search for best phase
+    def performance_best(self, target = "p"):
+        """
+        Compute the best transport performance according to current time and phase criteria
+
+        #Returns
+
+        float -> loc probability for best max (target == "t") of transport time of best max (target == "p")
+        """
+        best_phi = 0
+
+        if self.opt_mode == "none":
+            best_phi = 0
+        elif self.opt_mode == "smart" :
+            best_phi = self.optimum_phase_smart()[0]
+        elif self.opt_mode == "fix" :
+            assert np.any(self.fix_phi )
+            best_phi = self.fix_phi
+        else :
+            best_phi = self.optimum_phase_minimize()[0]
+
+        #print(best_phi, self.opt_mode)
+
+        if self.diag:
+            return self.performance_diag(best_phi, target)
+        else:
+            return self.performance(best_phi, target)
+
     def optimum_phase_yolo(self, step = 100):
+        """
+        Compute the best transport phases according o the chosen time criterion.
+        Transport performance is eavluated on a fine grid where each phase can take
+        #step value in [0,2*pi)
+        Return the best configuration of the grid
+        WARNING: scales as step^(# of phases)
+
+        #Returns
+
+        (list[float], float ) -> vector of best phases, best performance
+
+        or
+
+        (float, float) -> best diag phase, relative best diag performance
+        """
 
         sample = phase_sample(step)
 
         if self.diag:
-            perf = self.performance_full_diag(step)
+            perf = self.performance_grid_diag(step)
         else :
-            perf = self.performance_full(step)
+            perf = self.performance_grid(step)
 
         pos_max = np.argmax(perf)
 
         return pos_max/step*2*np.pi, perf[pos_max]
     
-    #use scipy minimize for optimum phase
     def optimum_phase_minimize(self):
+        """
+        Compute the best transport phases according o the chosen time criterion.
+        Best phase configuration os obtained as a result of a n-variables optimization routine
+        on the performance function
+
+        Pherformance function with TC criterion has often discontinuities on its derivative,
+        results may not be factual
+
+        #Returns
+
+        (list[float], float ) -> vector of best phases, best performance
+
+        or
+
+        (float, float) -> best diag phase, relative best diag performance
+        """
 
         #minimize the inverse of perf function
         if self.diag:
@@ -645,9 +724,23 @@ class Analyzer(object):
 
         return sol["x"], -1*perf(sol["x"])
 
-    #check for just +-1 +-i
     #todo: does it work???
     def optimum_phase_smart(self):
+        """
+        Compute the best transport phases according o the chosen time criterion.
+        Transport performance is eavluated on a coarse grid where each phase is chosen as a
+        multiple of pi/2 (0, pi/2, pi, -pi/2).
+        Return the best configuration of the grid
+        WARNING: scales as step^(# of phases)
+
+        #Returns
+
+        (list[float], float ) -> vector of best phases, best performance
+
+        or
+
+        (float, float) -> best diag phase, relative best diag performance
+        """
 
         if self.dim() == 0 :
             return 0 , self.performance()
@@ -694,30 +787,6 @@ class Analyzer(object):
                 out = phi_vec
 
         return out, self.performance( out)
-
-    def evaluate(self, target = "p"):
-        best_phi = 0
-
-        if self.opt_mode == "none":
-            best_phi = 0
-        elif self.opt_mode == "smart" :
-            best_phi = self.optimum_phase_smart()[0]
-        elif self.opt_mode == "fix" :
-            assert np.any(self.fix_phi )
-            best_phi = self.fix_phi
-        else :
-            best_phi = self.optimum_phase_minimize()[0]
-
-        #print(best_phi, self.opt_mode)
-        target_t = (target != "p")
-
-        #todo : t is boolean???????
-        if self.diag:
-            return self.performance_diag(best_phi, t = target_t)
-        else:
-            return self.performance(best_phi, t = target_t)
-        
-
     
     def get_TC(self):
         return self.TIME_CONSTANT
