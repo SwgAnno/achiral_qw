@@ -4,17 +4,18 @@ import achiralqw.istarmap
 import multiprocessing  as mp
 import os, copy
 from itertools import repeat
-from achiralqw.graph import QWGraph
+from achiralqw.graph import QWGraph, QWGraphBuilder
 import scipy.stats as stats
+from scipy.optimize import curve_fit
 import tqdm
 
 MULTIPROCESS = True
 
 def get_gr_t_data( an : Analyzer,):
-    return an.evaluate(target="t")
+    return an.performance_best(target="t")
 
 def get_gr_p_data( an : Analyzer,):
-    return an.evaluate(target = "p")
+    return an.performance_best(target = "p")
 
 def set_graph( an : Analyzer, graph : QWGraph):
 
@@ -23,10 +24,10 @@ def set_graph( an : Analyzer, graph : QWGraph):
     return an
 
 def create_c(dist):
-    return QWGraph.Ring(dist)
+    return QWGraphBuilder.Ring(dist)
 
 def create_ch(dist):
-    return QWGraph.Ring(dist, HANDLES = True)
+    return QWGraphBuilder.Ring(dist, HANDLES = True)
 
 def unit_list_bounds(bounds, unit):
 
@@ -74,7 +75,7 @@ class QWGraphCollection(object) :
             print (prog_label.format(i/N), end = "\r")
             tester.set_gr(graphs[i])
 
-            data[i] = tester.evaluate(target=target)
+            data[i] = tester.performance_best(target=target)
 
         print(prog_label.format(1))
 
@@ -153,6 +154,58 @@ class QWGraphCollection(object) :
         print("r: ", out.rvalue)
 
         return out.slope, out.intercept
+
+    def transport_prob_model( self, mode = "poly"):
+        """
+        Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
+        which represent the power law exponent of its decay
+        """
+        x, data = self.get_data( target = "p")
+
+        #test over y = ax^2 + bx + c
+        if mode == "poly" :
+            param = np.polyfit(np.log(x), np.log(data), deg = 2)
+            
+            print("ax^2: ", param[0])
+            print("bx: ", param[1])
+            print("c: ", param[2])
+
+            return param
+
+        elif mode == "custom": 
+            # test over y = ax + b + c*1/x   
+            def model(x,a,b,c):
+                return a*x + b + c/x
+
+            #first guess
+            p0 = [-.5,2.5,1]
+            param, cov_param = curve_fit(model, np.log(x), np.log(data), p0 = p0)
+
+            print("ax: ", param[0], " +- ", cov_param[0,0])
+            print("b: ", param[1], " +- ", cov_param[1,1])
+            print("c*1/x: ", param[2], " +- ", cov_param[2,2])
+
+            return param
+
+
+        return None
+
+    def transport_prob_loglog_lm( self, mode = "dist"):
+        """
+        Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
+        which represent the power law exponent of its decay
+        """
+        
+        x, data = self.get_data( target = "p")
+
+        #print(data)
+        out = stats.linregress(np.log(x), np.log(data))
+
+        print("m: ", out.slope, " +- ", out.stderr)
+        print("q: ", out.intercept, " +- ", out.intercept_stderr)
+        print("r: ", out.rvalue)
+
+        return out.slope, out.intercept
         
         
     def get_list(self):
@@ -206,7 +259,7 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0], bounds[1], step)
 
         for d in drange :
-            collection.add( QWGraph.Line(d))
+            collection.add( QWGraphBuilder.Line(d))
 
         return collection
 
@@ -227,7 +280,7 @@ class CollectionBuilder(object) :
         print(greeting_string.format(n_proc))
 
         with mp.Pool( n_proc) as pool:
-            for _ in tqdm.tqdm(pool.imap(QWGraph.Line, drange ), total=len(drange)):
+            for _ in tqdm.tqdm(pool.imap(QWGraphBuilder.Line, drange ), total=len(drange)):
                 collection.add(_)
 
             pool.close()
@@ -237,7 +290,7 @@ class CollectionBuilder(object) :
 
 
 
-    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select : list[int] = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
+    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
 
         collection = QWGraphCollection( analyzer=analyzer)
 
@@ -257,7 +310,7 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0]*2 + offset, bounds[1]*2 + offset, step)
 
         for d in drange :
-            collection.add( QWGraph.Ring(d, HANDLES = HANDLES, **kwargs))
+            collection.add( QWGraphBuilder.Ring(d, HANDLES = HANDLES, **kwargs))
 
         return collection
 
@@ -298,20 +351,6 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def base_progression(self, g_type, **kwargs):
-        """
-        wrapper for the 3 basic standard progression
-        """
-
-        if g_type == "P":
-            return self.P_progression(**kwargs)
-        if g_type == "C":
-            return self.C_progression(**kwargs)
-        if g_type == "Ch":
-            return self.C_progression(HANDLES = True, **kwargs)
-        else:
-            raise ValueError("g_type not supported in base_progression")
-
     def chain_progression_singleprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
 
         collection = QWGraphCollection( analyzer=analyzer)
@@ -324,7 +363,7 @@ class CollectionBuilder(object) :
             drange = unit_list_bounds( bounds, gr_unit)
 
         for d in drange :
-            collection.add( QWGraph.chain( gr_unit, rep = d, **kwargs))
+            collection.add( gr_unit.chain( rep = d, **kwargs))
 
         return collection
 
@@ -353,6 +392,46 @@ class CollectionBuilder(object) :
             pool.join()
 
         return collection
+
+    def base_progression(self, g_type, **kwargs):
+        """
+        wrapper for the 3 basic standard progression
+        """
+
+        if g_type == "P":
+            return self.P_progression(**kwargs)
+        if g_type == "C":
+            return self.C_progression(**kwargs)
+        if g_type == "Ch":
+            return self.C_progression(HANDLES = True, **kwargs)
+        else:
+            raise ValueError("g_type not supported in base_progression")
+
+    def log_progression( self, g_type, bounds, points = 10, **kwargs):
+        """
+        get a standard progression evenly spread out on a log scale
+        """
+
+        select = np.geomspace(*bounds, num = points, dtype=int)
+        select = set(select)
+        select = [x for x in select]
+        select.sort()
+        select = np.array(select)
+
+        return CollectionBuilder.base_progression(self, g_type, select = select, **kwargs)
+
+    def log_chain_progression( self, gr_unit, bounds, points = 10, **kwargs):
+        """
+        get a standard progression evenly spread out on a log scale
+        """
+
+        select = np.geomspace(*bounds, num = points, dtype=int)
+        select = set(select)
+        select = [x for x in select]
+        select.sort()
+        select = np.array(select)
+
+        return self.chain_progression(gr_unit, select = select, **kwargs)
 
 
 #####################################à

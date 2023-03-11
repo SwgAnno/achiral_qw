@@ -49,17 +49,17 @@ def plot_performance_odd_even( step = 100):
 
     gr_list_odd = []
 
-    gr_list_odd.append( QWGraph.Ring(5, HANDLES = True))
-    gr_list_odd.append( QWGraph.Ring(7))
-    gr_list_odd.append( QWGraph.Ring(9, HANDLES = True))
-    gr_list_odd.append( QWGraph.Ring(11))
+    gr_list_odd.append( QWGraphBuilder.Ring(5, HANDLES = True))
+    gr_list_odd.append( QWGraphBuilder.Ring(7))
+    gr_list_odd.append( QWGraphBuilder.Ring(9, HANDLES = True))
+    gr_list_odd.append( QWGraphBuilder.Ring(11))
 
     gr_list_even = []
 
-    gr_list_even.append( QWGraph.Ring(4))
-    gr_list_even.append( QWGraph.Ring(6, HANDLES = True))
-    gr_list_even.append( QWGraph.Ring(8))
-    gr_list_even.append( QWGraph.Ring(10, HANDLES = True))
+    gr_list_even.append( QWGraphBuilder.Ring(4))
+    gr_list_even.append( QWGraphBuilder.Ring(6, HANDLES = True))
+    gr_list_even.append( QWGraphBuilder.Ring(8))
+    gr_list_even.append( QWGraphBuilder.Ring(10, HANDLES = True))
 
     for gr_o, gr_e in zip(gr_list_odd, gr_list_even):
         plot_performance(gr_o, sample_step = step , an_mode="first", ax = axx[0])
@@ -109,7 +109,7 @@ def comp_performance_multi( gr_list, **kwargs):
 
     plt.show()
 
-def t_chain_progression_phases(gr_unit = QWGraph.Ring(3), bounds = (1,10), sample_step = 5,l_ref = True,\
+def t_chain_progression_phases(gr_unit = QWGraphBuilder.Ring(3), bounds = (1,10), sample_step = 5,l_ref = True,\
                              ax = None, **kwargs):
     """
     Transport time performance for a given family of chain plotted for a range of fixed phase values
@@ -250,9 +250,9 @@ def plot_chain_progression_multi( bounds = (3,20), target = "p", analyzer = None
     set_progression_plot(ax, x_mode = "dist", target="p")
     ax.set_ylim(0.1,1)
 
-    plot_chain_progression( QWGraph.Ring(3), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    plot_chain_progression( QWGraph.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    plot_chain_progression( QWGraph.SquareCut(), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
+    plot_chain_progression( QWGraphBuilder.Ring(3), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
+    plot_chain_progression( QWGraphBuilder.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
+    plot_chain_progression( QWGraphBuilder.SquareCut(), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
     plot_line_data(target = target, ax = ax)
 
     ax.legend()
@@ -283,19 +283,19 @@ def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = 
 
 
     if fast:
-        analyzer.set_gr(QWGraph.Ring(3))
+        analyzer.set_gr(QWGraphBuilder.Ring(3))
         analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraph.Ring(3)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
+    plot_chain_progression( QWGraphBuilder.Ring(3)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
 
     if fast:
-        analyzer.set_gr(QWGraph.Ring(4))
+        analyzer.set_gr(QWGraphBuilder.Ring(4))
         analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraph.Ring(4)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
+    plot_chain_progression( QWGraphBuilder.Ring(4)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
 
     if fast:
-        analyzer.set_gr(QWGraph.SquareCut())
+        analyzer.set_gr(QWGraphBuilder.SquareCut())
         analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraph.SquareCut(), select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
+    plot_chain_progression( QWGraphBuilder.SquareCut(), select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
 
     plot_base_progression(  "P", select = select, target = target, label = "P", ax = ax)
 
@@ -319,8 +319,8 @@ def plot_chain_ch_progression( bounds = (3,20), loglog = False, target = "p", an
     set_progression_plot(ax, x_mode = "dist", target="p")
     ax.set_ylim(0.1,1)
 
-    plot_chain_progression( QWGraph.Ring(3), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    #plot_chain_progression( QWGraph.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
+    plot_chain_progression( QWGraphBuilder.Ring(3), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
+    #plot_chain_progression( QWGraphBuilder.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
     plot_base_progression( "Ch", bounds = bounds,step = 2,target = target, ax = ax, analyzer = analyzer)
     plot_line_data(target = target, ax = ax)
 
@@ -367,7 +367,7 @@ def chain_ch_comp( bounds = (3,20), target = "p"):
 
     fix, ax = plt.subplots(1,1, figsize = (6,5))
 
-    plot_chain_progression( QWGraph.Ring(3), bounds = chain3_bounds, target = target, ax = ax)
+    plot_chain_progression( QWGraphBuilder.Ring(3), bounds = chain3_bounds, target = target, ax = ax)
     plot_base_progression( "Ch", bounds = bounds, target = target, ax = ax)
     plot_base_progression( "P", bounds = bounds, target = target, ax = ax)
 
@@ -383,7 +383,7 @@ def chain_performance_multi_speedup( gr_unit,su_vec, rep = 10, sample_step = 100
 
     for i in range(len(su_vec)):
         print("Graph", i+1, "out of", len(su_vec) )
-        chain = QWGraph.chain(gr_unit, rep, speedup = su_vec[i])
+        chain = gr_unit.chain(rep, speedup = su_vec[i])
         chain.code = "C3chain su" + str(su_vec[i])
         plot_performance( chain, sample_step= sample_step, mode = "diag",ax = ax)
 
@@ -398,9 +398,9 @@ def multi_2_phases_example( sample = 100):
     gr_num = 3
     gr_list = []
 
-    gr_list.append( QWGraph.Ring(9)| QWGraph.Ring(4))
-    gr_list.append( QWGraph.Ring(8)+ QWGraph.Ring(8))
-    gr_list.append( QWGraph.SquareCut())
+    gr_list.append( QWGraphBuilder.Ring(9)| QWGraphBuilder.Ring(4))
+    gr_list.append( QWGraphBuilder.Ring(8)+ QWGraphBuilder.Ring(8))
+    gr_list.append( QWGraphBuilder.SquareCut())
 
     fig, axx = plt.subplots(2,gr_num, figsize = (9,6))
 
@@ -428,13 +428,13 @@ def line_speedup_perf_comp( bounds = (4,20),step = 3, su_bounds = (.1,2, 1000), 
     data = np.empty( ( len(y_sample), len(sample)))
     labels = []
 
-    cur = QWGraph.Line(4)
+    cur = QWGraphBuilder.Line(4)
     an = Analyzer(cur, **kwargs)
 
     for m in range( len(y_sample)):
         print("Speedup iteration {:.2f}%".format((m+1)/len(y_sample)*100), end='\r')
         for i in range(len(sample)):
-            cur = QWGraph.Line(y_sample[m], speedup = sample[i])
+            cur = QWGraphBuilder.Line(y_sample[m], speedup = sample[i])
             an.set_gr(cur)
 
             data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]

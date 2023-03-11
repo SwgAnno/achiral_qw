@@ -4,16 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "achiralqw"
-version = "0.0.3"
+version = "0.1.0"
 authors = [
   { name="Emilio Annoni", email="emilio.annoni@studenti.unimi.it" },
 ]
 description = "Special purpose& totally non professional Achiral Quantum Walks simulation tool"
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.6.9"
 dependencies = [
     'numpy >= 1.4',
-    'scipy >= 1.9',
+    'scipy >= 1.5.4',
     'matplotlib >= 3.0',
     'qutip >= 4.0',
     'networkx >= 2.0',
