@@ -1,4 +1,4 @@
-from achiralqw.graph import QWGraph as qwg
+from achiralqw.graph import QWGraph, QWGraphBuilder
 from achiralqw.graph import *
 from achiralqw.plotter import *
 from achiralqw.simulator import *
@@ -14,7 +14,7 @@ TC = 5
 qut = False
 
 #confront locate_max results with actual evolution profile
-def check_locate_max( test_gr = qwg.Ring(6), mode = None, qutip = True, TC = 1):
+def check_locate_max( test_gr = QWGraphBuilder.Ring(6), mode = None, qutip = True, TC = 1):
 
     fix, ax = plot_evo_vs_derivative(test_gr, show = False)
 
@@ -46,7 +46,7 @@ def check_locate_max( test_gr = qwg.Ring(6), mode = None, qutip = True, TC = 1):
 
 
 #comparison between eigenvalue method and Qutip solver on computed evolution
-def check_evo_vs_qutip( test_gr = qwg.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = True):
+def check_evo_vs_qutip( test_gr = QWGraphBuilder.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = True):
     if not end:
         global TC
         end = test_gr.N * TC
@@ -80,7 +80,7 @@ def check_evo_vs_qutip( test_gr = qwg.Ring(6), l = 0, start = 0, end = None, by 
     plt.show()
 
 #see how qutip (or the old method) works with random poits evaluation
-def check_evo_vs_qutip_scatter( test_gr = qwg.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = False):
+def check_evo_vs_qutip_scatter( test_gr = QWGraphBuilder.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = False):
     if not end:
         global TC
         end = test_gr.N * TC
@@ -125,7 +125,7 @@ def check_evo_vs_qutip_scatter( test_gr = qwg.Ring(6), l = 0, start = 0, end = N
     plt.show()
 
 #single qutip evaluation check
-def check_qutip( test_gr = qwg.Ring(6), t_0 = [2], deriv = False):
+def check_qutip( test_gr = QWGraphBuilder.Ring(6), t_0 = [2], deriv = False):
 
     solver = SESolver(test_gr, qutip = True)
 
@@ -136,7 +136,7 @@ def check_qutip( test_gr = qwg.Ring(6), t_0 = [2], deriv = False):
             print( solver.target_p_prime(t_0))
 
 #graphic comparison of optimum phase result
-def check_optimum_phase( test_gr = qwg.Ring(6), mode = None, an_mode = "first", qutip = True):
+def check_optimum_phase( test_gr = QWGraphBuilder.Ring(6), mode = None, an_mode = "first", qutip = True):
 
     if mode == "diag":
         plot_performance(test_gr, mode = mode, an_mode = an_mode, show = False)
@@ -190,9 +190,9 @@ def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
     t_chain_progression_phases(gr_unit, bounds = bounds, sample_step = sample, ax = axx[0])
     axx[0].legend()
 
-    chain1 = qwg.chain(gr_unit, int(bounds[1]/4))
-    chain2 = qwg.chain(gr_unit, int(bounds[1]/2))
-    chain3 = qwg.chain(gr_unit, bounds[1])
+    chain1 = QWGraph.chain(gr_unit, int(bounds[1]/4))
+    chain2 = QWGraph.chain(gr_unit, int(bounds[1]/2))
+    chain3 = QWGraph.chain(gr_unit, bounds[1])
 
     plot_evo_vs_phase(chain1, TC = aTC, ax = axx[1], phase_by = by,plot_max= True)
     plot_evo_vs_phase(chain2, TC = aTC, ax = axx[2], phase_by = by, plot_max= True )
@@ -214,12 +214,10 @@ def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
 
     #phi vec stolen from  t_chain_progression_multi
     if gr_unit.code[0] == "C" and gr_unit.N % 2 == 0:
-        phi_seq = np.arange(0, sample) * np.pi/sample
+        phase_vec = np.arange(0, sample) * np.pi/sample
     else :
-        phi_seq = np.arange(0, sample) * 2*np.pi/sample
-    print(phi_seq)
-
-    phase_vec = np.exp( 1j * phi_seq)
+        phase_vec = np.arange(0, sample) * 2*np.pi/sample
+    print(phase_vec)
 
     for phase, ax in zip(phase_vec, axx2):
         chain1.rephase( np.repeat( phase, chain1.get_phase_n() ))
@@ -230,16 +228,42 @@ def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
 
 #todo: cleanup
 def random():
-    #a  = qwg.chain(qwg.Ring(3), 10)
-    #a = qwg.Paralle l(3,2)
-    #a = qwg.chain(a,2)
+    #a  = QWGraph.chain(QWGraphBuilder.Ring(3), 10)
+    #a = QWGraphBuilder.Paralle l(3,2)
+    #a = QWGraph.chain(a,2)
     ##a = a+a
-    a = qwg.Ring(6)
+    a = QWGraphBuilder.Ring(6)
 
 
     plot_performance(a)
 
     plot_evo_vs_derivative(a)
+
+def general_test():
+    a = QWGraphBuilder.Ring(7, HANDLES = False)
+    b = QWGraphBuilder.Ring(6, HANDLES = True)
+
+    plot_performance(a)
+    plot_performance(b)
+
+    #simple evolution
+    plot_evo_mat(QWGraphBuilder.Ring(8), end = 10)
+
+
+    #create a chain and compute krylov basis
+    b = QWGraphBuilder.Ring(3)
+    b = QWGraph.chain(b, 30)
+    b.re_coord[0] = (2,1)
+    plot_performance(b, mode = "diag")
+    b.rephase( np.repeat(np.pi*-.5, len(b.re_coord)))
+    print(b.mat)
+
+    plot_krylov_basis(b)
+    plot_krylov_couplings(b)
+    plot_evo_mat_heatmap(b, TC = 4)
+
+    plt.show()
+
 
 
 
@@ -251,33 +275,32 @@ if __name__ == "__main__" :
     #bessel_progression(bounds = (2,50), target = "p", L_ref = True)
 
     #plot_line_bessel_evolution(5,end = 10)
-    #plot_evo_mat(qwg.Ring(8), end = 10)
     #check_line_bessel_dist(5)
 
     #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
-    #plot_speedup_performance_multi_chain(qwg.Ring(3), bounds = (4,20), target = "p", show = True
-    #plot_performance(qwg.chain(qwg.Ring(3), 10, speedup = 1), sample_step= 1000, mode = "diag")
-    #plot_evo_mat(qwg.chain(qwg.Ring(3), 5, speedup = 10), end = 50)
-    #plot_evo_mat(qwg.Line(6, speedup = 20), end = 20)
+    #plot_speedup_performance_multi_chain(QWGraphBuilder.Ring(3), bounds = (4,20), target = "p", show = True
+    #plot_performance(QWGraph.chain(QWGraphBuilder.Ring(3), 10, speedup = 1), sample_step= 1000, mode = "diag")
+    #plot_evo_mat(QWGraph.chain(QWGraphBuilder.Ring(3), 5, speedup = 10), end = 50)
+    #plot_evo_mat(QWGraphBuilder.Line(6, speedup = 20), end = 20)
 
     # su_vec = [1,2,4,5]
-    # a = qwg.Ring(3)
+    # a = QWGraphBuilder.Ring(3)
     # plot_performance(a, an_mode = "TC", TC = 2)
     # chain_performance_multi_speedup(a, su_vec = su_vec,rep = 10, sample_step = 1000)
-    #plot_evo_vs_phase( qwg.chain(a, 10, speedup = 5), by = .05, TC = 5, phase_by = .01)
+    #plot_evo_vs_phase( QWGraph.chain(a, 10, speedup = 5), by = .05, TC = 5, phase_by = .01)
 
-    #a = qwg.chain(qwg.Ring(4), 1, speedup = 20)
+    #a = QWGraph.chain(QWGraphBuilder.Ring(4), 1, speedup = 20)
     #a.plot()
-    #b = qwg.Line(4, speedup = 20)
+    #b = QWGraphBuilder.Line(4, speedup = 20)
     #b.plot()
 
-    #a = qwg.Ring(9)
+    #a = QWGraphBuilder.Ring(9)
     #a.plot()
     #plot_evo_vs_phase(a, TC = 2, phase_by = .01)
     #plot_performance(a,TC = 2, target = "t", sample_step = 500)
 
-    a = qwg.Ring(7, HANDLES = False)
-    b = qwg.Ring(6, HANDLES = True)
+    a = QWGraphBuilder.Ring(7, HANDLES = False)
+    b = QWGraphBuilder.Ring(6, HANDLES = True)
     #plot_performance_1_multi(a, TC_vec = [5,20], first = True, step = 1000)
     #plot_performance_odd_even(step = 1000)
     #comp_evo_vs_phase(a, [2,12], phase_by = .02, by = .05)
@@ -287,15 +310,15 @@ if __name__ == "__main__" :
     #comp_performance_multi([b,a], TC_vec = [5,20], first = True, step = 1000)
 
 
-    #a = qwg.Ring(8) + qwg.Ring(8)
-    #a = qwg.SquareCut()
+    #a = QWGraphBuilder.Ring(8) + QWGraphBuilder.Ring(8)
+    #a = QWGraphBuilder.SquareCut()
     #plot_performance(a, an_mode = "TC", TC = 2)
 
-    a = qwg.Ring(3)
-    b = qwg.Ring(4)
-    c = qwg.SquareCut()
+    a = QWGraphBuilder.Ring(3)
+    b = QWGraphBuilder.Ring(4)
+    c = QWGraphBuilder.SquareCut()
 
-    # c = qwg.chain(a,2)
+    # c = QWGraph.chain(a,2)
     # print(c.mat)
     # plot_performance(c, mode = "diag")
     # print(c.re_coord)
@@ -310,7 +333,7 @@ if __name__ == "__main__" :
 
     #prog.transport_time_lm()
 
-    #a = qwg.chain(a, 5)
+    #a = QWGraph.chain(a, 5)
     #plot_performance(a, mode = "time", an_mode = "first", sample_step = 500)
     #plot_chain_progression(a, bounds = (1,10), target = "t", fix_phi = np.pi/2)
     #chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
@@ -325,8 +348,8 @@ if __name__ == "__main__" :
     #chain_ch_comp( bounds = (3,50))
     #line_speedup_perf_comp( bounds = (6,60), step = 5, su_bounds = (.1,2.5,1000), mode = "first", TC = 1).legend()
 
-    #a.rephase(-1j)
-    #b = qwg.SquareCut()
+    #a.rephase(np.pi*-.5)
+    #b = QWGraphBuilder.SquareCut()
     #plot_performance(b, an_mode = "first")
     #plot_performance(b, an_mode = "TC")
     #plot_evo_mat_heatmap(b)
@@ -338,14 +361,14 @@ if __name__ == "__main__" :
 
 
     #parallel can chase the Bancho optimum
-    # a = qwg.Parallel(4,2)
-    # a = qwg.chain(a,32)
+    # a = QWGraphBuilder.Parallel(4,2)
+    # a = QWGraph.chain(a,32)
     # plot_performance(a, mode = "diag")
 
-    b = qwg.Ring(50)
+    b = QWGraphBuilder.Ring(50)
     #b.re_coord[0] = (2,1)
     #plot_performance(b)
-    #b.rephase(1j)
+    #b.rephase(np.pi*.5)
     #print(b.mat)
 
     #b.krylov_basis(mode = "basis_plot")
@@ -363,23 +386,15 @@ if __name__ == "__main__" :
     #plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an, fast = True)
     #plot_chain_ch_progression(bounds = (5,30), loglog = False, target = "p", analyzer = an)
 
-    b = qwg.Ring(3)
-    b = qwg.chain(b, 30)
-    b.re_coord[0] = (2,1)
-    plot_performance(b, mode = "diag")
-    b.rephase( np.repeat(-1j, len(b.re_coord)))
-    print(b.mat)
+    #plot_chain_progression_multi(bounds = (5,50), target = "p", analyzer = an)
 
-    b.krylov_basis(mode = "basis_plot")
-    b.krylov_basis(mode = "link_plot")
-    plot_evo_mat_heatmap(b, TC = 4)
-    plot_chain_progression_multi(bounds = (5,50), target = "p", analyzer = an)
+    general_test()
     plt.show()
 
 
     #odd_even_time_lm(HANDLES = False)
-    #a = qwg.Ring(4)
-    #a = qwg.SquareCut()
+    #a = QWGraphBuilder.Ring(4)
+    #a = QWGraphBuilder.SquareCut()
     #plot_performance(a, an_mode = "TC")
     #plot_chain_progression(a,bounds = (1,20), target = "t")
     #time_chain_progression_lm(a)

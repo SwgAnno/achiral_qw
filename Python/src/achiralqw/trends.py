@@ -1,5 +1,5 @@
 from achiralqw.simulator import Analyzer
-from achiralqw.graph import QWGraph
+from achiralqw.graph import QWGraphBuilder
 from achiralqw.bessel import *
 from achiralqw.collection import CollectionBuilder, get_line_data
 from scipy.optimize import minimize_scalar
@@ -95,11 +95,11 @@ def plot_speedup_performance(N, target = "p", ax = None) :
     sample = np.linspace(.1,10, 1000)
     data = np.empty( len(sample))
 
-    cur = QWGraph.Line(N)
+    cur = QWGraphBuilder.Line(N)
     an = Analyzer(cur, mode = "first")
 
     for i in range(len(sample)):
-        cur = QWGraph.Line(N, speedup = sample[i])
+        cur = QWGraphBuilder.Line(N, speedup = sample[i])
         an.set_gr(cur)
 
         data[i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
@@ -120,7 +120,7 @@ def plot_evo_line_speedup(N, bounds = (0,50,.5),su_bounds = (.01, 10, 1000), fig
     L(N) evolution as a function of time and speedup
     """
     
-    gr = QWGraph.Line(N)
+    gr = QWGraphBuilder.Line(N)
     sample = np.geomspace(*su_bounds)
     t_sample = np.arange(*bounds)
     data = np.empty( ( len(sample), len(t_sample)))
@@ -128,10 +128,10 @@ def plot_evo_line_speedup(N, bounds = (0,50,.5),su_bounds = (.01, 10, 1000), fig
     an = Analyzer(gr, mode = "first")
 
     for m in range( len(sample)):
-        cur = QWGraph.Line(N, speedup = sample[m])
+        cur = QWGraphBuilder.Line(N, speedup = sample[m])
         an.set_gr(cur)
 
-        data[m,:] = an.evo_full(bounds = bounds[0:2], step = bounds[2] )
+        data[m,:] = an.evolution_grid(bounds = bounds[0:2], step = bounds[2] )
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -158,15 +158,15 @@ def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 1
     t_sample = np.arange(bounds[0], bounds[1], step)
     data = np.empty( ( len(sample), len(t_sample)))
 
-    an = Analyzer(QWGraph.chain(gr, rep), mode = "first")
+    an = Analyzer(gr.chain( rep), mode = "first")
 
     for m in range( len(sample)):
 
         print (m, "of", len(sample))
-        cur = QWGraph.chain(gr, rep, speedup = sample[m])
+        cur = gr.chain( rep, speedup = sample[m])
         an.set_gr(cur)
         
-        data[m,:] = an.evo_full(bounds = bounds, step = step)
+        data[m,:] = an.evolution_grid(bounds = bounds, step = step)
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -187,12 +187,12 @@ def plot_speedup_performance_multi(bounds = (4,20), target = "p",fig = None, ax 
     y_sample = np.arange(bounds[0],bounds[1]+1)
     data = np.empty( ( len(y_sample), len(sample)))
 
-    cur = QWGraph.Line(4)
+    cur = QWGraphBuilder.Line(4)
     an = Analyzer(cur, mode = "first")
 
     for m in range( len(y_sample)):
         for i in range(len(sample)):
-            cur = QWGraph.Line(y_sample[m], speedup = sample[i])
+            cur = QWGraphBuilder.Line(y_sample[m], speedup = sample[i])
             an.set_gr(cur)
 
             data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
@@ -218,24 +218,24 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
     y_sample = np.arange(bounds[0],bounds[1]+1)
     data = np.empty( ( len(y_sample), len(sample)))
 
-    cur = QWGraph.Line(4)
-    an = Analyzer(cur, mode = "first")
+    cur = QWGraphBuilder.Line(4)
+    an = Analyzer(cur, mode = "first", diag = True)
 
     for m in range( len(y_sample)):
         print("Graph", m, "out of", len(y_sample) )
 
         #get hypothetical best phase for the given chain
-        cur = QWGraph.chain(gr_unit, rep = y_sample[m], speedup = 1)
+        cur = gr_unit.chain(rep = y_sample[m], speedup = 1)
         an.set_gr(cur)
 
-        best_phi = an.optimum_phase_minimize( diag= True)[0]
+        best_phi = an.optimum_phase_minimize()[0]
         #print(best_phi)
         
         for i in range(len(sample)):
-            cur = QWGraph.chain(gr_unit, rep = y_sample[m], speedup = sample[i])
+            cur = gr_unit.chain( rep = y_sample[m], speedup = sample[i])
             an.set_gr(cur)
 
-            data[m,i] = an.performance_diag( phi = best_phi, t = (target !="p"))
+            data[m,i] = an.performance_diag( phi = best_phi, target = target)
 
     if ax == None :
         fig, ax = plt.subplots()
