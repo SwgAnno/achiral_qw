@@ -73,10 +73,6 @@ def format_qutip_time( t):
         return t,False
 
 
-#todo: differentiate QutipSESolver and EigenSESolver
-
-
-
 class SESolver(object):
     """
     Absrtact class that define the interface for a Evolution solver for QWGraphs
