@@ -1,13 +1,16 @@
-from achiralqw.simulator import Analyzer
-import numpy as np
-import achiralqw.istarmap
-import multiprocessing  as mp
-import os, copy
-from itertools import repeat
 from achiralqw.graph import QWGraph, QWGraphBuilder
+from achiralqw.simulator import Analyzer
+import achiralqw.istarmap
+
+import numpy as np
 import scipy.stats as stats
 from scipy.optimize import curve_fit
+
+import multiprocessing  as mp
+from itertools import repeat
 import tqdm
+import os, copy
+import json
 
 MULTIPROCESS = True
 
@@ -59,8 +62,6 @@ class QWGraphCollection(object) :
 
         self._gr_list : list[QWGraph] = []
 
-    def add(self, gr : QWGraph) :
-        self._gr_list.append( gr )
 
     def get_data_singleprocess( self, target = "p", diag = True, opt_mode = None, opt_phi = None, x_mode = "dist"):
 
@@ -103,6 +104,7 @@ class QWGraphCollection(object) :
 
         greeting_string = self.get_name() +" collection: Starting pool evaluation with {} process" 
         print(greeting_string.format(n_proc))
+
         with mp.Pool( n_proc) as pool:
 
             input_vec = zip([tester]* len(graphs), graphs)
@@ -123,6 +125,9 @@ class QWGraphCollection(object) :
         x = self.get_x_vec(x_mode = x_mode)
 
         return x , data
+
+    def add(self, gr : QWGraph) :
+        self._gr_list.append( gr )
 
     def get_x_vec(self, x_mode = "dist"):
         out = []
@@ -220,6 +225,70 @@ class QWGraphCollection(object) :
 
     def get_name( self):
         return self.get_list()[0].code if self._name == None else self._name
+
+class QWGraphList(QWGraphCollection):
+    
+    def __init__( self, **kwargs):
+        pass
+
+class CachedQWGraphCollection(QWGraphCollection):
+
+    """
+    Spinn-off of QWGraphCollection class with an internal json object 
+    which you can load from or dump into a file.
+    Stores previous computations
+    """
+
+    def __init__(self, filename : str, analyzer : Analyzer == None, **kwargs ):
+
+        super().__init__(analyzer = analyzer, name = filename,  **kwargs)
+        
+        #todo: smart regex file name
+        filename = filename # +.json
+
+        if os.path.isfile("./{}.json".format(filename)):
+            file = open("{}.json".format(filename))
+            self._data = json.load(file)
+
+            #creating from an existing file: loading previous Analyzer options
+            analyzer = Analyzer(    mode        = self._data["an_mode"]["mode"],
+                                    opt_mode    = self._data["an_mode"]["opt_mode"],
+                                    TC          = self._data["an_mode"]["TC"],
+                                    diag        = self._data["an_mode"]["diag"])
+
+            analyzer.sef_fix_phi(self._data["an_mode"]["fix_phi"])
+
+        else :
+
+            if Analyzer == None:
+                raise AssertionError("Analyzer must be provided to create a new file cache")
+
+            self._data = dict()
+            self._data["name"] = filename
+
+            self._data["an_mode"] = dict()
+            self._data["an_mode"]["diag"] = analyzer.diag
+            self._data["an_mode"]["TC"] = analyzer.TIME_CONSTANT
+            self._data["an_mode"]["mode"] = analyzer.mode
+            self._data["an_mode"]["opt_mode"] = analyzer.opt_mode
+            self._data["an_mode"]["fix_phi"] = analyzer.fix_phi
+
+            self._data["data"] = dict()
+
+    def offload(self, filename == None):
+
+        if filename == None:
+            filename = self._name
+
+        filename += ".json"
+        out = open(filename)
+
+        json.dump(self._data,out)
+        
+
+
+
+
 
 class CollectionBuilder(object) :
 
