@@ -340,6 +340,7 @@ class Analyzer(object):
 
     Best phase choice algorithm:
     -none : no phase optimization
+    -yolo : standard(multivariate) optimization on all the phases space
     -smart : choose the best among multiple of pi/2
     -fix : no phase optimization (but arbitraty choice of a fixed phase stored in fix_phi)
 
@@ -350,7 +351,7 @@ class Analyzer(object):
     """
 
     _modes = ["TC", "first"]
-    _opt_modes = ["none", "smart", "fix"]
+    _opt_modes = ["none", "smart", "fix", "yolo"]
     _solver_modes = ["eigen", "qutip"]
 
     def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, mode = "TC", opt_mode = "none",solver_mode = "eigen", diag = True):
@@ -645,6 +646,8 @@ class Analyzer(object):
         elif self.opt_mode == "fix" :
             assert np.any(self.fix_phi )
             best_phi = self.fix_phi
+        elif self.opt_mode == "yolo" :
+            best_phi = self.optimum_phase_minimize()[0]
         else :
             best_phi = self.optimum_phase_minimize()[0]
 
