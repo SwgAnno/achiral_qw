@@ -341,6 +341,24 @@ class CachedQWGraphCollection(QWGraphCollection):
 
             json.dump(self._data,out)
 
+    def offload_data(self, select = None, filename = None):
+
+        if filename == None:
+            filename = self._name
+
+        filename += ".data"
+        with open(filename, "w") as out :
+
+            if select is None:
+                select = self._data["data"].keys()
+
+            for k in select:
+                p = self._data["data"].get(str(k), -1)
+                out.write(str(k)+ " " + str(p) + "\n")
+
+            out.close()
+
+
     def evaluate( self, select, target = "p", x_mode = "dist"):
         """
         Evaluate the transport performance of the whole collection on a specific selection of elements
@@ -355,15 +373,15 @@ class CachedQWGraphCollection(QWGraphCollection):
         gr_list = []
         missing = []
         for i, id in enumerate(select) :
-            perf = self._data["data"].get(id, None)
-            
+            perf = self._data["data"].get(str(id))
+
             if perf is None  :
                 gr_list.append( self._create(id))
                 missing.append(i)
             else:
                 out_data[i] = perf
 
-        print(missing)
+        #print(missing)
 
         if len(missing) > 0 :
             missing_x, missing_data = QWGraphCollection._get_data(  gr_list, analyzer = self._analyzer,         \
@@ -396,6 +414,7 @@ class CachedQWGraphCollection(QWGraphCollection):
             self._data["data"][int(id)] = perf
 
         return x, data
+
        
         
 

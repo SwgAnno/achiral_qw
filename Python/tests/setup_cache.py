@@ -30,7 +30,7 @@ if __name__ == "__main__" :
     cached_C4   = CachedQWGraphCollection( create_func = C4_chain,      filename = "C4_chain_first_fast",   analyzer = fast_analyzer_C4)
     cached_DiC   = CachedQWGraphCollection( create_func = SC_chain,     filename = "DiC4_chain_first_fast", analyzer = fast_analyzer_SquareCut)
 
-    selection = np.arange(2, 100)
+    selection = np.arange(2, 50)
 
     cached_line.evaluate(selection)
     cached_C3.evaluate(selection)
@@ -40,7 +40,7 @@ if __name__ == "__main__" :
 
 
     #fast evaluation with cached data!!!
-    lm_test_range = [ np.arange(i*10, i*20) for i  in range(1, 6)]
+    lm_test_range = [ np.arange(i*10, i*20) for i  in range(1, 3)]
 
     for selection in lm_test_range:
         cached_line.transport_time_lm(selection)
