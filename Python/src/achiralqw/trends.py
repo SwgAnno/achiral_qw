@@ -1,7 +1,7 @@
 from achiralqw.simulator import Analyzer
 from achiralqw.graph import QWGraphBuilder
 from achiralqw.bessel import *
-from achiralqw.collection import CollectionBuilder, get_line_data
+from achiralqw.collection import CollectionBuilder, QWGraphCollection, get_line_data
 from scipy.optimize import minimize_scalar
 from achiralqw.plotter import set_progression_plot
 import matplotlib.pyplot as plt
@@ -255,7 +255,7 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
 #############################################
 # progression plots
 
-def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "", ax = None, **kwargs):
+def plot_standard_progression(prog : QWGraphCollection, target = "p", x_mode = "dist", label = "", ax = None, **kwargs):
     """
     Plot helper for a standard progression ouput
         prog is a QWGraphCollection object
@@ -264,7 +264,7 @@ def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "", a
         fig, ax = plt.subplots(1, 1, figsize = (6,5))
         set_progression_plot(ax, x_mode=x_mode, target=target)
     
-    x, data = prog.get_data( target = target, x_mode = x_mode, **kwargs)
+    x, data = prog.evaluate( target = target, x_mode = x_mode, **kwargs)
     ax.plot( x, data, marker = ".", label = label)
 
     #force integer ticks (discrete families of graphs)

@@ -340,8 +340,10 @@ class Analyzer(object):
 
     Best phase choice algorithm:
     -none : no phase optimization
+    -min : standard(multivariate) optimization on all the phases space
     -smart : choose the best among multiple of pi/2
     -fix : no phase optimization (but arbitraty choice of a fixed phase stored in fix_phi)
+    -yolo : brute force grid evaluation op the phases space of transport performance in search of the global maximum (spoiler: it's inefficient)
 
     Solver backend:
     -eigen :  SESolver is a EigenSESolver
@@ -350,7 +352,7 @@ class Analyzer(object):
     """
 
     _modes = ["TC", "first"]
-    _opt_modes = ["none", "smart", "fix"]
+    _opt_modes = ["none","min", "smart", "fix", "yolo"]
     _solver_modes = ["eigen", "qutip"]
 
     def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, mode = "TC", opt_mode = "none",solver_mode = "eigen", diag = True):
@@ -645,7 +647,9 @@ class Analyzer(object):
         elif self.opt_mode == "fix" :
             assert np.any(self.fix_phi )
             best_phi = self.fix_phi
-        else :
+        elif self.opt_mode == "yolo" :
+            best_phi = self.optimum_phase_yolo()[0]
+        elif self.opt_mode == "min" :
             best_phi = self.optimum_phase_minimize()[0]
 
         #print(best_phi, self.opt_mode)
@@ -700,6 +704,9 @@ class Analyzer(object):
 
         (float, float) -> best diag phase, relative best diag performance
         """
+
+        if self.dim() == 0 :
+            return (0, self.performance(0))
 
         #minimize the inverse of perf function
         if self.diag:
@@ -828,8 +835,23 @@ class Analyzer(object):
 
         return self.get_gr().code + " " + mode_label
 
-    def set_fix_phi(self, phi):
-        self.fix_phi = phi
+    #todo: do i want minimize as standard method?
+    def set_fix_phi(self, phi = None, opt_mode = None):
+
+        if opt_mode is None :
+            if phi is None:
+                self.fix_phi = self.optimum_phase_minimize()[0]
+            else:
+                self.fix_phi = phi
+        else:
+            if opt_mode == "none":
+                self.fix_phi = 0
+            if opt_mode == "min":
+                self.fix_phi = self.optimum_phase_minimize()[0]
+            if opt_mode == "yolo":
+                self.fix_phi = self.optimum_phase_yolo()[0]
+            if opt_mode == "smart":
+                self.fix_phi = self.optimum_phase_smart()[0]
 
     def get_fix_phi(self):
         return self.fix_phi

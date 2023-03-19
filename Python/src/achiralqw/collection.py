@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from achiralqw.graph import QWGraph, QWGraphBuilder
 from achiralqw.simulator import Analyzer
 import achiralqw.istarmap
@@ -11,6 +12,9 @@ from itertools import repeat
 import tqdm
 import os, copy
 import json
+
+##############################
+#global function that can be pickled and shared between processes
 
 MULTIPROCESS = True
 
@@ -44,6 +48,8 @@ def unit_list( select, unit):
 
     return num_unit
 
+##############################
+
 class QWGraphCollection(object) :
 
     def __init__( self, analyzer : Analyzer = None, name = None ) :
@@ -53,42 +59,51 @@ class QWGraphCollection(object) :
         self._analyzer = analyzer
         self._name = name
 
+
+    @staticmethod
+    def _get_data(gr_list, analyzer : Analyzer, target = "p", x_mode = "dist", name = "QWgraphCollection"):
+        """
+        Router method for get_data() according to the global variable MULTIPROCESS
+        """
         global MULTIPROCESS
 
         if MULTIPROCESS:
-            self.get_data = self.get_data_multiprocess
+            return QWGraphCollection._get_data_multiprocess( gr_list = gr_list,      \
+                                                            analyzer = analyzer,    \
+                                                            target = target,        \
+                                                            x_mode = x_mode,        \
+                                                            name = name             )
         else :
-            self.get_data = self.get_data_singleprocess
+            return QWGraphCollection._get_data_singleprocess( gr_list = gr_list,      \
+                                                            analyzer = analyzer,    \
+                                                            target = target,        \
+                                                            x_mode = x_mode,        \
+                                                            name = name             )
 
-        self._gr_list : list[QWGraph] = []
+    @staticmethod
+    def _get_data_singleprocess( gr_list, analyzer : Analyzer, target = "p", x_mode = "dist", name = "QWgraphCollection"):
 
-
-    def get_data_singleprocess( self, target = "p", diag = True, opt_mode = None, opt_phi = None, x_mode = "dist"):
-
-        graphs = self.get_list()
-        tester = self.get_analyzer()
-        N = len(graphs)
+        N = len(gr_list)
         data = np.empty( N)
 
-        prog_label = self.get_name() +" collection " + target + " data:  {:2.1%}"
+        prog_label = name +" " + target + " data:  {:2.1%}"
 
         for i in range(N):
             print (prog_label.format(i/N), end = "\r")
-            tester.set_gr(graphs[i])
+            analyzer.set_gr(gr_list[i])
 
-            data[i] = tester.performance_best(target=target)
+            data[i] = analyzer.performance_best(target=target)
 
         print(prog_label.format(1))
 
-        x = self.get_x_vec(x_mode = x_mode)
+        x = QWGraphCollection.get_list_x(gr_list, x_mode = x_mode)
 
         return x , data
 
-    def get_data_multiprocess( self, target = "p", x_mode = "dist"):
+    @staticmethod
+    def _get_data_multiprocess( gr_list, analyzer : Analyzer, target = "p", x_mode = "dist", name = "QWgraphCollection"):
 
-        graphs = self.get_list()
-        tester = self.get_analyzer()
-        N = len(graphs)
+        N = len(gr_list)
         out = []
 
         global get_gr_t_data
@@ -102,12 +117,12 @@ class QWGraphCollection(object) :
 
         n_proc = os.cpu_count()*2  
 
-        greeting_string = self.get_name() +" collection: Starting pool evaluation with {} process" 
+        greeting_string = name + " : Starting pool evaluation with {} process" 
         print(greeting_string.format(n_proc))
 
         with mp.Pool( n_proc) as pool:
 
-            input_vec = zip([tester]* len(graphs), graphs)
+            input_vec = zip([analyzer]* len(gr_list), gr_list)
             testers = []
 
             print("Data Setup")
@@ -122,34 +137,38 @@ class QWGraphCollection(object) :
             pool.close()
             pool.join()
 
-        x = self.get_x_vec(x_mode = x_mode)
+        x = QWGraphCollection.get_list_x(gr_list, x_mode = x_mode)
 
         return x , data
 
-    def add(self, gr : QWGraph) :
-        self._gr_list.append( gr )
-
-    def get_x_vec(self, x_mode = "dist"):
+    @staticmethod
+    def get_list_x(gr_list, x_mode = "dist"):
         out = []
 
-        for gr in self.get_list():
+        for gr in gr_list:
             if x_mode == "dist":
                 out.append( gr.distance())
             elif x_mode == "size" :
                 out.append( gr.N)
             else :
-                raise ValueError("get_x_vec mode not supported")
+                raise ValueError("get_list_x mode not supported")
         
         return out
 
+    @abstractmethod  
+    def evaluate( self, select, target = "p", x_mode = "dist"):
+        """
+        Evaluate the transport performance of the whole collection on a specific selection of elements
+        """
+        pass
 
     #todo make it return lm object and not just the two coefficients
-    def transport_time_lm( self, mode = "dist"):
+    def transport_time_lm( self, select = None, x_mode = "dist"):
         """
         Construct a linear model of the best transport time from the graph collection
         """
         
-        x, data = self.get_data( target = "t")
+        x, data = self.evaluate(select, target = "t", x_mode= x_mode)
 
         #print(data)
         out = stats.linregress(x, data)
@@ -160,12 +179,12 @@ class QWGraphCollection(object) :
 
         return out.slope, out.intercept
 
-    def transport_prob_model( self, mode = "poly"):
+    def transport_prob_model( self, select = None, mode = "poly", x_mode = "dist"):
         """
         Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
         which represent the power law exponent of its decay
         """
-        x, data = self.get_data( target = "p")
+        x, data = self.evaluate(select, target = "p", x_mode = x_mode)
 
         #test over y = ax^2 + bx + c
         if mode == "poly" :
@@ -195,13 +214,13 @@ class QWGraphCollection(object) :
 
         return None
 
-    def transport_prob_loglog_lm( self, mode = "dist"):
+    def transport_prob_loglog_lm( self, select = None, x_mode = "dist"):
         """
         Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
         which represent the power law exponent of its decay
         """
         
-        x, data = self.get_data( target = "p")
+        x, data = self.evaluate(select, target = "p", x_mode = x_mode)
 
         #print(data)
         out = stats.linregress(np.log(x), np.log(data))
@@ -213,23 +232,52 @@ class QWGraphCollection(object) :
         return out.slope, out.intercept
         
         
-    def get_list(self):
 
-        return self._gr_list
-
-    def set_analyzer( self, aAnalyzer):
-        self._analyzer = aAnalyzer
+    def set_analyzer( self, analyzer):
+        self._analyzer = analyzer
 
     def get_analyzer( self):
         return self._analyzer
 
     def get_name( self):
-        return self.get_list()[0].code if self._name == None else self._name
+        return "noname QWgraphCollection" if self._name is None else self._name
 
 class QWGraphList(QWGraphCollection):
-    
+    """
+    QWGraphList supports QWgraphCollection primitives and wraps around a generic list of QWGraphs
+    """    
     def __init__( self, **kwargs):
-        pass
+        super().__init__(**kwargs)
+        self._gr_list : list[QWGraph] = []
+
+    def evaluate( self, select = None, target = "p", x_mode = "dist"):
+        """
+        Evaluate the transport performance of the whole collection on a specific selection of elements
+        """
+
+        gr_list = self.get_list()
+
+        if select is not None:
+            gr_list = [gr_list[i] for i in select] 
+
+        return QWGraphCollection._get_data(gr_list, analyzer = self._analyzer, target = target, x_mode = x_mode, name = self.get_name())
+
+
+    def __getitem__(self, key : int) -> QWGraph :
+        return self.get_list()[key]
+    
+    def __setitem__(self, key : int, value : QWGraph) -> None:
+        self.get_list()[key] = value
+
+    def append(self, gr : QWGraph) -> None:
+        self.get_list().append( gr )
+
+    def get_list(self):
+
+        return self._gr_list
+    
+    def get_name(self) -> str:
+        return self.get_list()[0].code if self._name == None else self._name
 
 class CachedQWGraphCollection(QWGraphCollection):
 
@@ -239,7 +287,7 @@ class CachedQWGraphCollection(QWGraphCollection):
     Stores previous computations
     """
 
-    def __init__(self, filename : str, analyzer : Analyzer == None, **kwargs ):
+    def __init__(self, create_func, filename : str, analyzer : Analyzer = None, target = "p", x_mode = "dist", **kwargs):
 
         super().__init__(analyzer = analyzer, name = filename,  **kwargs)
         
@@ -247,19 +295,21 @@ class CachedQWGraphCollection(QWGraphCollection):
         filename = filename # +.json
 
         if os.path.isfile("./{}.json".format(filename)):
-            file = open("{}.json".format(filename))
-            self._data = json.load(file)
+            with open("{}.json".format(filename), "r") as file :
+                self._data = json.load(file)
 
-            #creating from an existing file: loading previous Analyzer options
-            analyzer = Analyzer(    mode        = self._data["an_mode"]["mode"],
-                                    opt_mode    = self._data["an_mode"]["opt_mode"],
-                                    TC          = self._data["an_mode"]["TC"],
-                                    diag        = self._data["an_mode"]["diag"])
+                #creating from an existing file: loading previous Analyzer options
+                analyzer = Analyzer(    mode        = self._data["an_mode"]["mode"],
+                                        opt_mode    = self._data["an_mode"]["opt_mode"],
+                                        TC          = self._data["an_mode"]["TC"],
+                                        diag        = self._data["an_mode"]["diag"])
+                
+                analyzer.set_fix_phi(phi = self._data["an_mode"]["fix_phi"])
 
-            analyzer.sef_fix_phi(self._data["an_mode"]["fix_phi"])
+                self._analyzer = analyzer
 
         else :
-
+            #initialize the new data dicionary, the various option infos are not going to be ever changed
             if Analyzer == None:
                 raise AssertionError("Analyzer must be provided to create a new file cache")
 
@@ -273,23 +323,89 @@ class CachedQWGraphCollection(QWGraphCollection):
             self._data["an_mode"]["opt_mode"] = analyzer.opt_mode
             self._data["an_mode"]["fix_phi"] = analyzer.fix_phi
 
+            self._data["options"] = dict()
+            self._data["options"]["target"] = target
+            self._data["options"]["x_mode"] = x_mode
+
             self._data["data"] = dict()
 
-    def offload(self, filename == None):
+        self._create = create_func
+
+    def offload(self, filename = None):
 
         if filename == None:
             filename = self._name
 
         filename += ".json"
-        out = open(filename)
+        with open(filename, "w") as out :
 
-        json.dump(self._data,out)
+            json.dump(self._data,out)
+
+    def evaluate( self, select, target = "p", x_mode = "dist"):
+        """
+        Evaluate the transport performance of the whole collection on a specific selection of elements
+
+        Retrive all the useful cached data and compute the missing ones
+        target and x_mode appear as argument for interface uniformity but are going to be ignored
+        """
+
+        out_x = select
+        out_data = [-1]* len(select)
+
+        gr_list = []
+        missing = []
+        for i, id in enumerate(select) :
+            perf = self._data["data"].get(id, None)
+            
+            if perf is None  :
+                gr_list.append( self._create(id))
+                missing.append(i)
+            else:
+                out_data[i] = perf
+
+        print(missing)
+
+        if len(missing) > 0 :
+            missing_x, missing_data = QWGraphCollection._get_data(  gr_list, analyzer = self._analyzer,         \
+                                                                    target = self._data["options"]["target"],    \
+                                                                    x_mode = self._data["options"]["x_mode"],    \
+                                                                    name = self.get_name()                      )
+       
+            #update cache and out_data with new new values
+            for i, perf in zip(missing, missing_data):
+                self._data["data"][ int(select[i])] = perf
+                out_data[i] = perf
+
+        return out_x, out_data
+    
+    def update(self, select):
+        """
+        Update a selection of the data cache entries
+        """
+
+        gr_list = []
+        for id in select:
+            gr_list.append( self._create(id))
+       
+        x, data = QWGraphCollection._get_data(  gr_list, analyzer = self._analyzer,         \
+                                                target = self._data["options"]["target"],    \
+                                                x_mode = self._data["options"]["x_mode"],    \
+                                                name = self.get_name()                      )
+        
+        for id, perf in zip(x,data):
+            self._data["data"][int(id)] = perf
+
+        return x, data
+       
         
 
+    def get_name(self) -> str:
+        return self._data["name"]
 
 
 
 
+#todo:  why not make everything static
 class CollectionBuilder(object) :
 
     def __init__(self):
@@ -306,18 +422,18 @@ class CollectionBuilder(object) :
             self.C_progression = self.C_progression_singleprocess
 
 
-    def from_list(self, gr_list , analyzer : Analyzer = None) -> QWGraphCollection :
+    def from_list(self, gr_list , analyzer : Analyzer = None) -> QWGraphList :
 
-        collection = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphList( analyzer=analyzer)
 
         for gr in gr_list:
-            collection.add( gr )
+            collection.append( gr )
 
         return collection
 
     def P_progression_singleprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None) :
 
-        collection = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphList( analyzer=analyzer)
         collection.get_analyzer().set_opt_mode("none")
 
         assert bounds or np.any(select)
@@ -328,13 +444,13 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0], bounds[1], step)
 
         for d in drange :
-            collection.add( QWGraphBuilder.Line(d))
+            collection.append( QWGraphBuilder.Line(d))
 
         return collection
 
     def P_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
 
-        collection = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphList( analyzer=analyzer)
         collection.get_analyzer().set_opt_mode("none")
 
         assert bounds or np.any(select)
@@ -350,7 +466,7 @@ class CollectionBuilder(object) :
 
         with mp.Pool( n_proc) as pool:
             for _ in tqdm.tqdm(pool.imap(QWGraphBuilder.Line, drange ), total=len(drange)):
-                collection.add(_)
+                collection.append(_)
 
             pool.close()
             pool.join()
@@ -361,7 +477,7 @@ class CollectionBuilder(object) :
 
     def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
 
-        collection = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphList( analyzer=analyzer)
 
         assert bounds or np.any(select)
 
@@ -379,14 +495,14 @@ class CollectionBuilder(object) :
             drange = np.arange(bounds[0]*2 + offset, bounds[1]*2 + offset, step)
 
         for d in drange :
-            collection.add( QWGraphBuilder.Ring(d, HANDLES = HANDLES, **kwargs))
+            collection.append( QWGraphBuilder.Ring(d, HANDLES = HANDLES, **kwargs))
 
         return collection
 
     def C_progression_multiprocess(self, bounds = None, step = 1, odd = False, select = None, analyzer : Analyzer = None, HANDLES = False, 
      **kwargs) :
 
-        collection = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphList( analyzer=analyzer)
 
         assert bounds or np.any(select)
         
@@ -410,10 +526,10 @@ class CollectionBuilder(object) :
         with mp.Pool( n_proc) as pool:
             if HANDLES :
                 for _ in tqdm.tqdm(pool.imap(create_ch, drange ), total=len(drange)):
-                    collection.add(_)
+                    collection.append(_)
             else :
                 for _ in tqdm.tqdm(pool.imap(create_c, drange ), total=len(drange)):
-                    collection.add(_)
+                    collection.append(_)
 
             pool.close()
             pool.join()
@@ -422,7 +538,7 @@ class CollectionBuilder(object) :
 
     def chain_progression_singleprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
 
-        collection = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphList( analyzer=analyzer)
 
         assert bounds or np.any(select)
 
@@ -432,12 +548,12 @@ class CollectionBuilder(object) :
             drange = unit_list_bounds( bounds, gr_unit)
 
         for d in drange :
-            collection.add( gr_unit.chain( rep = d, **kwargs))
+            collection.append( gr_unit.chain( rep = d, **kwargs))
 
         return collection
 
     def chain_progression_multiprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer = None, **kwargs):
-        collection = QWGraphCollection( analyzer=analyzer)
+        collection = QWGraphList( analyzer=analyzer)
 
         assert bounds or np.any(select)
 
@@ -455,7 +571,7 @@ class CollectionBuilder(object) :
 
         with mp.Pool( n_proc) as pool:
             for _ in tqdm.tqdm(pool.istarmap(QWGraph.chain, input_vec ), total=len(drange)):
-                collection.add(_)
+                collection.append(_)
 
             pool.close()
             pool.join()
@@ -506,6 +622,10 @@ class CollectionBuilder(object) :
 #####################################à
 #utils methods
 
+
+#todo remove get_line data in favour of CachedQWgraphCollection
+
+
 def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
     """
     Simple wrapper for L graphs progression references   
@@ -514,4 +634,4 @@ def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
     an = Analyzer( mode = "first", opt_mode= "none")
     line_collection = CollectionBuilder().P_progression( bounds, analyzer=an)
 
-    return line_collection.get_data( target = target, x_mode = x_mode)
+    return line_collection.evaluate( target = target, x_mode = x_mode)
