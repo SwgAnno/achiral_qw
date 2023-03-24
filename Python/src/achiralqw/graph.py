@@ -15,20 +15,12 @@ class QWGraph(object) :
     def __init__(self, N , mat = None, endpoints = None) :
 
         if mat is None :
-            self.N = N
             self.code = "e"
-            
-            self.mat = np.zeros((N,N), dtype = complex)
         else :
-            assert N == mat.shape[0]
-            #mat is assumed to be a square numpy ndarray
-            self.N = mat.shape[0]
             self.code = "m"
 
-            self.mat = mat
-
-        #it'd better be not mandatory
-        
+        self.N = N
+        self._init_mat(mat)
         self.compute_re_coord()
 
         if not endpoints == None :
@@ -48,6 +40,19 @@ class QWGraph(object) :
 
         self.start = 0
         self.target = self.N-1
+
+    def _init_mat(self, mat):
+        """
+        Initialize laplacian matrix, possibly creating a new one
+        This method must be overwritten if the internal representation of the matrix changes from numpy ndarray
+        """
+
+        if mat is None :
+            self.mat = np.zeros((self.N, self.N), dtype = complex)
+        else :
+            #mat is assumed to be a square numpy ndarray
+            self.N = mat.shape[0]
+            self.mat = mat
 
     def update_eigen(self):
         """
@@ -596,6 +601,84 @@ class QWGraph(object) :
         """
         return len(self.re_coord)
 
+class SparseQWGraph( QWGraph):
+    """
+    Implementation of QWGraph with and underlying matrix representation
+    """
+
+    def _init_mat(self, mat):
+        """
+        Initialize laplacian matrix, possibly creating a new one.
+        The matrix representation is a complex scipy sparse dictionary of key
+        """
+
+        if mat is None :
+            self.mat = sparse.dok_matrix((self.N, self.N), dtype = complex)
+        else :
+            #mat is assumed to be a square scipy sparse dok matrix
+            # we need efficient slicing and access to the elements
+            assert isinstance(mat, sparse.dok_matrix)
+            self.N = mat.shape[0]
+            self.mat = mat
+
+    def to_adjacency(mat):
+        
+        out = sparse.dok_matrix(mat.shape, dtype = "int")
+        
+        for k in mat.keys():
+            if k[0] != k[1]:
+                out[k] = 1
+                
+        return out
+
+    def update_eigen(self):
+        """
+        Recompute and store eigenvalues and eigenvectors with numpy.linalg routine
+        WARNING: this may be time consuming for large graphs!
+
+        Apparently there is no sparse.linalg routine which retrieve all the eigenvectors
+        Therefore we must converte to dense matrix an use te usual linalg.eigh
+        """
+        self.eig_val, self.eig_vec = (self.mat.todense())
+
+        self.eig_val = np.reshape(self.eig_val, (self.N,1))
+
+    def compute_re_coord(self) :
+        """
+        Update rephasing link vector as missing link from a spanning tree of the graph
+        """
+
+        mst = sparse_mst(self.mat)
+
+        self.re_coord = []
+
+        for edge in self.mat.keys():
+            if edge[0] > edge[1] and my_mst[edge] == 0 :
+                self.re_coord.append(edge)
+
+##        names = []
+##        for i in range(self.N):
+##            names.append(str(i))
+##
+##        tree.vs["label"] = names
+##        ref.vs["label"] = names
+##        ig.plot(ref -tree)
+
+        self.re_coord = n_re_coord
+
+    def distance(self, start = None, to = None):
+        """
+        Return distance in links betweeen two given nodes
+        (Actually a wrapper of igraph get_shortest_paths)
+        """
+        if not start :
+            start = self.start
+        if not to :
+            to = self.target
+        
+        dist = sparse.csgraph.shortest_path(self.mat, method = "D", directed = False, unweighted= True, indices = start)
+
+        return dist[target]
 
 class QWGraphBuilder(object):
 
@@ -651,7 +734,7 @@ class QWGraphBuilder(object):
         raise NotImplementedError("to be implemented")
 
     @staticmethod
-    def Ring(N : int, HANDLES : bool = False, E : float  = 0, COMPUTE_EIGEN = False) -> QWGraph:
+    def Ring(N : int, HANDLES : bool = False, E : float  = 0, COMPUTE_EIGEN = False, sparse = False) -> QWGraph:
         """
         Ring graph constructor
         """
@@ -773,4 +856,52 @@ def get_list_x(gr_list, x_mode = "size"):
         else :
             out.append(i)
 
+    return out
+
+
+def sparse_mst( smat ):
+    #do it yourself implementation of kruskal algorithm for a 01 adjacency matrix
+    #suited for dok matrices
+    
+    #union find parent list
+    par = np.arange(0,smat.shape[0])
+    
+    out = sparse.dok_matrix(smat.shape, dtype = "int")
+    
+    #primitives for union-find
+    def same(a,b) ->bool :
+        
+        p1 = par[a]
+        while p1 != par[p1] :
+            p1 = par[p1]
+            par[a] = p1
+        
+        p2 = par[b]
+        while p2 != par[p2] :
+            p2 = par[p2]
+            par[b] = p2
+            
+        #print( "same {} {}\t".format(a,b), par)
+        return p1 == p2
+        
+    def join(a,b) -> None :
+        
+        p1 = par[a]
+        while p1 != par[p1] :
+            p1 = par[p1]
+            par[a] = p1
+        
+        p2 = par[b]
+        while p2 != par[p2] :
+            p2 = par[p2]
+            par[b] = p2
+            
+        par[p2] = p1
+        
+    for edge in smat.keys():
+        if not same(edge[0], edge[1]):
+            join(edge[0], edge[1])
+            out[edge] = 1
+            out[edge[1],edge[0]] = 1
+            
     return out
