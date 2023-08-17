@@ -6,7 +6,7 @@ import matplotlib.cm as cm
 import numpy as np
 import networkx as nx
 import matplotlib.colors as colors
-from matplotlib.ticker import MaxNLocator
+import matplotlib.ticker as ticker
 
 ##############################################
 # Graph info plotting
@@ -75,7 +75,7 @@ def plot_graph_eigenbasis(gr: QWGraph):
 
     return fig, ax
 
-def plot_krylov_basis(gr : QWGraph, **kwargs):
+def plot_krylov_basis(gr : QWGraph, add_phase = False, **kwargs):
     """
     Represent krylov basis vector in the site basis with
     modulus of projection(left plot)
@@ -94,22 +94,34 @@ def plot_krylov_basis(gr : QWGraph, **kwargs):
     x_range = np.arange(0,gr.N)
     y_range = np.arange(0,len(k_basis))
 
-    fig, axx = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True, figsize=(8, 4))
+    if add_phase:
+        fig, axx = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True, figsize=(8, 4))
 
-    c1 = axx[0].pcolormesh(x_range, y_range, modulus, label = "mod")
-    c2 = axx[1].pcolormesh(x_range, y_range, phase, label = "phase")
+        c1 = axx[0].pcolormesh(x_range, y_range, modulus, label = "mod")
+        c2 = axx[1].pcolormesh(x_range, y_range, phase, label = "phase")
 
-    fig.colorbar(c1, ax = axx[0])
-    fig.colorbar(c2, ax = axx[1])
+        fig.colorbar(c1, ax = axx[0])
+        fig.colorbar(c2, ax = axx[1])
 
-    axx[0].set_title("Projection modulus")
-    axx[1].set_title("Relative phase")
+        axx[0].set_title("Projection modulus")
+        axx[1].set_title("Relative phase")
     
-    for ax in axx :    
-        ax.set_xlabel('site')
-        ax.set_ylabel('k_n')
+        for ax in axx :    
+            ax.set_xlabel('$|n\\rangle$')
+            ax.set_ylabel('$|k_n \\rangle$')
 
-    return fig, ax
+        return fig, axx
+
+    else :
+        fig, ax = plt.subplots( 1,1, figsize=(6, 5))
+
+        c1 = ax.pcolormesh(x_range, y_range, modulus, label = "mod")
+
+        fig.colorbar(c1, ax = ax)
+        ax.set_xlabel('$|n\\rangle$')
+        ax.set_ylabel('$|k_n \\rangle$')
+
+        return fig, ax
 
 def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs):
     """
@@ -121,14 +133,14 @@ def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs):
     k_A = k_A[1:]
     
     if ax == None:
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(  figsize=(6, 5))
 
     x = np.arange(1,len(k_A)+1)
     
-    ax.scatter(x, k_A, label = "couplings")
+    ax.scatter(x, k_A)
     
-    ax.set_xlabel('i')
-    ax.set_ylabel('a')
+    ax.set_xlabel('n')
+    ax.set_ylabel('$\\langle k_n | H | k_{n+1}\\rangle$')
 
     ax.legend()
     
@@ -215,7 +227,7 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
 
     ax.set_xlabel('t')
     ax.set_ylabel('site')
-    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.yaxis.set_major_locator(ticker.MaxNLocator(integer=True))
 
     c = ax.pcolormesh(seq, selection, evo,vmin = 0, vmax = 1,label = gr.code)
 
@@ -243,10 +255,7 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     an = Analyzer(gr, mode = "first")
 
     for i in range( len(phase_seq)):
-        an.rephase_gr( np.repeat( phase_seq[i], \
-                                  an.dim() ))
-
-        data[i:] = an.evolution_grid( bounds = (start,end), step = by)
+        data[i:] = an.evolution_grid( bounds = (start,end), step = by, phase_vec = np.repeat( phase_seq[i],an.dim() ))
         max_data[:,i] = [ an.locate_max()[0], phase_seq[i]]
 
     if ax == None :
@@ -501,15 +510,27 @@ def set_performance_plot(ax,target = "p", dim = 1):
         ax.set_xlabel("$\\theta_1$")
         ax.set_ylabel("$\\theta_2$")
 
-def set_progression_plot(ax,x_mode = "dist", target = "p"):
+def set_progression_plot(ax,x_mode = "dist", target = "p", loglog = False, bounds = None,  **kwargs):
 
-    ax.set_xlabel(x_mode)
+
+    if x_mode == "size":
+        ax.set_xlabel("N")
+    else:
+        ax.set_xlabel(x_mode)
+
+    if loglog and bounds is not None:
+        ax.set_xticks( np.geomspace(*bounds, num = 10, dtype=int))
+        ax.get_xaxis().set_major_formatter(ticker.ScalarFormatter())
+
 
     if target == "p":
         ax.set_ylabel('$P_{max}$')
-        ax.set_ylim(bottom = 0, top = 1)
+        if loglog :
+            ax.set_ylim(top = 1, bottom = None, auto = True)
+        else:
+            ax.set_ylim(bottom = 0, top = 1)
     elif target == "t":
-        ax.set_ylabel("t")
+        ax.set_ylabel("$t^*$")
         ax.set_ylim(bottom = 0, auto = True)
     else :
         raise NotImplementedError("target mode not supported")

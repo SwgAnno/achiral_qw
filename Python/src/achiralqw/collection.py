@@ -174,7 +174,7 @@ class QWGraphCollection(object) :
         out = stats.linregress(x, data)
 
         print("m: ", out.slope, " +- ", out.stderr)
-        print("q: ", out.intercept, " +- ", out.intercept_stderr)
+        print("q: ", out.intercept, " +- ", "????")
         print("r: ", out.rvalue)
 
         return out.slope, out.intercept
@@ -183,7 +183,15 @@ class QWGraphCollection(object) :
         """
         Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
         which represent the power law exponent of its decay
+
+        mode : str ["poly" , "banchi1", "banchi2", "banchi3", "banchi4", "banchi4log", "custom"]
         """
+
+        modes = ["poly" , "banchi1", "banchi2", "banchi3", "banchi4", "banchi4log", "custom"]
+        assert mode in modes, "Transport prob model mode not recognized"
+
+        print("######### Transpor prob model: ", mode)
+
         x, data = self.evaluate(select, target = "p", x_mode = x_mode)
 
         #test over y = ax^2 + bx + c
@@ -193,6 +201,80 @@ class QWGraphCollection(object) :
             print("ax^2: ", param[0])
             print("bx: ", param[1])
             print("c: ", param[2])
+
+            return param
+
+        elif mode == "banchi1":
+            # test over y = a(x)^-2/3 
+            def model(x,a,b):
+                return a*np.power(x, -2/3)
+
+            #first with stegun bessel expansion
+            p0 = [0.455469,-0.147317]
+            param, cov_param = curve_fit(model, x, data, p0 = p0)
+
+            print("a*x^-2/3: ", param[0], " +- ", cov_param[0,0])
+            
+            return param
+
+        elif mode == "banchi2":
+            # test over y = a(x)^-2/3 + b(x)^-4/3   
+            def model(x,a,b):
+                return a*np.power(x, -2/3) + b*np.power(x, -4/3)
+
+            #first with stegun bessel expansion
+            p0 = [0.455469,-0.147317]
+            param, cov_param = curve_fit(model, x, data, p0 = p0)
+
+            print("a*x^-2/3: ", param[0], " +- ", cov_param[0,0])
+            print("b*x^-4/3: ", param[1], " +- ", cov_param[1,1])
+
+            return param
+
+        elif mode == "banchi3":
+            # banchi model with 3 terms 
+            def model(x,a,b,c):
+                return a*np.power(x, -2/3) + b*np.power(x, -4/3) + c*np.power(x, -2)
+
+            #first with stegun bessel expansion
+            p0 = [0.455469,-0.147317, .25]
+            param, cov_param = curve_fit(model, x, data, p0 = p0)
+
+            print("a*x^-2/3: ", param[0], " +- ", cov_param[0,0])
+            print("b*x^-4/3: ", param[1], " +- ", cov_param[1,1])
+            print("c*x^-2: ", param[2], " +- ", cov_param[2,2])
+
+            return param
+
+        elif mode == "banchi4":
+            # banchi model with 3 terms 
+            def model(x,a,b,c,d):
+                return a*np.power(x, -2/3) + b*np.power(x, -4/3) + c*np.power(x, -2.0) + d*np.power(x, -8/3)
+
+            #first with stegun bessel expansion
+            p0 = [0.455469,-0.147317, .25, -.5]
+            param, cov_param = curve_fit(model, x, data, p0 = p0)
+
+            print("a*x^-2/3: ", param[0], " +- ", cov_param[0,0])
+            print("b*x^-4/3: ", param[1], " +- ", cov_param[1,1])
+            print("c*x^-2: ", param[2], " +- ", cov_param[2,2])
+            print("d*x^-8/3: ", param[3], " +- ", cov_param[3,3])
+
+            return param
+
+        elif mode == "banchi4log":
+            # banchi model with 3 terms 
+            def model(x,a,b,c,d):
+                return np.log(a*np.power(x, -2/3) + b*np.power(x, -4/3) + c*np.power(x, -2.0) + d*np.power(x, -8/3))
+
+            #first with stegun bessel expansion
+            p0 = [0.455469,-0.147317, .25, -.5]
+            param, cov_param = curve_fit(model, x, np.log(data), p0 = p0)
+
+            print("a*x^-2/3: ", param[0], " +- ", cov_param[0,0])
+            print("b*x^-4/3: ", param[1], " +- ", cov_param[1,1])
+            print("c*x^-2: ", param[2], " +- ", cov_param[2,2])
+            print("d*x^-8/3: ", param[3], " +- ", cov_param[3,3])
 
             return param
 
@@ -211,7 +293,6 @@ class QWGraphCollection(object) :
 
             return param
 
-
         return None
 
     def transport_prob_loglog_lm( self, select = None, x_mode = "dist"):
@@ -226,7 +307,7 @@ class QWGraphCollection(object) :
         out = stats.linregress(np.log(x), np.log(data))
 
         print("m: ", out.slope, " +- ", out.stderr)
-        print("q: ", out.intercept, " +- ", out.intercept_stderr)
+        print("q: ", out.intercept, " +- ", "???")
         print("r: ", out.rvalue)
 
         return out.slope, out.intercept
@@ -358,6 +439,30 @@ class CachedQWGraphCollection(QWGraphCollection):
 
             out.close()
 
+    def get_select_x(self, select, x_mode = "dist"):
+        #estimate a linear behavour and pray
+
+        x1 = 8
+        x0 = 6
+        gr1 = self._create(x1)
+        gr0 = self._create(x0)
+
+
+        if x_mode == "dist":
+            y1 = gr1.distance()
+            y0 = gr0.distance()
+        elif x_mode == "size" :
+            y1 = gr1.N
+            y0 = gr0.N
+        else :
+            raise ValueError("get_select_x mode not supported")
+
+        m = (y1 - y0)/(x1 - x0)
+        q = y1 - m*x1
+        out = [ m*x +q for x in select]
+
+        return out
+
 
     def evaluate( self, select, target = "p", x_mode = "dist"):
         """
@@ -367,16 +472,16 @@ class CachedQWGraphCollection(QWGraphCollection):
         target and x_mode appear as argument for interface uniformity but are going to be ignored
         """
 
-        out_x = select
+        out_x = self.get_select_x(select = select, x_mode = x_mode)
         out_data = [-1]* len(select)
 
-        gr_list = []
+        missing_ids = []
         missing = []
         for i, id in enumerate(select) :
-            perf = self._data["data"].get(str(id))
+            perf = self._data["data"].get(str(int(id)))
 
             if perf is None  :
-                gr_list.append( self._create(id))
+                missing_ids.append(id)
                 missing.append(i)
             else:
                 out_data[i] = perf
@@ -384,6 +489,8 @@ class CachedQWGraphCollection(QWGraphCollection):
         #print(missing)
 
         if len(missing) > 0 :
+
+            gr_list = CollectionBuilder.build_gr_list( self._create, missing_ids)
             missing_x, missing_data = QWGraphCollection._get_data(  gr_list, analyzer = self._analyzer,         \
                                                                     target = self._data["options"]["target"],    \
                                                                     x_mode = self._data["options"]["x_mode"],    \
@@ -391,7 +498,7 @@ class CachedQWGraphCollection(QWGraphCollection):
        
             #update cache and out_data with new new values
             for i, perf in zip(missing, missing_data):
-                self._data["data"][ int(select[i])] = perf
+                self._data["data"][ str(int(select[i]))] = perf
                 out_data[i] = perf
 
         return out_x, out_data
@@ -411,7 +518,7 @@ class CachedQWGraphCollection(QWGraphCollection):
                                                 name = self.get_name()                      )
         
         for id, perf in zip(x,data):
-            self._data["data"][int(id)] = perf
+            self._data["data"][str(int(id))] = perf
 
         return x, data
 
@@ -439,6 +546,33 @@ class CollectionBuilder(object) :
             self.chain_progression = self.chain_progression_singleprocess
             self.P_progression = self.P_progression_singleprocess
             self.C_progression = self.C_progression_singleprocess
+
+    @staticmethod
+    def build_gr_list( create_func, input_vec):
+        """
+            Helper which returns a list of QWGraph build with the function passed as input,
+            possibly employing multiple processes
+        """
+
+        global MULTIPROCESS
+        gr_list = []
+
+        if MULTIPROCESS:
+            n_proc = os.cpu_count()*2  
+            greeting_string = "P progression: Starting pool creation with {} process" 
+            print(greeting_string.format(n_proc))
+
+            with mp.Pool( n_proc) as pool:
+                for _ in tqdm.tqdm(pool.imap(create_func, input_vec ), total=len(input_vec)):
+                    gr_list.append(_)
+
+                pool.close()
+                pool.join()
+        else :
+            for l in input_vec:
+                gr_list.append( create_func(l))
+
+        return gr_list
 
 
     def from_list(self, gr_list , analyzer : Analyzer = None) -> QWGraphList :
@@ -611,17 +745,25 @@ class CollectionBuilder(object) :
         else:
             raise ValueError("g_type not supported in base_progression")
 
-    def log_progression( self, g_type, bounds, points = 10, **kwargs):
+    @staticmethod
+    def log_selection(bounds, points = 10):
         """
-        get a standard progression evenly spread out on a log scale
+        return a integer geomspace selection with different indexes
         """
-
         select = np.geomspace(*bounds, num = points, dtype=int)
         select = set(select)
         select = [x for x in select]
         select.sort()
         select = np.array(select)
 
+        return select
+
+    def log_progression( self, g_type, bounds, points = 10, **kwargs):
+        """
+        get a standard progression evenly spread out on a log scale
+        """
+
+        select = log_selection(bounds = bounds, points = points)
         return CollectionBuilder.base_progression(self, g_type, select = select, **kwargs)
 
     def log_chain_progression( self, gr_unit, bounds, points = 10, **kwargs):
@@ -631,7 +773,7 @@ class CollectionBuilder(object) :
 
         select = np.geomspace(*bounds, num = points, dtype=int)
         select = set(select)
-        select = [x for x in select]
+        select = [x/gr_unit.distance() for x in select]
         select.sort()
         select = np.array(select)
 

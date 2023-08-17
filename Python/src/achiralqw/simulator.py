@@ -645,7 +645,7 @@ class Analyzer(object):
         elif self.opt_mode == "smart" :
             best_phi = self.optimum_phase_smart()[0]
         elif self.opt_mode == "fix" :
-            assert np.any(self.fix_phi )
+            assert self.fix_phi is not None
             best_phi = self.fix_phi
         elif self.opt_mode == "yolo" :
             best_phi = self.optimum_phase_yolo()[0]

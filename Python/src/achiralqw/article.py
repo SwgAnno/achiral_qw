@@ -10,6 +10,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+from tqdm import tqdm
+
 def odd_even_time_lm( L_ref = True, HANDLES = False):
     """
     Compute the two linear model from the transport time trends of,
@@ -46,6 +48,8 @@ def plot_performance_odd_even( step = 100):
     """
 
     fig, axx = plt.subplots(1,2, figsize = (10,4))
+    set_performance_plot(axx[0], target = "p")
+    set_performance_plot(axx[1], target = "p")
 
     gr_list_odd = []
 
@@ -149,7 +153,7 @@ def comp_t_chain_progression(gr_list, mode = "best", l_ref = True, **kwargs):
             plot_chain_progression(gr, ax = ax, **kwargs)
         else:
             t_chain_progression_phases(gr,ax = ax, **kwargs)
-        ax.set_title(gr.code)
+        #ax.set_title(gr.code)
 
     max_t = max( [ax.get_ylim()[1] for ax in axx])
     max_s = max( [ax.get_xlim()[1] for ax in axx])
@@ -223,7 +227,7 @@ def plot_size_progression_multi( ax = None, loglog = False, **kwargs) :
 
     plot_base_progression("C", ax = ax, **kwargs, label = "C")
     plot_base_progression("Ch", ax = ax, **kwargs, label = "Ch")
-    plot_line_data(ax = ax)
+    plot_line_data(ax = ax, **kwargs)
 
     return ax
 
@@ -232,45 +236,37 @@ def comp_size_progression(TC_vec = [1,5,20], **kwargs):
     fig, axx = plt.subplots(1, len(TC_vec), figsize = (10,4))
 
     for ax , TC in zip(axx, TC_vec):
-        plot_size_progression_multi(ax = ax, mode = "TC", TC = TC, **kwargs)
+        set_progression_plot(ax, **kwargs)
+
+        an = Analyzer(mode = "TC", TC = TC)
+        plot_size_progression_multi(ax = ax, mode = "TC", TC = TC, analyzer = an, **kwargs)
     
     axx[-1].legend()
+    fig.tight_layout()
 
     plt.show()
 
 
-
-def plot_chain_progression_multi( bounds = (3,20), target = "p", analyzer = None):
-    """
-    Example plot of progression for the 3 best chain graph families
-    """
-
-    fig, ax = plt.subplots(1,1, figsize = (6,5))
-
-    set_progression_plot(ax, x_mode = "dist", target="p")
-    ax.set_ylim(0.1,1)
-
-    plot_chain_progression( QWGraphBuilder.Ring(3), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    plot_chain_progression( QWGraphBuilder.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    plot_chain_progression( QWGraphBuilder.SquareCut(), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    plot_line_data(target = target, ax = ax)
-
-    ax.legend()
-    
-    return fig, ax
-
-def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = "p", analyzer = None, fast = False):
+def plot_chain_progression_multi( bounds = (3,20), points = 50, target = "p", analyzer = None, fast = False, loglog = False):
 
 
     fig, ax = plt.subplots(1,1, figsize = (6,5))
-    ax.set_xscale("log")
-    ax.set_yscale("log")
+    set_progression_plot(ax, x_mode = "dist", target = target, loglog = True)
 
-    select = np.geomspace(*bounds, num = points, dtype=int)
-    select = set(select)
-    select = [x for x in select]
-    select.sort()
-    select = np.array(select)
+    if loglog:
+        ax.set_xscale("log")
+        ax.set_yscale("log")
+
+        select = np.geomspace(*bounds, num = points, dtype=int)
+        select = set(select)
+        select = [x for x in select]
+        select.sort()
+        select = np.array(select)
+
+        bouds = (min(select), max(select))
+
+    else:
+         select = None
 
     print(select)
 
@@ -285,23 +281,22 @@ def plot_chain_progression_multi_loglog( bounds = (3,20), points = 50, target = 
     if fast:
         analyzer.set_gr(QWGraphBuilder.Ring(3))
         analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraphBuilder.Ring(3)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
+    plot_chain_progression( QWGraphBuilder.Ring(3)    , bounds = bounds, select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
 
     if fast:
         analyzer.set_gr(QWGraphBuilder.Ring(4))
         analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraphBuilder.Ring(4)    , select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
+    plot_chain_progression( QWGraphBuilder.Ring(4)    , bounds = bounds, select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
 
     if fast:
         analyzer.set_gr(QWGraphBuilder.SquareCut())
         analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraphBuilder.SquareCut(), select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
+    plot_chain_progression( QWGraphBuilder.SquareCut(), bounds = bounds, select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
 
-    plot_base_progression(  "P", select = select, target = target, label = "P", ax = ax)
+    L_x, L_data = get_line_data( (bounds[0]+2, bounds[1]+2), target = target)
+    ax.plot(L_x, L_data, label = "P", color = "black", alpha = .5)
 
     #log scale doesn't like integer ticks (as enforced by standard_progresion)
-    ax.set_xticks( np.geomspace(*bounds, num = 10, dtype=int))
-    ax.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
     ax.legend()
     
     return fig, ax
@@ -338,23 +333,21 @@ def plot_odd_even_progression( bounds = (3,12),target = "p", ax = None, **kwargs
     if ax == None:
         fig, ax = plt.subplots(1,1, figsize = (6,5))
 
-    label = []
-    if bounds[0]%2 == 0 :
-        label.append("C even")
-        label.append("C odd")
-    else:
-        label.append("C odd")
-        label.append("C even")
+    ax.set_xscale("log")
+    ax.set_yscale("log")
+    set_progression_plot(ax, bounds = bounds,  xmode = "dist", target = target, loglog = True)
 
-    prog = CollectionBuilder.C_progression(bounds = bounds, step = 2, **kwargs)
+    cb = CollectionBuilder()
+    prog = cb.C_progression(bounds = bounds, step = 2, odd = False, **kwargs)
 
-    plot_standard_progression(prog, target = target,label = label[0], ax = ax)
+    plot_standard_progression(prog, target = target,label = "C even", ax = ax)
     
-    prog = CollectionBuilder.C_progression(bounds = (bounds[0]+1, bounds[1]+1), step = 2, **kwargs)
+    prog = cb.C_progression(bounds = bounds, step = 2, odd = True, **kwargs)
 
-    plot_standard_progression(prog, target = target,label = label[0], ax = ax)
+    plot_standard_progression(prog, target = target,label = "C odd", ax = ax)
 
-    plot_line_data(target = target, ax = ax)
+    L_x, L_data = get_line_data( (bounds[0]+1, bounds[1]), target = target)
+    ax.plot(L_x, L_data, label = "P", color = "black", alpha = .5)
 
     return ax
 
@@ -390,7 +383,7 @@ def chain_performance_multi_speedup( gr_unit,su_vec, rep = 10, sample_step = 100
     ax.legend()
     plt.show()
 
-def multi_2_phases_example( sample = 100):
+def example_multi_2_phases( sample = 100):
     """
     Example plot with 2phase performance comparison between first maxima and TC10 search for a sample of graphs
     """
@@ -411,10 +404,23 @@ def multi_2_phases_example( sample = 100):
 
     # add single colorbar trick
     # https://stackoverflow.com/questions/13784201/how-to-have-one-colorbar-for-all-subplots
+    #fig.tight_layout()
     fit_colorbar(fig)
+
+    fig.savefig("ex_2ph.png")
 
     plt.show()
 
+def example_chain_time_performance(gr_unit, len = 10, **kwargs):
+
+    fig, ax = plt.subplots(1,1, figsize = (6,5))
+    set_performance_plot(ax, target = "p")
+
+    gr = gr_unit.chain(len)
+
+    plot_performance(gr, mode = "time",ax = ax, an_mode = "TC", TC = 2, **kwargs)
+    ax.legend()
+    plt.show()
 
 def line_speedup_perf_comp( bounds = (4,20),step = 3, su_bounds = (.1,2, 1000), target = "p", ax = None , **kwargs):
     """
@@ -429,12 +435,11 @@ def line_speedup_perf_comp( bounds = (4,20),step = 3, su_bounds = (.1,2, 1000), 
     labels = []
 
     cur = QWGraphBuilder.Line(4)
-    an = Analyzer(cur, **kwargs)
+    an = Analyzer(cur, mode = "first", **kwargs)
 
-    for m in range( len(y_sample)):
-        print("Speedup iteration {:.2f}%".format((m+1)/len(y_sample)*100), end='\r')
+    for m in tqdm(range( len(y_sample))):
         for i in range(len(sample)):
-            cur = QWGraphBuilder.Line(y_sample[m], speedup = sample[i])
+            cur = QWGraphBuilder.Line(y_sample[m], speedup = sample[i], COMPUTE_EIGEN = True)
             an.set_gr(cur)
 
             data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]

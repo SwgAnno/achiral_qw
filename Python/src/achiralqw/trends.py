@@ -285,7 +285,7 @@ def plot_base_progression(g_type, target = "p", \
         set_progression_plot(ax, x_mode = x_mode, target = target)
 
     prog = CollectionBuilder().base_progression(g_type= g_type, **kwargs)
-    plot_standard_progression(prog, ax = ax, label = label)
+    plot_standard_progression(prog, ax = ax, label = label, target = target)
 
     #Pass parameter for further additions
     return ax
@@ -306,7 +306,7 @@ def plot_chain_progression(gr_unit, target = "p", \
         set_progression_plot(ax, x_mode = x_mode, target = target)
 
     prog = CollectionBuilder().chain_progression(gr_unit = gr_unit, **kwargs)
-    plot_standard_progression(prog, ax = ax, label = label)
+    plot_standard_progression(prog, ax = ax, label = label, target = target)
     
     #Pass parameter for further additions
     return ax
@@ -323,4 +323,4 @@ def plot_line_data(ax = None, bounds = None, **kwargs):
     #print(bounds)
 
     x, data = get_line_data(bounds=bounds,**kwargs)
-    ax.plot(x,data, color = "green", marker = ".", label = "P")
+    ax.plot(x,data, color = "black", marker = ".", label = "P", alpha = .5)
