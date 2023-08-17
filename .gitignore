@@ -6,3 +6,4 @@
 *.Rhistory
 *.ini
 *.odt
+Python/tests/.ipynb_checkpoints
