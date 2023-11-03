@@ -4,6 +4,7 @@ from numpy.linalg import eigh
 import igraph as ig
 import qutip as qt
 import networkx as nx
+import scipy.sparse as sparse
 
 #QW simulation oriented graph class
 
@@ -536,7 +537,7 @@ class QWGraph(object) :
                     ref[i][m] = 1
             ref[i][i] = 0
         
-        out = nx.from_numpy_matrix(ref)
+        out = nx.from_numpy_array(ref)
 
         #print(ref)
         return out
@@ -639,7 +640,7 @@ class SparseQWGraph( QWGraph):
         Apparently there is no sparse.linalg routine which retrieve all the eigenvectors
         Therefore we must converte to dense matrix an use te usual linalg.eigh
         """
-        self.eig_val, self.eig_vec = (self.mat.todense())
+        self.eig_val, self.eig_vec = eigh(self.mat.todense())
 
         self.eig_val = np.reshape(self.eig_val, (self.N,1))
 
@@ -653,7 +654,7 @@ class SparseQWGraph( QWGraph):
         self.re_coord = []
 
         for edge in self.mat.keys():
-            if edge[0] > edge[1] and my_mst[edge] == 0 :
+            if edge[0] > edge[1] and mst[edge] == 0 :
                 self.re_coord.append(edge)
 
 ##        names = []
@@ -663,8 +664,6 @@ class SparseQWGraph( QWGraph):
 ##        tree.vs["label"] = names
 ##        ref.vs["label"] = names
 ##        ig.plot(ref -tree)
-
-        self.re_coord = n_re_coord
 
     def distance(self, start = None, to = None):
         """
@@ -678,7 +677,7 @@ class SparseQWGraph( QWGraph):
         
         dist = sparse.csgraph.shortest_path(self.mat, method = "D", directed = False, unweighted= True, indices = start)
 
-        return dist[target]
+        return dist[start,to]
 
 class QWGraphBuilder(object):
 
