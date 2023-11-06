@@ -46,25 +46,25 @@ def check_locate_max( test_gr = QWGraphBuilder.Ring(6), mode = None, qutip = Tru
 
 
 #comparison between eigenvalue method and Qutip solver on computed evolution
-def check_evo_vs_qutip( test_gr = QWGraphBuilder.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = True):
+def check_evo_vs_qutip( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN= True), l = 0, start = 0, end = None, by = .1, deriv = True):
     if not end:
         global TC
         end = test_gr.N * TC
 
     seq = np.arange(start,end,by)
     if not deriv: 
-        solver = SESolver(test_gr, qutip = False)
-        evo = solver.target_p(seq)
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p( test_gr, seq)
 
-        solver.set_qutip(True)
-        evo_q = solver.target_p(seq)
+        solver = QutipSESolver()
+        evo_q = solver.evolve_default_p( test_gr, seq)
 
     else :
-        solver = SESolver(test_gr, qutip = False)
-        evo = solver.target_p_prime(seq)
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p_deriv( test_gr, seq)
 
-        solver.set_qutip(True)
-        evo_q = solver.target_p_prime(seq)
+        solver = QutipSESolver()
+        evo_q = solver.evolve_default_p_deriv( test_gr, seq)
 
     print( np.abs(evo-evo_q) < .0001)
 
@@ -80,7 +80,7 @@ def check_evo_vs_qutip( test_gr = QWGraphBuilder.Ring(6), l = 0, start = 0, end 
     plt.show()
 
 #see how qutip (or the old method) works with random poits evaluation
-def check_evo_vs_qutip_scatter( test_gr = QWGraphBuilder.Ring(6), l = 0, start = 0, end = None, by = .1, deriv = False):
+def check_evo_vs_qutip_scatter( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN=True), l = 0, start = 0, end = None, by = .1, deriv = False):
     if not end:
         global TC
         end = test_gr.N * TC
@@ -94,22 +94,22 @@ def check_evo_vs_qutip_scatter( test_gr = QWGraphBuilder.Ring(6), l = 0, start =
     test_old = test[20:40]
     
     if not deriv: 
-        solver = SESolver(test_gr, qutip = False)
-        evo = solver.target_p(seq)
-        evo_scat = solver.target_p(test_old)
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p(test_gr, seq)
+        evo_scat = solver.evolve_default_p(test_gr, test_old)
 
-        solver.set_qutip(True)
-        evo_q = solver.target_p(test_qut)
-        evo_seq = solver.target_p(seq_q)
+        solver = QutipSESolver()
+        evo_q = solver.evolve_default_p(test_gr, test_qut)
+        evo_seq = solver.evolve_default_p(test_gr, seq_q)
 
     else :
-        solver = SESolver(test_gr, qutip = False)
-        evo = solver.target_p_prime(seq)
-        evo_scat = solver.target_p_prime(test_old)
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p_deriv(test_gr, seq)
+        evo_scat = solver.evolve_default_p_deriv(test_gr, test_old)
 
-        solver.set_qutip(True)
-        evo_q = solver.target_p_prime(test_old)
-        evo_seq = solver.target_p_prime(seq_q)
+        solver = QutipSESolver()
+        evo_q = solver.target_pevolve_default_p_deriv_prime(test_gr, test_old)
+        evo_seq = solver.evolve_default_p_deriv(test_gr, seq_q)
 
     fig, ax = plt.subplots()
 
@@ -125,15 +125,13 @@ def check_evo_vs_qutip_scatter( test_gr = QWGraphBuilder.Ring(6), l = 0, start =
     plt.show()
 
 #single qutip evaluation check
-def check_qutip( test_gr = QWGraphBuilder.Ring(6), t_0 = [2], deriv = False):
+def check_qutip( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN=True), t_0 = [2]):
 
-    solver = SESolver(test_gr, qutip = True)
+    solver = QutipSESolver()
 
-    for i in range(2):
-        if not deriv:
-            print( solver.target_p(t_0))
-        else :
-            print( solver.target_p_prime(t_0))
+    for _ in range(2):
+        print( solver.evolve_default_p(test_gr, t_0))
+        print( solver.evolve_default_p_deriv(test_gr, t_0))
 
 #graphic comparison of optimum phase result
 def check_optimum_phase( test_gr = QWGraphBuilder.Ring(6), mode = None, an_mode = "first", qutip = True):
@@ -208,7 +206,7 @@ def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
     cbar_ax = fig.add_axes([0.92, 0.1, 0.025, 0.8])
     fig.colorbar(prob_map, cbar_ax)
 
-#######################
+    #######################
 
     fig2, axx2 = plt.subplots(1, sample, figsize = (15,6))
 
@@ -365,7 +363,7 @@ if __name__ == "__main__" :
     # a = QWGraph.chain(a,32)
     # plot_performance(a, mode = "diag")
 
-    b = QWGraphBuilder.Ring(50)
+    #b = QWGraphBuilder.Ring(50)
     #b.re_coord[0] = (2,1)
     #plot_performance(b)
     #b.rephase(np.pi*.5)
@@ -388,7 +386,12 @@ if __name__ == "__main__" :
 
     #plot_chain_progression_multi(bounds = (5,50), target = "p", analyzer = an)
 
-    general_test()
+#    general_test()
+
+    check_evo_vs_qutip(deriv = True)
+    check_evo_vs_qutip(deriv = False)
+    check_qutip()
+    check_evo_vs_qutip_scatter()
     plt.show()
 
 
