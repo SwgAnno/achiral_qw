@@ -111,14 +111,16 @@ class QWGraph(object) :
         phi_vec -> vector of phases, has to be of the same length as re_coord
 
         """
-        if isinstance(phi_vec, (list, np.ndarray)):
-            if( len( self.re_coord) != len(phi_vec)):
-                raise ValueError("rephase() error: wrong number of phases given")
+        if isinstance(phi_vec, list):
+            phi_vec = np.array(phi_vec, dtype = complex)
         else :
             # phi_vec is a single float: format to a numpy vector
             temp = phi_vec
-            phi_vec = np.empty(1)
+            phi_vec = np.empty(1, dtype = float)
             phi_vec[0] = temp
+
+        if( len( self.re_coord) != len(phi_vec)):
+            raise ValueError("rephase() error: wrong number of phases given")
 
         exp_vec = np.exp(1j * phi_vec)
 
@@ -580,7 +582,7 @@ class QWGraph(object) :
         """
         get QuTip projector operator on the Nth site
         """
-        if not i:
+        if i is None:
             i = self.target
             
         out_mat = np.zeros((self.N,self.N))
@@ -713,7 +715,7 @@ class QWGraphBuilder(object):
         #todo assign name
         #out.code = ig["name"]
         
-        out.mat = np.array ( ig.get_adjacency().data, dtype = complex)
+        out.mat = np.array ( ig.get_adjacency().data, dtype = complex)*-1
         out.retrace_E(E)
 
         
@@ -806,6 +808,9 @@ class QWGraphBuilder(object):
         """
         Multi path element graph constructor
         """
+
+        assert p_len > 1
+
         ref = ig.Graph()
 
         N = 2 + paths* (p_len-1)
