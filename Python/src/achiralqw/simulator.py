@@ -58,17 +58,17 @@ def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
 #qutip has problems with non list input
 #and with evaulation times not starting with 0
 def format_qutip_time( t):
-
     if type(t) == float:
         t = [t]
 
     if t[0] != 0:
         if isinstance(t, (np.ndarray, np.generic)):
-            t = np.insert(t,0,0.)
+            out = np.insert(t,0,0.)
         else:
-            t.insert(0,0.)
+            out = t.copy()
+            out.insert(0,0.)
         
-        return t,True
+        return out,True
     else:
         return t,False
 
@@ -260,7 +260,7 @@ class QutipSESolver(SESolver):
     Schrodinger Equation solver on a QWGraph that uses Qutip library
     """
     
-    def __init__(delf):
+    def __init__(self):
         pass
 
     def evolve_state( self, gr : QWGraph, psi, t):
@@ -280,6 +280,10 @@ class QutipSESolver(SESolver):
 
     def evolve_state_p(self, gr, psi, t) :
         
+        #qutip has problems with non list input
+        #and with evaulation times not starting with 0
+        t, strip = format_qutip_time(t)
+
         H = gr.get_h()
         psi = qt.Qobj(psi)
 
@@ -289,7 +293,11 @@ class QutipSESolver(SESolver):
 
         res = qt.sesolve(H, psi, t, E_list)
 
-        return res.expect
+        #print(t, res.expect)
+        if strip:
+            return [res.expect[i][1:] for i in range(gr.N)]
+        else:
+            return res.expect
 
     def evolve_state_p_deriv(self, gr, psi, t):
         
@@ -297,17 +305,19 @@ class QutipSESolver(SESolver):
         #and with evaulation times not starting with 0
         t, strip = format_qutip_time(t)
 
-        H = self.gr.get_h()
+        H = gr.get_h()
         psi = qt.Qobj(psi)
 
-        E_prime = -1j * qt.commutator( self.gr.get_projector(), H)
+        E_prime_list = []
+        for i in range(gr.N):
+            E_prime_list.append(-1j * qt.commutator( gr.get_projector(i), H))
 
-        res = qt.sesolve(H, psi, t, [E_prime])
+        res = qt.sesolve(H, psi, t, E_prime_list)
 
         if strip:
-            return res.expect[0][1:]
+            return [res.expect[i][1:] for i in range(gr.N)]
         else:
-            return res.expect[0]
+            return res.expect
 
     def evolve_default(self, gr : QWGraph, t):
         return   self.evolve_state(gr, gr.get_start_state(), t)[gr.target, :]
@@ -316,10 +326,10 @@ class QutipSESolver(SESolver):
         return self.evolve_state_deriv(gr, gr.get_start_state(), t)[gr.target, :]
 
     def evolve_default_p(self, gr : QWGraph, t):
-        return self.evolve_state_p(gr, gr.get_start_state(), t)[gr.target, :]
+        return self.evolve_state_p(gr, gr.get_start_state(), t)[gr.target]
 
     def evolve_default_p_deriv(self, gr : QWGraph, t):
-        return self.evolve_state_p_deriv(gr, gr.get_start_state(), t)[gr.target, :]
+        return self.evolve_state_p_deriv(gr, gr.get_start_state(), t)[gr.target]
 
 
 
