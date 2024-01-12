@@ -113,7 +113,7 @@ class QWGraph(object) :
         """
         if isinstance(phi_vec, list):
             phi_vec = np.array(phi_vec, dtype = complex)
-        else :
+        elif isinstance(phi_vec, float):
             # phi_vec is a single float: format to a numpy vector
             temp = phi_vec
             phi_vec = np.empty(1, dtype = float)
