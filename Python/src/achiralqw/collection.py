@@ -1,6 +1,6 @@
 from abc import abstractmethod
+from achiralqw.analyze import TransportParameters, performance_best
 from achiralqw.graph import QWGraph, QWGraphBuilder
-from achiralqw.simulator import Analyzer
 import achiralqw.istarmap
 
 import numpy as np
@@ -8,7 +8,6 @@ import scipy.stats as stats
 from scipy.optimize import curve_fit
 
 import multiprocessing  as mp
-from itertools import repeat
 import tqdm
 import os, copy
 import json
@@ -17,18 +16,6 @@ import json
 #global function that can be pickled and shared between processes
 
 MULTIPROCESS = True
-
-def get_gr_t_data( an : Analyzer,):
-    return an.performance_best(target="t")
-
-def get_gr_p_data( an : Analyzer,):
-    return an.performance_best(target = "p")
-
-def set_graph( an : Analyzer, graph : QWGraph):
-
-    an = copy.deepcopy(an)
-    an.set_gr(graph)
-    return an
 
 def create_c(dist):
     return QWGraphBuilder.Ring(dist)
@@ -52,16 +39,14 @@ def unit_list( select, unit):
 
 class QWGraphCollection(object) :
 
-    def __init__( self, analyzer : Analyzer = None, name = None ) :
+    def __init__( self, tp : TransportParameters = TransportParameters(), name = None ) :
 
-        if analyzer == None:
-            analyzer = Analyzer()
-        self._analyzer = analyzer
+        self._tp = tp
         self._name = name
 
 
     @staticmethod
-    def _get_data(gr_list, analyzer : Analyzer, target = "p", x_mode = "dist", name = "QWgraphCollection"):
+    def _get_data(gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection"):
         """
         Router method for get_data() according to the global variable MULTIPROCESS
         """
@@ -69,19 +54,19 @@ class QWGraphCollection(object) :
 
         if MULTIPROCESS:
             return QWGraphCollection._get_data_multiprocess( gr_list = gr_list,      \
-                                                            analyzer = analyzer,    \
+                                                            tp = tp,                \
                                                             target = target,        \
                                                             x_mode = x_mode,        \
                                                             name = name             )
         else :
             return QWGraphCollection._get_data_singleprocess( gr_list = gr_list,      \
-                                                            analyzer = analyzer,    \
+                                                            tp = tp,                \
                                                             target = target,        \
                                                             x_mode = x_mode,        \
                                                             name = name             )
 
     @staticmethod
-    def _get_data_singleprocess( gr_list, analyzer : Analyzer, target = "p", x_mode = "dist", name = "QWgraphCollection"):
+    def _get_data_singleprocess( gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection"):
 
         N = len(gr_list)
         data = np.empty( N)
@@ -90,9 +75,8 @@ class QWGraphCollection(object) :
 
         for i in range(N):
             print (prog_label.format(i/N), end = "\r")
-            analyzer.set_gr(gr_list[i])
 
-            data[i] = analyzer.performance_best(target=target)
+            data[i] = performance_best(gr_list[i], target=target, tp = tp)
 
         print(prog_label.format(1))
 
@@ -101,7 +85,7 @@ class QWGraphCollection(object) :
         return x , data
 
     @staticmethod
-    def _get_data_multiprocess( gr_list, analyzer : Analyzer, target = "p", x_mode = "dist", name = "QWgraphCollection"):
+    def _get_data_multiprocess( gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection"):
 
         N = len(gr_list)
         out = []
@@ -110,10 +94,8 @@ class QWGraphCollection(object) :
         global get_gr_p_data
         global set_graph
 
-        if target == "t":
-            get_gr_data = get_gr_t_data
-        else:
-            get_gr_data = get_gr_p_data
+        def get_gr_data(gr : QWGraph):
+            return performance_best(gr, target=target, tp = tp)
 
         n_proc = os.cpu_count()*2  
 
@@ -122,15 +104,8 @@ class QWGraphCollection(object) :
 
         with mp.Pool( n_proc) as pool:
 
-            input_vec = zip([analyzer]* len(gr_list), gr_list)
-            testers = []
-
-            print("Data Setup")
-            for _ in tqdm.tqdm(pool.istarmap(set_graph, input_vec), total=len(testers)):
-                testers.append(_)
-
             print("Evaluation")
-            for _ in tqdm.tqdm(pool.imap(get_gr_data, testers), total=len(testers)):
+            for _ in tqdm.tqdm(pool.imap(get_gr_data, gr_list), total=N):
                 out.append(_)
             data = np.array(out)
 
@@ -312,13 +287,11 @@ class QWGraphCollection(object) :
 
         return out.slope, out.intercept
         
-        
+    def set_transport_params( self, tp : TransportParameters ):
+        self._tp = tp
 
-    def set_analyzer( self, analyzer):
-        self._analyzer = analyzer
-
-    def get_analyzer( self):
-        return self._analyzer
+    def get_transport_params( self):
+        return self._tp
 
     def get_name( self):
         return "noname QWgraphCollection" if self._name is None else self._name
@@ -368,9 +341,9 @@ class CachedQWGraphCollection(QWGraphCollection):
     Stores previous computations
     """
 
-    def __init__(self, create_func, filename : str, analyzer : Analyzer = None, target = "p", x_mode = "dist", **kwargs):
+    def __init__(self, create_func, filename : str, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", **kwargs):
 
-        super().__init__(analyzer = analyzer, name = filename,  **kwargs)
+        super().__init__(tp = tp, name = filename,  **kwargs)
         
         #todo: smart regex file name
         filename = filename # +.json
@@ -380,29 +353,27 @@ class CachedQWGraphCollection(QWGraphCollection):
                 self._data = json.load(file)
 
                 #creating from an existing file: loading previous Analyzer options
-                analyzer = Analyzer(    mode        = self._data["an_mode"]["mode"],
-                                        opt_mode    = self._data["an_mode"]["opt_mode"],
-                                        TC          = self._data["an_mode"]["TC"],
-                                        diag        = self._data["an_mode"]["diag"])
+                tp = TransportParameters(   mode        = self._data["tp"]["mode"],
+                                            opt_mode    = self._data["tp"]["opt_mode"],
+                                            TC          = self._data["tp"]["TC"],
+                                            diag        = self._data["tp"]["diag"])
                 
-                analyzer.set_fix_phi(phi = self._data["an_mode"]["fix_phi"])
+                tp.fix_phi = self._data["tp"]["fix_phi"]
 
-                self._analyzer = analyzer
+                self._tp = tp
 
         else :
             #initialize the new data dicionary, the various option infos are not going to be ever changed
-            if Analyzer == None:
-                raise AssertionError("Analyzer must be provided to create a new file cache")
 
             self._data = dict()
             self._data["name"] = filename
 
-            self._data["an_mode"] = dict()
-            self._data["an_mode"]["diag"] = analyzer.diag
-            self._data["an_mode"]["TC"] = analyzer.TIME_CONSTANT
-            self._data["an_mode"]["mode"] = analyzer.mode
-            self._data["an_mode"]["opt_mode"] = analyzer.opt_mode
-            self._data["an_mode"]["fix_phi"] = analyzer.fix_phi
+            self._data["tp"] = dict()
+            self._data["tp"]["diag"] = tp.diag
+            self._data["tp"]["TC"] = tp.TIME_CONSTANT
+            self._data["tp"]["mode"] = tp.evt_mode
+            self._data["tp"]["opt_mode"] = tp.opt_mode
+            self._data["tp"]["fix_phi"] = tp.fix_phi
 
             self._data["options"] = dict()
             self._data["options"]["target"] = target
@@ -575,18 +546,18 @@ class CollectionBuilder(object) :
         return gr_list
 
 
-    def from_list(self, gr_list , analyzer : Analyzer = None) -> QWGraphList :
+    def from_list(self, gr_list , tp : TransportParameters = TransportParameters()) -> QWGraphList :
 
-        collection = QWGraphList( analyzer=analyzer)
+        collection = QWGraphList( tp = tp)
 
         for gr in gr_list:
             collection.append( gr )
 
         return collection
 
-    def P_progression_singleprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None) :
+    def P_progression_singleprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters()) :
 
-        collection = QWGraphList( analyzer=analyzer)
+        collection = QWGraphList( tp = tp)
         collection.get_analyzer().set_opt_mode("none")
 
         assert bounds or np.any(select)
@@ -601,10 +572,10 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def P_progression_multiprocess(self, bounds = None, step = 1, select = None, analyzer : Analyzer = None, **kwargs) :
+    def P_progression_multiprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) :
 
-        collection = QWGraphList( analyzer=analyzer)
-        collection.get_analyzer().set_opt_mode("none")
+        collection = QWGraphList( tp=tp)
+        collection.get_transport_params().evt_mode = "none"
 
         assert bounds or np.any(select)
 
@@ -628,9 +599,9 @@ class CollectionBuilder(object) :
 
 
 
-    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select = None, analyzer : Analyzer = None, HANDLES = False, **kwargs) :
+    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select = None, tp : TransportParameters = TransportParameters(), HANDLES = False, **kwargs) :
 
-        collection = QWGraphList( analyzer=analyzer)
+        collection = QWGraphList( tp=tp)
 
         assert bounds or np.any(select)
 
@@ -652,10 +623,10 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def C_progression_multiprocess(self, bounds = None, step = 1, odd = False, select = None, analyzer : Analyzer = None, HANDLES = False, 
+    def C_progression_multiprocess(self, bounds = None, step = 1, odd = False, select = None, tp : TransportParameters = TransportParameters(), HANDLES = False, 
      **kwargs) :
 
-        collection = QWGraphList( analyzer=analyzer)
+        collection = QWGraphList( tp=tp)
 
         assert bounds or np.any(select)
         
@@ -689,9 +660,9 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def chain_progression_singleprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer: Analyzer = None, **kwargs) :
+    def chain_progression_singleprocess(self, gr_unit : QWGraph, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) :
 
-        collection = QWGraphList( analyzer=analyzer)
+        collection = QWGraphList( tp = tp)
 
         assert bounds or np.any(select)
 
@@ -705,8 +676,8 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def chain_progression_multiprocess(self, gr_unit, bounds = None, step = 1, select = None, analyzer = None, **kwargs):
-        collection = QWGraphList( analyzer=analyzer)
+    def chain_progression_multiprocess(self, gr_unit : QWGraph, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs):
+        collection = QWGraphList( tp = tp)
 
         assert bounds or np.any(select)
 
@@ -763,7 +734,7 @@ class CollectionBuilder(object) :
         get a standard progression evenly spread out on a log scale
         """
 
-        select = log_selection(bounds = bounds, points = points)
+        select = CollectionBuilder.log_selection(bounds = bounds, points = points)
         return CollectionBuilder.base_progression(self, g_type, select = select, **kwargs)
 
     def log_chain_progression( self, gr_unit, bounds, points = 10, **kwargs):
@@ -792,7 +763,7 @@ def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
     Simple wrapper for L graphs progression references   
     """
 
-    an = Analyzer( mode = "first", opt_mode= "none")
-    line_collection = CollectionBuilder().P_progression( bounds, analyzer=an)
+    tp = TransportParameters( evt_mode= "first", opt_mode="none")
+    line_collection = CollectionBuilder().P_progression( bounds, tp = tp)
 
     return line_collection.evaluate( target = target, x_mode = x_mode)

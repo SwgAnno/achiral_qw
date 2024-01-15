@@ -171,6 +171,7 @@ def test_rephase():
     t = gb.Ring(3)
     t.rephase(  np.pi/2)
     t.rephase( [np.pi/2])
+    t.rephase( np.array([np.pi/2]))
 
     mat = [[0,-1,-1],
            [-1,0,-1j],
@@ -180,6 +181,7 @@ def test_rephase():
 
     t = gb.SquareCut()
     t.rephase( [np.pi/2, -np.pi/2])
+    t.rephase( np.array([np.pi/2, -np.pi/2]))
 
     mat = [[ 0,-1,-1,-1],
            [-1,0,0,-1j],

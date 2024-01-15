@@ -101,7 +101,7 @@ class QWGraph(object) :
 
         return out
 
-    def rephase(self, phi_vec = [0]) :
+    def rephase(self, phi_vec = [0], UPDATE_EIGEN = False) :
         """
         Assign new phase value to the phased cycle links
         Note: new phases values are inerpreted as being in radians!!!
@@ -127,6 +127,9 @@ class QWGraph(object) :
         for i, edge in enumerate(self.re_coord) :
             self.mat[edge[0]][edge[1]] = -1* np.abs(self.mat[edge[0]][edge[1]])* exp_vec[i]
             self.mat[edge[1]][edge[0]] = np.conjugate(self.mat[edge[0]][edge[1]])
+
+        if UPDATE_EIGEN:
+            self.update_eigen()
 
     def get_phases(self):
         """
@@ -762,7 +765,7 @@ class QWGraphBuilder(object):
         out.compute_re_coord()
 
         if HANDLES :
-            return out.add_handles(1)
+            out =  out.add_handles(1)
 
         if COMPUTE_EIGEN:
             out.update_eigen()

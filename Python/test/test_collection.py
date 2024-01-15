@@ -1,5 +1,5 @@
+from achiralqw.analyze import TransportParameters
 from achiralqw.collection import CollectionBuilder, QWGraphList, CachedQWGraphCollection
-from achiralqw.simulator import Analyzer
 from achiralqw.graph import QWGraphBuilder
 
 import numpy as np
@@ -19,14 +19,14 @@ if __name__ == "__main__" :
 
     aList.transport_time_lm()
 
-    base_analyzer =  Analyzer( solver_mode= "eigen", mode = "first", diag = False)
-    general_analyzer =  Analyzer( solver_mode= "eigen", mode = "first", diag = False)
-    fast_analyzer =     Analyzer( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True, gr = QWGraphBuilder.Ring(3))
-    fast_analyzer.set_fix_phi( opt_mode = "smart")
+    base_params =  TransportParameters( solver_mode= "eigen", evt_mode = "first", diag = False)
+    general_params =  TransportParameters( solver_mode= "eigen", evt_mode = "first", diag = False)
+    fast_params =     TransportParameters( solver_mode= "eigen", evt_mode = "first", opt_mode = "smart", diag = True)
+    fast_params.fix_phase( gr = QWGraphBuilder.Ring(3))
 
 
     create_path = QWGraphBuilder.Line
-    test_line = CachedQWGraphCollection( create_func = create_path, filename = "P_line", analyzer = base_analyzer)
+    test_line = CachedQWGraphCollection( create_func = create_path, filename = "P_line", tp = base_params)
 
     selection = np.arange(2, 100)
     test_line.update(selection)

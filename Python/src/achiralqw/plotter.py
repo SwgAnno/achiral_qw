@@ -1,6 +1,8 @@
-from achiralqw.simulator import Analyzer, SESolver, EigenSESolver, QutipSESolver
+from achiralqw.simulator import SESolver, EigenSESolver, QutipSESolver, evolution_grid
+from achiralqw.analyze import TransportParameters, dim, locate_max, performance_grid, performance_grid_diag
 from achiralqw.graph import QWGraph, QWGraphBuilder
 import achiralqw.bessel as bessel
+from matplotlib.axis import Axis
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
@@ -252,11 +254,11 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     data = np.ndarray( (len(phase_seq), len(seq)))
     max_data = np.empty( (2,len(phase_seq)))
     
-    an = Analyzer(gr, mode = "first")
+    tp = TransportParameters( evt_mode="first")
 
     for i in range( len(phase_seq)):
-        data[i:] = an.evolution_grid( bounds = (start,end), step = by, phase_vec = np.repeat( phase_seq[i],an.dim() ))
-        max_data[:,i] = [ an.locate_max()[0], phase_seq[i]]
+        data[i:] = evolution_grid(gr, bounds = (start,end), step = by, phase_vec = np.repeat( phase_seq[i], dim(gr) ))
+        max_data[:,i] = [ locate_max(gr, tp=tp)[0], phase_seq[i]]
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -382,46 +384,45 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None,
 ########################################
 #plot performance methods
 
-def plot_performance(gr, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
-                    ax = None, **kwargs):
+def plot_performance(gr : QWGraph, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
+                    ax : Axis = None, **kwargs):
     """
     Generic wrapper to plot transport performance as a function of phases
     actually a router method for graph-specific routines       
     """
-
-    an = Analyzer(gr, TC = TC, mode = an_mode)
+    tp = TransportParameters(TC=TC, evt_mode = an_mode)
 
     if mode == "diag":
-        return plot_performance_diag(sample_step, target, an, ax, **kwargs)
+        return plot_performance_diag(gr, sample_step, target, tp = tp, ax = ax, **kwargs)
     elif gr.get_phase_n() == 1 :
-        return plot_performance_1(sample_step, target, an, ax, **kwargs)
+        return plot_performance_1(gr, sample_step, target, tp = tp, ax = ax, **kwargs)
     elif gr.get_phase_n() == 2 :
-        return plot_performance_2(sample_step, target, an, ax, **kwargs)
+        return plot_performance_2(gr, sample_step, target, tp = tp, ax = ax, **kwargs)
     elif mode == "time":
-        return plot_performance_time(sample_step, an, ax, **kwargs)
+        return plot_performance_time(gr, sample_step, tp = tp, ax = ax, **kwargs)
     else :
         raise NotImplementedError("Plot mode not found or graph not supported")
 
-def plot_performance_diag(sample_step, target, an, ax = None):
+def plot_performance_diag(gr : QWGraph, sample_step, target, tp : TransportParameters = TransportParameters(), ax : Axis = None):
     """
     Transport performance in equal phases setting as a function of one parameter
     """
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
-    perf = an.performance_grid_diag(sample_step = sample_step, target = target)
+    perf = performance_grid_diag(gr, sample_step = sample_step, target = target, tp = tp)
 
     if ax == None :
         fig, ax = plt.subplots()
 
         set_performance_plot(ax, target)
 
-    ax.plot(seq, perf, label = an.get_label())
+    ax.plot(seq, perf, label = tp.get_label(gr))
     
     #Pass parameter for further additions
     return ax
 
-def plot_performance_time( sample_step, an, ax = None):
+def plot_performance_time(gr : QWGraph, sample_step, tp : TransportParameters = TransportParameters(), ax : Axis= None):
     """
     Plot diagonal trsnsport probability performance
     + time of arrival information as color
@@ -429,10 +430,10 @@ def plot_performance_time( sample_step, an, ax = None):
     seq = np.linspace(0, np.pi*2, sample_step)
 
     perf = []
-    perf = an.performance_grid_diag(sample_step = sample_step, target = "p")
+    perf = performance_grid_diag(gr, sample_step = sample_step, target = "p", tp = tp)
 
     time = []
-    time = an.performance_grid_diag(sample_step = sample_step, target = "t")
+    time = performance_grid_diag(gr, sample_step = sample_step, target = "t", tp = tp)
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -448,44 +449,44 @@ def plot_performance_time( sample_step, an, ax = None):
     #Pass parameter for further additions
     return ax
 
-def plot_performance_1(sample_step, target, an, ax = None):
+def plot_performance_1(gr : QWGraph, sample_step, target, tp : TransportParameters = TransportParameters(), ax : Axis= None):
     """
     Transport performance for 1-phase graphs
     """
 
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance_grid(sample_step = sample_step, target = target)
+    perf = performance_grid(gr, sample_step = sample_step, target = target, tp = tp)
 
     if ax == None :
         fig, ax = plt.subplots( figsize = (6,5))
 
         set_performance_plot(ax,target)
 
-    ax.plot(seq, perf, label = an.get_label())
+    ax.plot(seq, perf, label = tp.get_label(gr))
 
     #Pass parameter for further additions
     return ax
     
 # 2-phased graph performance
-def plot_performance_2(sample_step, target, an, ax = None, verbose = False):
+def plot_performance_2(gr, sample_step, target, tp : TransportParameters = TransportParameters(), verbose = False, ax : Axis= None):
     """
     Transport performance for 2-phase graphs
     """
 
     if verbose :
-        print("plot_performance_2 : ", an.get_label())
+        print("plot_performance_2 : ", tp.get_label(gr))
     
     seq = np.linspace(0, np.pi*2, sample_step)
 
-    perf = an.performance_grid(sample_step = sample_step, target = target)
+    perf = performance_grid(gr, sample_step = sample_step, target = target, tp = tp)
 
     if ax == None:
         fig, ax = plt.subplots()
 
     set_performance_plot(ax, target = "p", dim = 2)
     
-    c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", vmin = 0, vmax = 1,label = an.get_gr().code)
+    c = ax.pcolormesh(seq, seq, perf, cmap = "inferno", vmin = 0, vmax = 1,label = gr.code)
 
     #Pass parameter for further additions
     return ax

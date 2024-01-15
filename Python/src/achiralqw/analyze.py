@@ -88,18 +88,19 @@ class TransportParameters(dict):
     _evt_modes = ["TC", "first"]
     _opt_modes = ["none","min", "smart", "fix", "yolo"]
     _solver_modes = ["eigen", "qutip"]
+
     def __init__(self, event_s = 1, TC = 1, evt_mode = "TC", opt_mode = "none",solver_mode = "eigen", diag = True): 
 
-        if not solver_mode in Analyzer._solver_modes:
+        if not solver_mode in TransportParameters._solver_modes:
             raise ValueError("Solver mode not supported/recognized")
         self.solver_mode = solver_mode
 
-        if not evt_mode in Analyzer._evt_modes:
+        if not evt_mode in TransportParameters._evt_modes:
             raise ValueError("Mode not supported/recognized")
         else :
             self.evt_mode = evt_mode
 
-        if not opt_mode in Analyzer._opt_modes:
+        if not opt_mode in TransportParameters._opt_modes:
             raise ValueError("Opt mode not supported/recognized")
         else :
             self.opt_mode = opt_mode
@@ -282,7 +283,7 @@ def performance(gr : QWGraph, phi_vec = None, target = "p", tp = TransportParame
     if not np.any(phi_vec):
         phi_vec = np.repeat(0, dim(gr))
 
-    gr.rephase(phi_vec)
+    gr.rephase(phi_vec, UPDATE_EIGEN=True)
 
     if target == "p":
         return locate_max(gr = gr, tp = tp)[1]
@@ -300,7 +301,7 @@ def performance_diag(gr : QWGraph, phi, target = "p", tp = TransportParameters()
 
     #print(phi)
 
-    gr.rephase( np.repeat( phi, dim(gr) ))
+    gr.rephase( np.repeat( phi, dim(gr) ),  UPDATE_EIGEN=True)
     
     if target == "p":
         return locate_max(gr = gr, tp = tp)[1]
@@ -339,7 +340,7 @@ def performance_grid(gr : QWGraph, sample_step = 100, target = "p", tp : Transpo
         for j in range(dim(gr)):
             phi_vec[j] = grid[j][i]
 
-        gr.rephase(phi_vec)
+        gr.rephase(phi_vec,  UPDATE_EIGEN=True)
         out[i] = locate_max(gr = gr, tp=tp)[target]
 
     return out
@@ -362,7 +363,7 @@ def performance_grid_diag(gr : QWGraph, sample_step = 100, target = "p", tp : Tr
 
     out = np.empty(sample_step)
     for i in range(len(sample)):
-        gr.rephase( np.repeat( sample[i], dim(gr) ))
+        gr.rephase( np.repeat( sample[i], dim(gr) ),  UPDATE_EIGEN=True)
 
         out[i] = locate_max(gr = gr, tp = tp)[target]
 
@@ -464,7 +465,7 @@ def optimum_phase_smart(gr : QWGraph, tp : TransportParameters = TransportParame
         for phase in sample:
 
             diag_phase = np.repeat(phase, dim(gr)) 
-            gr.rephase(diag_phase)
+            gr.rephase(diag_phase,  UPDATE_EIGEN=True)
             cur = locate_max(gr = gr, tp = tp)[1]
 
             if cur > best:
@@ -489,7 +490,7 @@ def optimum_phase_smart(gr : QWGraph, tp : TransportParameters = TransportParame
         for j in range(dim(gr)):
             phi_vec[j] = grid[j][i]
 
-        gr.rephase(phi_vec)
+        gr.rephase(phi_vec,  UPDATE_EIGEN=True)
         cur = locate_max(gr = gr, tp = tp)[1]
 
         if cur > best:
@@ -521,7 +522,7 @@ def optimum_phase(gr : QWGraph, tp : TransportParameters = TransportParameters()
     return best_phi
 
     
-def performance_best(self, target = "p"):
+def performance_best(gr : QWGraph, target = "p", tp : TransportParameters = TransportParameters()):
     """
     Compute the best transport performance according to current time and phase criteria
 
@@ -531,80 +532,23 @@ def performance_best(self, target = "p"):
     """
     best_phi = 0
 
-    if self.opt_mode == "none":
+    if tp.opt_mode == "none":
         best_phi = 0
-    elif self.opt_mode == "smart" :
-        best_phi = self.optimum_phase_smart()[0]
-    elif self.opt_mode == "fix" :
-        assert self.fix_phi is not None
-        best_phi = self.fix_phi
-    elif self.opt_mode == "yolo" :
-        best_phi = self.optimum_phase_yolo()[0]
-    elif self.opt_mode == "min" :
-        best_phi = self.optimum_phase_minimize()[0]
+    elif tp.opt_mode == "smart" :
+        best_phi = optimum_phase_smart(gr, tp = tp)[0]
+    elif tp.opt_mode == "fix" :
+        assert tp.fix_phi is not None
+        best_phi = tp.fix_phi
+    elif tp.opt_mode == "yolo" :
+        best_phi = optimum_phase_yolo(gr, tp = tp)[0]
+    elif tp.opt_mode == "min" :
+        best_phi = optimum_phase_minimize(gr, tp = tp)[0]
 
-    #print(best_phi, self.opt_mode)
+    #print(best_phi, tp.opt_mode)
 
-    if self.diag:
-        return self.performance_diag(best_phi, target)
+    if tp.diag:
+        return performance_diag(best_phi, target, tp = tp)
     else:
-        return self.performance(best_phi, target)
+        return performance(best_phi, target, tp = tp)
     
 #################################################
-
-class Analyzer(object):
-    """
-    Class that wraps around a QWGraph and extracts/computes information on its evolution
-    The criteria on which those information are extracted depends on its state
-
-    In particular one can vary:
-
-    Best maximum criterium:
-    -TC : best maximum for a given choice of phases is the result of a optimization routine on a linearly scaling window
-    -first : best maximum for a given phase choice is the first maximum encountered
-
-    Best phase choice algorithm:
-    -none : no phase optimization
-    -min : standard(multivariate) optimization on all the phases space
-    -smart : choose the best among multiple of pi/2
-    -fix : no phase optimization (but arbitraty choice of a fixed phase stored in fix_phi)
-    -yolo : brute force grid evaluation op the phases space of transport performance in search of the global maximum (spoiler: it's inefficient)
-
-    Solver backend:
-    -eigen :  SESolver is a EigenSESolver
-    -qutip : SESolver is QutipSESolver
-
-    """
-
-    _modes = ["TC", "first"]
-    _opt_modes = ["none","min", "smart", "fix", "yolo"]
-    _solver_modes = ["eigen", "qutip"]
-
-    def __init__(self, gr = QWGraphBuilder.Line(2), event_s = 1, TC = 1, mode = "TC", opt_mode = "none",solver_mode = "eigen", diag = True):
-
-        
-        if not solver_mode in Analyzer._solver_modes:
-            raise ValueError("Solver mode not supported/recognized")
-        else :
-            if solver_mode == "qutip" :
-                self.solver = QutipSESolver()
-            else :
-                self.solver = EigenSESolver()
-
-        if not mode in Analyzer._modes:
-            raise ValueError("Mode not supported/recognized")
-        else :
-            self.mode = mode
-
-        if not opt_mode in Analyzer._opt_modes:
-            raise ValueError("Opt mode not supported/recognized")
-        else :
-            self.opt_mode = opt_mode
-
-        self.event_size = event_s
-        self.TIME_CONSTANT = TC
-        
-        self.fix_phi = None
-        self.diag = diag
-
-        self._graph = gr 
