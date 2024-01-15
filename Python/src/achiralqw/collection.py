@@ -1,9 +1,11 @@
 from abc import abstractmethod
+from typing import List, Tuple
 from achiralqw.analyze import TransportParameters, performance_best
 from achiralqw.graph import QWGraph, QWGraphBuilder
 import achiralqw.istarmap
 
 import numpy as np
+from numpy.typing import NDArray
 import scipy.stats as stats
 from scipy.optimize import curve_fit
 
@@ -46,7 +48,7 @@ class QWGraphCollection(object) :
 
 
     @staticmethod
-    def _get_data(gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection"):
+    def _get_data(gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection") -> Tuple[List[int], NDArray]:
         """
         Router method for get_data() according to the global variable MULTIPROCESS
         """
@@ -66,7 +68,7 @@ class QWGraphCollection(object) :
                                                             name = name             )
 
     @staticmethod
-    def _get_data_singleprocess( gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection"):
+    def _get_data_singleprocess( gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection") -> Tuple[List[int], NDArray] :
 
         N = len(gr_list)
         data = np.empty( N)
@@ -85,7 +87,7 @@ class QWGraphCollection(object) :
         return x , data
 
     @staticmethod
-    def _get_data_multiprocess( gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection"):
+    def _get_data_multiprocess( gr_list, tp : TransportParameters = TransportParameters(), target = "p", x_mode = "dist", name = "QWgraphCollection") -> Tuple[List[int], NDArray]:
 
         N = len(gr_list)
         out = []
@@ -117,7 +119,7 @@ class QWGraphCollection(object) :
         return x , data
 
     @staticmethod
-    def get_list_x(gr_list, x_mode = "dist"):
+    def get_list_x(gr_list, x_mode = "dist") -> List[int]:
         out = []
 
         for gr in gr_list:
@@ -131,14 +133,14 @@ class QWGraphCollection(object) :
         return out
 
     @abstractmethod  
-    def evaluate( self, select, target = "p", x_mode = "dist"):
+    def evaluate( self, select, target = "p", x_mode = "dist")  -> Tuple[List[int], NDArray]:
         """
         Evaluate the transport performance of the whole collection on a specific selection of elements
         """
         pass
 
     #todo make it return lm object and not just the two coefficients
-    def transport_time_lm( self, select = None, x_mode = "dist"):
+    def transport_time_lm( self, select = None, x_mode = "dist") -> Tuple[float, float]:
         """
         Construct a linear model of the best transport time from the graph collection
         """
@@ -154,7 +156,7 @@ class QWGraphCollection(object) :
 
         return out.slope, out.intercept
 
-    def transport_prob_model( self, select = None, mode = "poly", x_mode = "dist"):
+    def transport_prob_model( self, select = None, mode = "poly", x_mode = "dist") -> NDArray:
         """
         Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
         which represent the power law exponent of its decay
@@ -270,7 +272,7 @@ class QWGraphCollection(object) :
 
         return None
 
-    def transport_prob_loglog_lm( self, select = None, x_mode = "dist"):
+    def transport_prob_loglog_lm( self, select = None, x_mode = "dist") -> Tuple[float, float]:
         """
         Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
         which represent the power law exponent of its decay
@@ -290,10 +292,10 @@ class QWGraphCollection(object) :
     def set_transport_params( self, tp : TransportParameters ):
         self._tp = tp
 
-    def get_transport_params( self):
+    def get_transport_params( self) -> TransportParameters:
         return self._tp
 
-    def get_name( self):
+    def get_name( self) -> str:
         return "noname QWgraphCollection" if self._name is None else self._name
 
 class QWGraphList(QWGraphCollection):
@@ -304,7 +306,7 @@ class QWGraphList(QWGraphCollection):
         super().__init__(**kwargs)
         self._gr_list : list[QWGraph] = []
 
-    def evaluate( self, select = None, target = "p", x_mode = "dist"):
+    def evaluate( self, select = None, target = "p", x_mode = "dist") -> Tuple[List[int], NDArray]:
         """
         Evaluate the transport performance of the whole collection on a specific selection of elements
         """
@@ -326,8 +328,7 @@ class QWGraphList(QWGraphCollection):
     def append(self, gr : QWGraph) -> None:
         self.get_list().append( gr )
 
-    def get_list(self):
-
+    def get_list(self) -> List[QWGraph]:
         return self._gr_list
     
     def get_name(self) -> str:
@@ -410,7 +411,7 @@ class CachedQWGraphCollection(QWGraphCollection):
 
             out.close()
 
-    def get_select_x(self, select, x_mode = "dist"):
+    def get_select_x(self, select, x_mode = "dist") -> List[int]:
         #estimate a linear behavour and pray
 
         x1 = 8
@@ -435,7 +436,7 @@ class CachedQWGraphCollection(QWGraphCollection):
         return out
 
 
-    def evaluate( self, select, target = "p", x_mode = "dist"):
+    def evaluate( self, select, target = "p", x_mode = "dist") -> Tuple[List[int], NDArray]:
         """
         Evaluate the transport performance of the whole collection on a specific selection of elements
 
@@ -474,7 +475,7 @@ class CachedQWGraphCollection(QWGraphCollection):
 
         return out_x, out_data
     
-    def update(self, select):
+    def update(self, select) -> Tuple[List[int], NDArray]:
         """
         Update a selection of the data cache entries
         """
@@ -492,9 +493,6 @@ class CachedQWGraphCollection(QWGraphCollection):
             self._data["data"][str(int(id))] = perf
 
         return x, data
-
-       
-        
 
     def get_name(self) -> str:
         return self._data["name"]
@@ -519,7 +517,7 @@ class CollectionBuilder(object) :
             self.C_progression = self.C_progression_singleprocess
 
     @staticmethod
-    def build_gr_list( create_func, input_vec):
+    def build_gr_list( create_func, input_vec) -> List[QWGraph]:
         """
             Helper which returns a list of QWGraph build with the function passed as input,
             possibly employing multiple processes
@@ -555,10 +553,10 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def P_progression_singleprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters()) :
+    def P_progression_singleprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters()) -> QWGraphList:
 
         collection = QWGraphList( tp = tp)
-        collection.get_analyzer().set_opt_mode("none")
+        collection.get_transport_params().evt_mode = "none"
 
         assert bounds or np.any(select)
 
@@ -572,7 +570,7 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def P_progression_multiprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) :
+    def P_progression_multiprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) -> QWGraphList :
 
         collection = QWGraphList( tp=tp)
         collection.get_transport_params().evt_mode = "none"
@@ -599,7 +597,7 @@ class CollectionBuilder(object) :
 
 
 
-    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select = None, tp : TransportParameters = TransportParameters(), HANDLES = False, **kwargs) :
+    def C_progression_singleprocess(self, bounds = None, step = 1, odd = False, select = None, tp : TransportParameters = TransportParameters(), HANDLES = False, **kwargs) -> QWGraphList :
 
         collection = QWGraphList( tp=tp)
 
@@ -624,7 +622,7 @@ class CollectionBuilder(object) :
         return collection
 
     def C_progression_multiprocess(self, bounds = None, step = 1, odd = False, select = None, tp : TransportParameters = TransportParameters(), HANDLES = False, 
-     **kwargs) :
+     **kwargs) -> QWGraphList:
 
         collection = QWGraphList( tp=tp)
 
@@ -660,7 +658,7 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def chain_progression_singleprocess(self, gr_unit : QWGraph, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) :
+    def chain_progression_singleprocess(self, gr_unit : QWGraph, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) -> QWGraphList:
 
         collection = QWGraphList( tp = tp)
 
@@ -676,7 +674,7 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def chain_progression_multiprocess(self, gr_unit : QWGraph, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs):
+    def chain_progression_multiprocess(self, gr_unit : QWGraph, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) -> QWGraphList:
         collection = QWGraphList( tp = tp)
 
         assert bounds or np.any(select)
@@ -702,7 +700,7 @@ class CollectionBuilder(object) :
 
         return collection
 
-    def base_progression(self, g_type, **kwargs):
+    def base_progression(self, g_type, **kwargs) -> QWGraphList:
         """
         wrapper for the 3 basic standard progression
         """
@@ -717,7 +715,7 @@ class CollectionBuilder(object) :
             raise ValueError("g_type not supported in base_progression")
 
     @staticmethod
-    def log_selection(bounds, points = 10):
+    def log_selection(bounds, points = 10) -> List[int]:
         """
         return a integer geomspace selection with different indexes
         """
@@ -729,7 +727,7 @@ class CollectionBuilder(object) :
 
         return select
 
-    def log_progression( self, g_type, bounds, points = 10, **kwargs):
+    def log_progression( self, g_type, bounds, points = 10, **kwargs) -> QWGraphList:
         """
         get a standard progression evenly spread out on a log scale
         """
@@ -737,7 +735,7 @@ class CollectionBuilder(object) :
         select = CollectionBuilder.log_selection(bounds = bounds, points = points)
         return CollectionBuilder.base_progression(self, g_type, select = select, **kwargs)
 
-    def log_chain_progression( self, gr_unit, bounds, points = 10, **kwargs):
+    def log_chain_progression( self, gr_unit, bounds, points = 10, **kwargs) -> QWGraphList:
         """
         get a standard progression evenly spread out on a log scale
         """
@@ -758,7 +756,7 @@ class CollectionBuilder(object) :
 #todo remove get_line data in favour of CachedQWgraphCollection
 
 
-def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs):
+def get_line_data(bounds = (3,10), target = "p", x_mode = "dist", **kwargs) -> Tuple[List[int], NDArray]:
     """
     Simple wrapper for L graphs progression references   
     """

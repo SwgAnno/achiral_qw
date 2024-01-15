@@ -1,10 +1,10 @@
 import sys
-from article import *
-from plotter import *
-from graph import * 
-from collection import *
-from trends import *
-from simulator import *
+from achiralqw.article import *
+from achiralqw.plotter import *
+from achiralqw.graph import * 
+from achiralqw.collection import *
+from achiralqw.trends import *
+from achiralqw.simulator import *
 
 an = Analyzer(mode = "first")
 plot_chain_progression_multi_loglog(bounds = (50,100), points = 20, target = "p", analyzer = an, fast = True)
