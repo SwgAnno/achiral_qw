@@ -6,8 +6,8 @@ from achiralqw.collection import *
 from achiralqw.trends import *
 from achiralqw.simulator import *
 
-an = Analyzer(mode = "first")
-plot_chain_progression_multi_loglog(bounds = (50,100), points = 20, target = "p", analyzer = an, fast = True)
+tp = TransportParameters(mode = "first")
+plot_chain_progression_multi_loglog(bounds = (50,100), points = 20, target = "p", tp = tp, fast = True)
 
 if len(sys.argv) > 1:
     plt.savefig(sys.argv[1])

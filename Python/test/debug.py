@@ -1,3 +1,4 @@
+from achiralqw.analyze import performance
 from achiralqw.graph import QWGraph, QWGraphBuilder
 from achiralqw.graph import *
 from achiralqw.plotter import *
@@ -6,178 +7,38 @@ from achiralqw.trends import *
 from achiralqw.article import *
 from achiralqw.collection import *
 import sys
+import dill
 
 import matplotlib.pyplot as plt
 
-#global parameters for plotter methods
-TC = 5
-qut = False
-
-#confront locate_max results with actual evolution profile
-def check_locate_max( test_gr = QWGraphBuilder.Ring(6), mode = None, qutip = True, TC = 1):
-
-    fix, ax = plot_evo_vs_derivative(test_gr, show = False)
-
-    tester = Analyzer(test_gr, qutip = False, TC = TC)
-    points = np.zeros( (4,2) )
-
-    tester.mode = "first"
-    print("############First###############")
-    points[0,:] = tester.locate_max()
-    tester.mode = "TC"
-    print("############TC###############")
-    points[1,:] = tester.locate_max()
-    
-    if qutip:
-        tester.set_qutip(True)
-
-        print("############qutip First###############")
-        tester.mode = "first"
-        points[2,:] = tester.locate_max()
-        print("############qutip TC###############")
-        tester.mode = "TC"
-        points[3,:] = tester.locate_max()
-
-    print(points)
-
-    plt.scatter(points[:,0], points[:,1], color= "green")
-
-    plt.show()
-
-
-#comparison between eigenvalue method and Qutip solver on computed evolution
-def check_evo_vs_qutip( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN= True), l = 0, start = 0, end = None, by = .1, deriv = True):
-    if not end:
-        global TC
-        end = test_gr.N * TC
-
-    seq = np.arange(start,end,by)
-    if not deriv: 
-        solver = EigenSESolver()
-        evo = solver.evolve_default_p( test_gr, seq)
-
-        solver = QutipSESolver()
-        evo_q = solver.evolve_default_p( test_gr, seq)
-
-    else :
-        solver = EigenSESolver()
-        evo = solver.evolve_default_p_deriv( test_gr, seq)
-
-        solver = QutipSESolver()
-        evo_q = solver.evolve_default_p_deriv( test_gr, seq)
-
-    print( np.abs(evo-evo_q) < .0001)
-
-    fig, ax = plt.subplots()
-
-    ax.plot(seq, evo)
-    ax.plot(seq, evo_q)
-    
-    ax.set_xlabel('Time')
-    ax.set_ylabel('P')
-
-    ax.legend(["P", "P qutip"])
-    plt.show()
-
-#see how qutip (or the old method) works with random poits evaluation
-def check_evo_vs_qutip_scatter( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN=True), l = 0, start = 0, end = None, by = .1, deriv = False):
-    if not end:
-        global TC
-        end = test_gr.N * TC
-
-    seq = np.arange(start,end,by)
-    seq_q = np.linspace(start,end, 20)
-    test = np.random.rand(40)
-    test = test * (end-start) + start
-
-    test_qut = test[0:20]
-    test_old = test[20:40]
-    
-    if not deriv: 
-        solver = EigenSESolver()
-        evo = solver.evolve_default_p(test_gr, seq)
-        evo_scat = solver.evolve_default_p(test_gr, test_old)
-
-        solver = QutipSESolver()
-        evo_q = solver.evolve_default_p(test_gr, test_qut)
-        evo_seq = solver.evolve_default_p(test_gr, seq_q)
-
-    else :
-        solver = EigenSESolver()
-        evo = solver.evolve_default_p_deriv(test_gr, seq)
-        evo_scat = solver.evolve_default_p_deriv(test_gr, test_old)
-
-        solver = QutipSESolver()
-        evo_q = solver.target_pevolve_default_p_deriv_prime(test_gr, test_old)
-        evo_seq = solver.evolve_default_p_deriv(test_gr, seq_q)
-
-    fig, ax = plt.subplots()
-
-    ax.plot(seq, evo)
-    ax.scatter(test_old, evo_scat, color = "green")
-    ax.scatter(test_qut, evo_q, color = "red")
-    ax.scatter(seq_q, evo_seq, color = "yellow")
-    
-    ax.set_xlabel('Time')
-    ax.set_ylabel('P')
-
-    ax.legend(["P", "Scatter evaluation noQ","Scatter evaluation Q","Scat ordered evaluation Q"])
-    plt.show()
-
-#single qutip evaluation check
-def check_qutip( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN=True), t_0 = [2]):
-
-    solver = QutipSESolver()
-
-    for _ in range(2):
-        print( solver.evolve_default_p(test_gr, t_0))
-        print( solver.evolve_default_p_deriv(test_gr, t_0))
-
+#plotting helper
 #graphic comparison of optimum phase result
-def check_optimum_phase( test_gr = QWGraphBuilder.Ring(6), mode = None, an_mode = "first", qutip = True):
+def check_optimum_phase( test_gr = QWGraphBuilder.Ring(6), mode = None, evt_mode = "first", qutip = True):
 
     if mode == "diag":
-        plot_performance(test_gr, mode = mode, an_mode = an_mode, show = False)
+        plot_performance(test_gr, mode = mode, evt_mode = evt_mode, show = False)
     else :
-        plot_performance(test_gr, an_mode = an_mode, show = False)
+        plot_performance(test_gr, evt_mode = evt_mode, show = False)
 
-    tester = Analyzer(test_gr, mode = an_mode, qutip = qutip)
+    if qutip:
+        solver_mode = "qutip"
+    else:
+        solver_mode = "eigen"
+    tp = TransportParameters(evt_mode = evt_mode, qutip = qutip, solver_mode=solver_mode)
 
     print("running optimization algorithm")
     if mode == "diag":
-        res = tester.optimum_phase_minimize(diag = True)
+        res = optimum_phase_minimize(test_gr, diag = True, tp = tp)
     elif mode == "yolo":
-        res = tester.optimum_phase_yolo()
+        res = optimum_phase_yolo(test_gr, tp = tp)
     elif mode == "smart":
-        res = tester.optimum_phase_smart()
+        res = optimum_phase_smart(test_gr, tp = tp)
     else:
-        res = tester.optimum_phase_minimize()
+        res = optimum_phase_minimize(test_gr, tp = tp)
 
-    plt.scatter(res[0], tester.performance(res[0]))
+    plt.scatter(res[0], performance(res[0]))
 
     plt.show()
-
-def check_line_bessel_dist(l = 5, end = 10):
-
-    grid = np.arange(0,end, 1)
-    eval = np.zeros( len(grid))
-
-    for t in range(len(grid)):
-        for i in range(l):
-            eval[t] = eval[t] + line_evo_bessel(l-1,i, grid[t])
-
-    print(eval)
-
-def check_ring_bessel_dist(l = 5, end = 10):
-
-    grid = np.arange(0,end, 1)
-    eval = np.zeros( len(grid))
-
-    for t in range(len(grid)):
-        for i in range(l):
-            eval[t] = eval[t] + ring_evo_bessel(l,i, grid[t])
-
-    print(eval)
 
 def inspect_chain_first_maxima( gr_unit, bounds = (1,10), by = .1):
 
@@ -269,11 +130,6 @@ def general_test():
 
 
 if __name__ == "__main__" :
-    #plot_line_vs_bessel(l = 5, trace_conn = False)
-    #bessel_progression(bounds = (2,50), target = "p", L_ref = True)
-
-    #plot_line_bessel_evolution(5,end = 10)
-    #check_line_bessel_dist(5)
 
     #plot_speedup_performance_multi(bounds = (4,24), target = "p", show = True)
     #plot_speedup_performance_multi_chain(QWGraphBuilder.Ring(3), bounds = (4,20), target = "p", show = True
@@ -283,7 +139,7 @@ if __name__ == "__main__" :
 
     # su_vec = [1,2,4,5]
     # a = QWGraphBuilder.Ring(3)
-    # plot_performance(a, an_mode = "TC", TC = 2)
+    # plot_performance(a, evt_mode = "TC", TC = 2)
     # chain_performance_multi_speedup(a, su_vec = su_vec,rep = 10, sample_step = 1000)
     #plot_evo_vs_phase( QWGraph.chain(a, 10, speedup = 5), by = .05, TC = 5, phase_by = .01)
 
@@ -310,7 +166,7 @@ if __name__ == "__main__" :
 
     #a = QWGraphBuilder.Ring(8) + QWGraphBuilder.Ring(8)
     #a = QWGraphBuilder.SquareCut()
-    #plot_performance(a, an_mode = "TC", TC = 2)
+    #plot_performance(a, evt_mode = "TC", TC = 2)
 
     a = QWGraphBuilder.Ring(3)
     b = QWGraphBuilder.Ring(4)
@@ -324,15 +180,15 @@ if __name__ == "__main__" :
     #c.plot()
     plt.show()
 
-    an = Analyzer( mode = "first", diag = True)
-    #prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, analyzer= an)
+    tp = TransportParameters( evt_mode = "first", diag = True)
+    #prog = CollectionBuilder().C_progression( bounds = (4,38), step = 2, tp= tp)
 
     #print ( [gr.code for gr in prog.get_list()])
 
     #prog.transport_time_lm()
 
     #a = QWGraph.chain(a, 5)
-    #plot_performance(a, mode = "time", an_mode = "first", sample_step = 500)
+    #plot_performance(a, mode = "time", evt_mode = "first", sample_step = 500)
     #plot_chain_progression(a, bounds = (1,10), target = "t", fix_phi = np.pi/2)
     #chain_progression(a, bounds = (1,20), target = "t", show = True, L_ref = True)
     #inspect_chain_first_maxima(b, bounds = (1,30), by = .02)
@@ -348,8 +204,8 @@ if __name__ == "__main__" :
 
     #a.rephase(np.pi*-.5)
     #b = QWGraphBuilder.SquareCut()
-    #plot_performance(b, an_mode = "first")
-    #plot_performance(b, an_mode = "TC")
+    #plot_performance(b, evt_mode = "first")
+    #plot_performance(b, evt_mode = "TC")
     #plot_evo_mat_heatmap(b)
     #plot_evo_vs_phase(b ,end = 10)
 
@@ -377,33 +233,41 @@ if __name__ == "__main__" :
     #a.krylov_basis(mode = "basis_plot")
     #a.krylov_basis(mode = "link_plot")
 
-    an = Analyzer(mode = "first")
-    #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", analyzer = an).legend()
-    #plot_odd_even_progression( bounds = (3,40), target = "p", analyzer = an).legend()
+    tp = TransportParameters(evt_mode = "first")
+    #plot_size_progression_multi( bounds = (4,40), step = 2, loglog = True, target = "p", tp = tp).legend()
+    #plot_odd_even_progression( bounds = (3,40), target = "p", tp = tp).legend()
     #
-    #plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", analyzer = an, fast = True)
-    #plot_chain_ch_progression(bounds = (5,30), loglog = False, target = "p", analyzer = an)
+    #plot_chain_progression_multi_loglog(bounds = (5,500), points = 50, target = "p", tp = tp, fast = True)
+    #plot_chain_ch_progression(bounds = (5,30), loglog = False, target = "p", tp = tp)
 
-    #plot_chain_progression_multi(bounds = (5,50), target = "p", analyzer = an)
+    #plot_chain_progression_multi(bounds = (5,50), target = "p", tp = tp)
 
 #    general_test()
-
-    check_evo_vs_qutip(deriv = True)
-    check_evo_vs_qutip(deriv = False)
-    check_qutip()
-    check_evo_vs_qutip_scatter()
-    plt.show()
-
 
     #odd_even_time_lm(HANDLES = False)
     #a = QWGraphBuilder.Ring(4)
     #a = QWGraphBuilder.SquareCut()
-    #plot_performance(a, an_mode = "TC")
+    #plot_performance(a, evt_mode = "TC")
     #plot_chain_progression(a,bounds = (1,20), target = "t")
     #time_chain_progression_lm(a)
 
-    #t_size_progression_phases( bounds = (4,16), step = 2, analyzer = an).legend()
+    #t_size_progression_phases( bounds = (4,16), step = 2, tp = tp).legend()
 
+    #pickling test
+
+    def is_picklable(obj):
+        try:
+            dill.dumps(obj)
+
+        except dill.PicklingError:
+            return False
+        return True
+    
+    def get_data(gr : QWGraph):
+        return performance(gr, target = "t", tp = tp)
+
+
+    print(is_picklable(get_data))
 
     if len(sys.argv) > 1:
         plt.savefig(sys.argv[1])
