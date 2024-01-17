@@ -7,8 +7,8 @@ import qutip as qt
 #qutip has problems with non list input
 #and with evaulation times not starting with 0
 def format_qutip_time( t):
-    if type(t) == float:
-        t = [t]
+    if type(t) == float or type(t) == int:
+        t = [float(t)]
 
     if t[0] != 0:
         if isinstance(t, (np.ndarray, np.generic)):
@@ -136,6 +136,7 @@ class EigenSESolver(SESolver) :
         Solve the Schrodinger equation for a given pure state in the site basis
         Return the projection of the resulting state on each state
         """
+        self.check_eigen(gr)
 
         #carry on calculation in  H eigenvector basis
         A_t = EigenSESolver._to_eiegn_basis(gr.eig_vec, psi) * EigenSESolver._exp_map(gr.eig_val, t)
@@ -161,7 +162,8 @@ class EigenSESolver(SESolver) :
         """
         Compute the derivative of the localization probability on each site at time t ( evolving psi according to Schrodinger equation)
         """
-           
+        self.check_eigen(gr)
+
         A_t = EigenSESolver._to_eiegn_basis(gr.eig_vec, psi) * EigenSESolver._exp_map(gr.eig_val, t)
 
         A_t_prime = gr.eig_val* A_t
@@ -203,6 +205,11 @@ class EigenSESolver(SESolver) :
         Only returns resulting projection on the target site
         """
         return self.evolve_state_p_deriv(gr, gr.get_start_state(), t)[gr.target, :]
+    
+    def check_eigen(self, gr : QWGraph):
+        if(gr.eig_val is None):
+            gr.update_eigen()
+
 
 class QutipSESolver(SESolver):
     """
@@ -213,19 +220,28 @@ class QutipSESolver(SESolver):
         pass
 
     def evolve_state( self, gr : QWGraph, psi, t):
+        t, strip = format_qutip_time(t) 
+
         H = gr.get_h()
         psi = qt.Qobj(psi)
 
-        res = qt.sesolve(H, psi, t, [])     
+        res = qt.sesolve(H, psi, t, []).states 
 
-        return res.states
+        #print(t, res)
+        if strip:
+            res = res[1:]
+    
+        out = np.empty((gr.N, len(res)), dtype=complex)
+        for i, state in enumerate(res):
+            out[:,i] = state.full()[:,0]
+        return out
 
     #todo check correctness
     def evolve_state_deriv(self, gr : QWGraph, psi,t):
         
         psi_t = self.evolve_state(gr, psi, t)
         psi_t = qt.Qobj(psi_t)
-        return -1j * gr.get_h() * psi_t 
+        return (-1j * gr.get_h() * psi_t).full() 
 
     def evolve_state_p(self, gr, psi, t) :
         
@@ -269,10 +285,10 @@ class QutipSESolver(SESolver):
             return res.expect
 
     def evolve_default(self, gr : QWGraph, t):
-        return   self.evolve_state(gr, gr.get_start_state(), t)[gr.target, :]
+        return self.evolve_state(gr, gr.get_start_state(), t)[gr.target]
     
     def evolve_default_deriv(self, gr : QWGraph, t):
-        return self.evolve_state_deriv(gr, gr.get_start_state(), t)[gr.target, :]
+        return self.evolve_state_deriv(gr, gr.get_start_state(), t)[gr.target]
 
     def evolve_default_p(self, gr : QWGraph, t):
         return self.evolve_state_p(gr, gr.get_start_state(), t)[gr.target]
@@ -284,7 +300,7 @@ class QutipSESolver(SESolver):
 
 #############################################################
     
-def evolution_grid(gr, solver = EigenSESolver(), phase_vec = None, bounds =(0,10), step = .1):
+def evolution_grid(gr : QWGraph, solver = EigenSESolver(), phase_vec = None, bounds =(0,10), step = .1):
     """
     Return the evolution of localization probability on the target state
     Sampled on a mesh of points defined by bounds and step
@@ -301,7 +317,7 @@ def evolution_grid(gr, solver = EigenSESolver(), phase_vec = None, bounds =(0,10
     if phase_vec == None:
         phase_vec = np.repeat(0, gr.get_phase_n())
 
-    gr.rephase(phase_vec)
+    gr.rephase(phase_vec, UPDATE_EIGEN = True)
 
     sample =np.arange(bounds[0], bounds[1], step)
 
