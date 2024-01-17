@@ -86,7 +86,7 @@ class TransportParameters(dict):
     """
 
     _evt_modes = ["TC", "first"]
-    _opt_modes = ["none","min", "smart", "fix", "yolo"]
+    _opt_modes = ["none","min","yolo", "smart", "fix"]
     _solver_modes = ["eigen", "qutip"]
 
     def __init__(self, event_s = 1, TC = 1, evt_mode = "TC", opt_mode = "none",solver_mode = "eigen", diag = True): 
@@ -126,7 +126,7 @@ class TransportParameters(dict):
 
     def get_label(self, gr : QWGraph, mode = True) -> str :
         """
-        Generate an automatic plot label that represent the internal state of the Analyzer
+        Generate an automatic plot label that represent the internal state of the transprot parameters
         """
 
         if not mode:
@@ -547,8 +547,8 @@ def performance_best(gr : QWGraph, target = "p", tp : TransportParameters = Tran
     #print(best_phi, tp.opt_mode)
 
     if tp.diag:
-        return performance_diag(best_phi, target, tp = tp)
+        return performance_diag(gr, phi=best_phi, target = target, tp = tp)
     else:
-        return performance(best_phi, target, tp = tp)
+        return performance(gr, phi_vec=best_phi, target = target, tp = tp)
     
 #################################################

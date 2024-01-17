@@ -42,6 +42,9 @@ class QWGraph(object) :
         self.start = 0
         self.target = self.N-1
 
+        self.eig_val = None
+        self.eig_vec = None
+
     def _init_mat(self, mat):
         """
         Initialize laplacian matrix, possibly creating a new one
@@ -109,11 +112,12 @@ class QWGraph(object) :
 
         Args:
         phi_vec -> vector of phases, has to be of the same length as re_coord
+        UPDATE_EIGEN : bool -> force update_eigen() after modifying the hamiltonian, useful if oyu have tu run a simulation right after
 
         """
         if isinstance(phi_vec, list):
             phi_vec = np.array(phi_vec, dtype = complex)
-        elif isinstance(phi_vec, float):
+        elif isinstance(phi_vec, float) or isinstance(phi_vec, int):
             # phi_vec is a single float: format to a numpy vector
             temp = phi_vec
             phi_vec = np.empty(1, dtype = float)

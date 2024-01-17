@@ -19,6 +19,15 @@ import json
 
 MULTIPROCESS = True
 
+def get_perf(args):
+    """
+    This global function expects an array with three items in it:
+    args[0] : QWGraph   (the relevant graph)
+    args[1] : str       (the target of performance())
+    args[2] : TransportParameters
+    """
+    return performance_best(args[0], target = args[1], tp = args[2])
+
 def create_c(dist):
     return QWGraphBuilder.Ring(dist)
 
@@ -92,11 +101,7 @@ class QWGraphCollection(object) :
         N = len(gr_list)
         out = []
 
-        global get_gr_t_data
-        global get_gr_p_data
-        global set_graph
-
-        def get_gr_data(gr : QWGraph):
+        def get_gr_data(gr : QWGraph, target = target, tp = tp):
             return performance_best(gr, target=target, tp = tp)
 
         n_proc = os.cpu_count()*2  
@@ -105,9 +110,11 @@ class QWGraphCollection(object) :
         print(greeting_string.format(n_proc))
 
         with mp.Pool( n_proc) as pool:
-
+            
+            #todo: second and third argument are constant and read only, might as well share them
+            zipped = zip(gr_list, [target]*N, [tp]*N)
             print("Evaluation")
-            for _ in tqdm.tqdm(pool.imap(get_gr_data, gr_list), total=N):
+            for _ in tqdm.tqdm(pool.imap(get_perf, zipped), total=N):
                 out.append(_)
             data = np.array(out)
 
@@ -316,7 +323,7 @@ class QWGraphList(QWGraphCollection):
         if select is not None:
             gr_list = [gr_list[i] for i in select] 
 
-        return QWGraphCollection._get_data(gr_list, analyzer = self._analyzer, target = target, x_mode = x_mode, name = self.get_name())
+        return QWGraphCollection._get_data(gr_list, tp = self.get_transport_params(), target = target, x_mode = x_mode, name = self.get_name())
 
 
     def __getitem__(self, key : int) -> QWGraph :
@@ -353,7 +360,7 @@ class CachedQWGraphCollection(QWGraphCollection):
             with open("{}.json".format(filename), "r") as file :
                 self._data = json.load(file)
 
-                #creating from an existing file: loading previous Analyzer options
+                #creating from an existing file: loading previous transport parameters
                 tp = TransportParameters(   mode        = self._data["tp"]["mode"],
                                             opt_mode    = self._data["tp"]["opt_mode"],
                                             TC          = self._data["tp"]["TC"],
@@ -463,10 +470,10 @@ class CachedQWGraphCollection(QWGraphCollection):
         if len(missing) > 0 :
 
             gr_list = CollectionBuilder.build_gr_list( self._create, missing_ids)
-            missing_x, missing_data = QWGraphCollection._get_data(  gr_list, analyzer = self._analyzer,         \
+            missing_x, missing_data = QWGraphCollection._get_data(  gr_list, tp = self.get_transport_params(),   \
                                                                     target = self._data["options"]["target"],    \
                                                                     x_mode = self._data["options"]["x_mode"],    \
-                                                                    name = self.get_name()                      )
+                                                                    name = self.get_name()                       )
        
             #update cache and out_data with new new values
             for i, perf in zip(missing, missing_data):
@@ -484,10 +491,10 @@ class CachedQWGraphCollection(QWGraphCollection):
         for id in select:
             gr_list.append( self._create(id))
        
-        x, data = QWGraphCollection._get_data(  gr_list, analyzer = self._analyzer,         \
+        x, data = QWGraphCollection._get_data(  gr_list, tp = self.get_transport_params(),   \
                                                 target = self._data["options"]["target"],    \
                                                 x_mode = self._data["options"]["x_mode"],    \
-                                                name = self.get_name()                      )
+                                                name = self.get_name()                       )
         
         for id, perf in zip(x,data):
             self._data["data"][str(int(id))] = perf
@@ -556,7 +563,7 @@ class CollectionBuilder(object) :
     def P_progression_singleprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters()) -> QWGraphList:
 
         collection = QWGraphList( tp = tp)
-        collection.get_transport_params().evt_mode = "none"
+        collection.get_transport_params().opt_mode = "none"
 
         assert bounds or np.any(select)
 
@@ -573,7 +580,7 @@ class CollectionBuilder(object) :
     def P_progression_multiprocess(self, bounds = None, step = 1, select = None, tp : TransportParameters = TransportParameters(), **kwargs) -> QWGraphList :
 
         collection = QWGraphList( tp=tp)
-        collection.get_transport_params().evt_mode = "none"
+        collection.get_transport_params().opt_mode = "none"
 
         assert bounds or np.any(select)
 

@@ -238,7 +238,7 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
     #dPass parameter for further additions
     return ax
 
-def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, plot_max = False, ax = None):
+def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, plot_max = False, ax = None, tp = None):
     """
     Plot probability evolution on target site as a function of time and phase
         Graph must have 1 free phase to work properly
@@ -254,7 +254,8 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
     data = np.ndarray( (len(phase_seq), len(seq)))
     max_data = np.empty( (2,len(phase_seq)))
     
-    tp = TransportParameters( evt_mode="first")
+    if tp is None:
+        tp = TransportParameters( evt_mode="first")
 
     for i in range( len(phase_seq)):
         data[i:] = evolution_grid(gr, bounds = (start,end), step = by, phase_vec = np.repeat( phase_seq[i], dim(gr) ))
@@ -267,6 +268,8 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
 
     if plot_max :
         ax.scatter(max_data[0], max_data[1], c = "green", s= 3)
+        if tp.evt_mode == "TC":
+            ax.vlines( gr.distance() * tp.TIME_CONSTANT, *ax.get_ylim())
     
     ax.set_xlim(0, seq[-1])
     ax.set_xlabel('t')
@@ -384,13 +387,13 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None,
 ########################################
 #plot performance methods
 
-def plot_performance(gr : QWGraph, sample_step = 100, target = "p", mode = None, an_mode = "TC", TC = 1, \
+def plot_performance(gr : QWGraph, sample_step = 100, target = "p", mode = None,\
+                     tp : TransportParameters = TransportParameters(),
                     ax : Axis = None, **kwargs):
     """
     Generic wrapper to plot transport performance as a function of phases
     actually a router method for graph-specific routines       
     """
-    tp = TransportParameters(TC=TC, evt_mode = an_mode)
 
     if mode == "diag":
         return plot_performance_diag(gr, sample_step, target, tp = tp, ax = ax, **kwargs)
@@ -444,7 +447,7 @@ def plot_performance_time(gr : QWGraph, sample_step, tp : TransportParameters = 
 
     norm = colors.Normalize(vmin= min(time), vmax=max(time))
     map = cm.ScalarMappable(norm, cmap="viridis")
-    plt.colorbar( map)
+    plt.colorbar( map, ax = ax)
     
     #Pass parameter for further additions
     return ax

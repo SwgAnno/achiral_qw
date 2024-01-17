@@ -129,6 +129,96 @@ def test_sesolver_qutip():
     print(res)
     np.testing.assert_allclose(res, exp, rtol = 1e-5)
 
+#plotting helper
+#comparison between eigenvalue method and Qutip solver on computed evolution
+def check_evo_vs_qutip( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN= True), l = 0, start = 0, end = None, by = .1, deriv = True):
+    if not end:
+        end = test_gr.N * 5
+
+    seq = np.arange(start,end,by)
+    if not deriv: 
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p( test_gr, seq)
+
+        solver = QutipSESolver()
+        evo_q = solver.evolve_default_p( test_gr, seq)
+
+    else :
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p_deriv( test_gr, seq)
+
+        solver = QutipSESolver()
+        evo_q = solver.evolve_default_p_deriv( test_gr, seq)
+
+    print( np.abs(evo-evo_q) < .0001)
+
+    fig, ax = plt.subplots()
+
+    ax.plot(seq, evo)
+    ax.plot(seq, evo_q)
+    
+    ax.set_xlabel('Time')
+    ax.set_ylabel('P')
+
+    ax.legend(["P", "P qutip"])
+    plt.show()
+
+#plotting helper
+#see how qutip (or the old method) works with random poits evaluation
+def check_evo_vs_qutip_scatter( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN=True), l = 0, start = 0, end = None, by = .1, deriv = False):
+    if not end:
+        global TC
+        end = test_gr.N * TC
+
+    seq = np.arange(start,end,by)
+    seq_q = np.linspace(start,end, 20)
+    test = np.random.rand(40)
+    test = test * (end-start) + start
+
+    test_qut = test[0:20]
+    test_old = test[20:40]
+    
+    if not deriv: 
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p(test_gr, seq)
+        evo_scat = solver.evolve_default_p(test_gr, test_old)
+
+        solver = QutipSESolver()
+        evo_q = solver.evolve_default_p(test_gr, test_qut)
+        evo_seq = solver.evolve_default_p(test_gr, seq_q)
+
+    else :
+        solver = EigenSESolver()
+        evo = solver.evolve_default_p_deriv(test_gr, seq)
+        evo_scat = solver.evolve_default_p_deriv(test_gr, test_old)
+
+        solver = QutipSESolver()
+        evo_q = solver.evolve_default_p_deriv(test_gr, test_old)
+        evo_seq = solver.evolve_default_p_deriv(test_gr, seq_q)
+
+    fig, ax = plt.subplots()
+
+    ax.plot(seq, evo)
+    ax.scatter(test_old, evo_scat, color = "green")
+    ax.scatter(test_qut, evo_q, color = "red")
+    ax.scatter(seq_q, evo_seq, color = "yellow")
+    
+    ax.set_xlabel('Time')
+    ax.set_ylabel('P')
+
+    ax.legend(["P", "Scatter evaluation noQ","Scatter evaluation Q","Scat ordered evaluation Q"])
+    plt.show()
+
+#dumb helper
+#single qutip evaluation check
+def check_qutip( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN=True), t_0 = [2]):
+
+    solver = QutipSESolver()
+
+    for _ in range(2):
+        print( solver.evolve_default_p(test_gr, t_0))
+        print( solver.evolve_default_p_deriv(test_gr, t_0))
+
 if __name__ == "__main__":
     
     qwgb = QWGraphBuilder()
@@ -141,6 +231,13 @@ if __name__ == "__main__":
     plot_evo_vs_derivative( test1, TC = 4, solver = my_solver, ax = axx[0])
     plot_evo_mat(test1, TC = 4, solver = my_solver, ax = axx[1])
     plot_evo_mat_heatmap(test1, TC = 4, solver = my_solver,fig = fig, ax = axx[2])
+
+    check_evo_vs_qutip(deriv = True)
+    check_evo_vs_qutip(deriv = False)
+    check_qutip()
+    check_evo_vs_qutip_scatter()
+    plt.show()
+
 
     #my_solver = QutipSESolver()
     #plot_evo_vs_derivative( test1, TC = 4, solver = my_solver, ax = axx[1])

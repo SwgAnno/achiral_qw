@@ -17,7 +17,7 @@ dependencies = [
     'matplotlib >= 3.0',
     'qutip >= 4.0',
     'networkx >= 2.0',
-    'igraph <= 0.9.11'
+    'igraph >= 0.10.0'
 ]
 classifiers = [
     "Programming Language :: Python :: 3",

@@ -3,8 +3,7 @@
 from achiralqw.trends import *
 from achiralqw.plotter import *
 from achiralqw.graph import QWGraph
-from achiralqw.simulator import Analyzer
-from achiralqw.collection import CollectionBuilder, get_line_data
+from achiralqw.collection import CollectionBuilder, get_line_data, QWGraphCollection
 import matplotlib
 
 import matplotlib.pyplot as plt
@@ -19,22 +18,22 @@ def odd_even_time_lm( L_ref = True, HANDLES = False):
     """
 
     coeff = []
-    an = Analyzer( mode = "first")
+    tp = TransportParameters( evt_mode= "first")
 
     print("Even lm:")
 
-    prog = CollectionBuilder.C_progression( bounds = (4,38), step = 2, analyzer= an)
+    prog : QWGraphCollection  = CollectionBuilder.C_progression( bounds = (4,38), step = 2, tp = tp)
     coeff.append (prog.transport_time_lm() )
 
     print("Odd lm:")
-    prog = CollectionBuilder.C_progression( bounds = (5,39), step = 2, analyzer= an)
+    prog = CollectionBuilder.C_progression( bounds = (5,39), step = 2, tp = tp)
     coeff.append (prog.transport_time_lm() )
 
     if not L_ref :
         return
 
     print("Line lm:")
-    prog = CollectionBuilder.C_progression( bounds = (10,31), step = 1, analyzer= an)
+    prog = CollectionBuilder.C_progression( bounds = (10,31), step = 1, tp = tp)
     coeff.append (prog.transport_time_lm() )
 
     #print( get_line_data( bounds = (4,20), target = "t"))
@@ -65,9 +64,11 @@ def plot_performance_odd_even( step = 100):
     gr_list_even.append( QWGraphBuilder.Ring(8))
     gr_list_even.append( QWGraphBuilder.Ring(10, HANDLES = True))
 
+    tp = TransportParameters(evt_mode="first")
+
     for gr_o, gr_e in zip(gr_list_odd, gr_list_even):
-        plot_performance(gr_o, sample_step = step , an_mode="first", ax = axx[0])
-        plot_performance(gr_e, sample_step = step , an_mode="first", ax = axx[1])
+        plot_performance(gr_o, sample_step = step , tp = tp, ax = axx[0])
+        plot_performance(gr_e, sample_step = step , tp = tp, ax = axx[1])
 
     axx[0].legend()
     axx[1].legend()
@@ -94,10 +95,12 @@ def plot_performance_1_multi(gr,TC_vec, first = False, step = 100, ax = None):
         fig, ax = plt.subplots(1,1, figsize = (6,5))
 
     if first:
-        plot_performance(gr, an_mode = "first", sample_step = step, ax = ax)
+        tp = TransportParameters(evt_mode="first")
+        plot_performance(gr, tp = tp, sample_step = step, ax = ax)
 
     for TC in TC_vec:
-        plot_performance(gr, an_mode= "TC", TC = TC, sample_step = step, \
+        tp = TransportParameters(evt_mode="TC", TC= TC)
+        plot_performance(gr, tp = tp, sample_step = step, \
                          ax = ax)
 
     return ax 
@@ -127,12 +130,12 @@ def t_chain_progression_phases(gr_unit = QWGraphBuilder.Ring(3), bounds = (1,10)
     if ax == None :
         fig, ax = plt.subplots(1,1, figsize = (6,5))
 
-    an = Analyzer(opt_mode = "fix", **kwargs)
-    prog = CollectionBuilder.chain_progression(gr_unit=gr_unit, bounds = bounds, analyzer=an)
+    tp = TransportParameters(opt_mode="fix", **kwargs)
+    prog : QWGraphCollection = CollectionBuilder.chain_progression(gr_unit=gr_unit, bounds = bounds, tp = tp)
     label = gr_unit.code + " {:1.2f}$\pi$"
 
     for phase in phi_vec:
-        an.set_fix_phi(phase)
+        prog.get_transport_params().fix_phi = phase
         plot_standard_progression(prog, target = "t", \
                                     label = label.format(phase/np.pi), ax =ax)
 
@@ -238,8 +241,8 @@ def comp_size_progression(TC_vec = [1,5,20], **kwargs):
     for ax , TC in zip(axx, TC_vec):
         set_progression_plot(ax, **kwargs)
 
-        an = Analyzer(mode = "TC", TC = TC)
-        plot_size_progression_multi(ax = ax, mode = "TC", TC = TC, analyzer = an, **kwargs)
+        tp = TransportParameters(evt_mode= "TC", TC = TC)
+        plot_size_progression_multi(ax = ax, mode = "TC", TC = TC, tp = tp, **kwargs)
     
     axx[-1].legend()
     fig.tight_layout()
@@ -247,7 +250,7 @@ def comp_size_progression(TC_vec = [1,5,20], **kwargs):
     plt.show()
 
 
-def plot_chain_progression_multi( bounds = (3,20), points = 50, target = "p", analyzer = None, fast = False, loglog = False):
+def plot_chain_progression_multi( bounds = (3,20), points = 50, target = "p", tp : TransportParameters = TransportParameters(), fast = False, loglog = False):
 
 
     fig, ax = plt.subplots(1,1, figsize = (6,5))
@@ -271,27 +274,24 @@ def plot_chain_progression_multi( bounds = (3,20), points = 50, target = "p", an
     print(select)
 
     if fast:
-        if analyzer == None:
-            analyzer = Analyzer()
-        
-        analyzer.set_opt_mode("fix")
-        analyzer.set_diag(True)
+        tp.opt_mode = "fix"
+        tp.diag = True
 
 
     if fast:
-        analyzer.set_gr(QWGraphBuilder.Ring(3))
-        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraphBuilder.Ring(3)    , bounds = bounds, select = select, target = target, ax = ax, analyzer = analyzer, label = "C3")
+        tp.opt_mode("smart")
+        tp.fix_phase(QWGraphBuilder.Ring(3))
+    plot_chain_progression( QWGraphBuilder.Ring(3)    , bounds = bounds, select = select, target = target, ax = ax, tp = tp, label = "C3")
 
     if fast:
-        analyzer.set_gr(QWGraphBuilder.Ring(4))
-        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraphBuilder.Ring(4)    , bounds = bounds, select = select, target = target, ax = ax, analyzer = analyzer, label = "C4")
+        tp.opt_mode("smart")
+        tp.fix_phase(QWGraphBuilder.Ring(4))
+    plot_chain_progression( QWGraphBuilder.Ring(4)    , bounds = bounds, select = select, target = target, ax = ax, tp = tp, label = "C4")
 
     if fast:
-        analyzer.set_gr(QWGraphBuilder.SquareCut())
-        analyzer.set_fix_phi( analyzer.optimum_phase_smart()[0])
-    plot_chain_progression( QWGraphBuilder.SquareCut(), bounds = bounds, select = select, target = target, ax = ax, analyzer = analyzer, label = "DiC4")
+        tp.opt_mode("smart")
+        tp.fix_phase(QWGraphBuilder.SquareCut())
+    plot_chain_progression( QWGraphBuilder.SquareCut(), bounds = bounds, select = select, target = target, ax = ax, tp = tp, label = "DiC4")
 
     L_x, L_data = get_line_data( (bounds[0]+2, bounds[1]+2), target = target)
     ax.plot(L_x, L_data, label = "P", color = "black", alpha = .5)
@@ -301,7 +301,7 @@ def plot_chain_progression_multi( bounds = (3,20), points = 50, target = "p", an
     
     return fig, ax
 
-def plot_chain_ch_progression( bounds = (3,20), loglog = False, target = "p", analyzer = None):
+def plot_chain_ch_progression( bounds = (3,20), loglog = False, target = "p", tp : TransportParameters = TransportParameters()):
     """
     Progression between C3/4 chain CH an P classes
     """
@@ -314,9 +314,9 @@ def plot_chain_ch_progression( bounds = (3,20), loglog = False, target = "p", an
     set_progression_plot(ax, x_mode = "dist", target="p")
     ax.set_ylim(0.1,1)
 
-    plot_chain_progression( QWGraphBuilder.Ring(3), bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    #plot_chain_progression( QWGraphBuilder.Ring(4),bounds = bounds, target = target, ax = ax, analyzer = analyzer)
-    plot_base_progression( "Ch", bounds = bounds,step = 2,target = target, ax = ax, analyzer = analyzer)
+    plot_chain_progression( QWGraphBuilder.Ring(3), bounds = bounds, target = target, ax = ax, tp = tp)
+    #plot_chain_progression( QWGraphBuilder.Ring(4),bounds = bounds, target = target, ax = ax, tp = tp)
+    plot_base_progression( "Ch", bounds = bounds,step = 2,target = target, ax = ax, tp = tp)
     plot_line_data(target = target, ax = ax)
 
     ax.legend()
@@ -397,9 +397,11 @@ def example_multi_2_phases( sample = 100):
 
     fig, axx = plt.subplots(2,gr_num, figsize = (9,6))
 
+    tctp = TransportParameters(evt_mode="TC", TC = 10)
+    ftp = TransportParameters(evt_mode="first")
     for i in range(len(gr_list)):
-        plot_performance( gr_list[i],sample_step=sample, an_mode = "first", ax = axx[0][i], verbose = True)
-        plot_performance( gr_list[i],sample_step=sample, an_mode = "TC", TC = 10, ax = axx[1][i],  verbose = True)
+        plot_performance( gr_list[i],sample_step=sample, to = ftp, ax = axx[0][i], verbose = True)
+        plot_performance( gr_list[i],sample_step=sample, tp = tctp, ax = axx[1][i],  verbose = True)
 
 
     # add single colorbar trick
@@ -418,14 +420,15 @@ def example_chain_time_performance(gr_unit, len = 10, **kwargs):
 
     gr = gr_unit.chain(len)
 
-    plot_performance(gr, mode = "time",ax = ax, an_mode = "TC", TC = 2, **kwargs)
+    tp = TransportParameters(mode = "TC", TC = 2)
+    plot_performance(gr, mode = "time",ax = ax, tp = tp, **kwargs)
     ax.legend()
     plt.show()
 
 def line_speedup_perf_comp( bounds = (4,20),step = 3, su_bounds = (.1,2, 1000), target = "p", ax = None , **kwargs):
     """
     Best transport performance of a sample L(N) graphs as a function of speedup
-    **kwargs are passed to the analyzer
+    **kwargs are passed to Transport Parameter
     """
     
     sample = np.linspace(*su_bounds)
@@ -435,15 +438,14 @@ def line_speedup_perf_comp( bounds = (4,20),step = 3, su_bounds = (.1,2, 1000), 
     labels = []
 
     cur = QWGraphBuilder.Line(4)
-    an = Analyzer(cur, mode = "first", **kwargs)
+    tp = TransportParameters(evt_mode="first", **kwargs)
 
     for m in tqdm(range( len(y_sample))):
         for i in range(len(sample)):
             cur = QWGraphBuilder.Line(y_sample[m], speedup = sample[i], COMPUTE_EIGEN = True)
-            an.set_gr(cur)
 
-            data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
-        labels.append(an.get_label( mode = False))
+            data[m,i] = locate_max(cur, tp = tp)[1] if target == "p" else locate_max(cur, tp = tp)[0]
+        labels.append(tp.get_label(cur,  mode = False))
 
     if ax == None :
         fig, ax = plt.subplots()

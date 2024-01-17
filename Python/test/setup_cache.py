@@ -1,5 +1,5 @@
+from achiralqw.analyze import TransportParameters
 from achiralqw.collection import CollectionBuilder, QWGraphList, CachedQWGraphCollection
-from achiralqw.simulator import Analyzer
 from achiralqw.graph import QWGraphBuilder
 
 import numpy as np
@@ -37,22 +37,21 @@ def load_C_even_cache():
     return CachedQWGraphCollection( create_func = C_even,   filename = "C_even_first_fast")
 
 def build_chain_cache():
-    base_analyzer =  Analyzer( solver_mode= "eigen", mode = "first", diag = False)
+    base_params =  TransportParameters( solver_mode= "eigen", mode = "first", diag = False)
 
-    fast_analyzer_C3 =     Analyzer( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True, gr = QWGraphBuilder.Ring(3))
-    fast_analyzer_C3.set_fix_phi( opt_mode = "smart")
-    fast_analyzer_C4 =     Analyzer( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True, gr = QWGraphBuilder.Ring(4))
-    fast_analyzer_C4.set_fix_phi( opt_mode = "smart")
-    fast_analyzer_SquareCut =     Analyzer( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True, gr = QWGraphBuilder.SquareCut())
-    fast_analyzer_SquareCut.set_fix_phi( opt_mode = "smart")
-
+    fast_params_C3 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C3.fix_phase( gr = QWGraphBuilder.Ring(3))
+    fast_params_C4 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C4.fix_phase( gr = QWGraphBuilder.Ring(4))
+    fast_params_SquareCut =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_SquareCut.fix_phase( gr = QWGraphBuilder.SquareCut())
 
     create_path = QWGraphBuilder.Line
 
-    cached_line = CachedQWGraphCollection( create_func = create_path,   filename = "P_first_fast",          analyzer = base_analyzer)
-    cached_C3   = CachedQWGraphCollection( create_func = C3_chain,      filename = "C3_chain_first_fast",   analyzer = fast_analyzer_C3)
-    cached_C4   = CachedQWGraphCollection( create_func = C4_chain,      filename = "C4_chain_first_fast",   analyzer = fast_analyzer_C4)
-    cached_DiC   = CachedQWGraphCollection( create_func = SC_chain,     filename = "DiC4_chain_first_fast", analyzer = fast_analyzer_SquareCut)
+    cached_line = CachedQWGraphCollection( create_func = create_path,   filename = "P_first_fast",          tp = base_params)
+    cached_C3   = CachedQWGraphCollection( create_func = C3_chain,      filename = "C3_chain_first_fast",   tp = fast_params_C3)
+    cached_C4   = CachedQWGraphCollection( create_func = C4_chain,      filename = "C4_chain_first_fast",   tp = fast_params_C4)
+    cached_DiC   = CachedQWGraphCollection( create_func = SC_chain,     filename = "DiC4_chain_first_fast", tp = fast_params_SquareCut)
 
     selection = np.arange(2, 50)
 
@@ -77,13 +76,13 @@ def build_chain_cache():
 
 def build_C_cache():
 
-    fast_analyzer_C3 =     Analyzer( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True, gr = QWGraphBuilder.Ring(3))
-    fast_analyzer_C3.set_fix_phi( opt_mode = "smart")
-    fast_analyzer_C4 =     Analyzer( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True, gr = QWGraphBuilder.Ring(4))
-    fast_analyzer_C4.set_fix_phi( opt_mode = "smart")
+    fast_params_C3 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C3.fix_phase( gr = QWGraphBuilder.Ring(3))
+    fast_params_C4 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C4.fix_phase( gr = QWGraphBuilder.Ring(4))
 
-    cached_odd = CachedQWGraphCollection( create_func = C_odd,   filename = "C_odd_first_fast",  analyzer = fast_analyzer_C3)
-    cached_even = CachedQWGraphCollection( create_func = C_even,   filename = "C_even_first_fast",  analyzer = fast_analyzer_C4)
+    cached_odd = CachedQWGraphCollection( create_func = C_odd,   filename = "C_odd_first_fast",  tp = fast_params_C3)
+    cached_even = CachedQWGraphCollection( create_func = C_even,   filename = "C_even_first_fast",  tp = fast_params_C4)
 
     selection = np.arange(2, 50)
 
@@ -101,9 +100,9 @@ if __name__ == "__main__" :
 
     
     select = np.arange(1,100)
-    fast_analyzer_C4 =     Analyzer( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True, gr = QWGraphBuilder.Ring(4))
-    fast_analyzer_C4.set_fix_phi(0)
-    cached_C4   = CachedQWGraphCollection( create_func = C4_chain,      filename = "C4_chain_first_fast",   analyzer = fast_analyzer_C4)
+    fast_params_C4 = TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True)
+    fast_params_C4.fix_phi = 0
+    cached_C4   = CachedQWGraphCollection( create_func = C4_chain,      filename = "C4_chain_first_fast",   tp = fast_params_C4)
     x, data = cached_C4.evaluate(select = select)
 
     cached_C4.offload()

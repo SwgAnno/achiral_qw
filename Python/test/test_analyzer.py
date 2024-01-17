@@ -55,6 +55,38 @@ def test_optimum_phase():
     pass
 
 
+# plitting helper
+#confront locate_max results with actual evolution profile
+def check_locate_max( test_gr = QWGraphBuilder.Ring(6), mode = None, qutip = True, TC = 1):
+
+    fix, ax = plot_evo_vs_derivative(test_gr, show = False)
+
+    tp = TransportParameters(solver_mode= "eigen" , TC = TC)
+    points = np.zeros( (4,2) )
+
+    tp.evt_mode = "first"
+    print("############First###############")
+    points[0,:] = locate_max(test_gr, tp = tp)
+    tp.evt_mode = "TC"
+    print("############TC###############")
+    points[1,:] = locate_max(test_gr, tp = tp)
+    
+    if qutip:
+        tp.solver_mode = "qutip"
+
+        print("############qutip First###############")
+        tp.evt_mode = "first"
+        points[2,:] = locate_max(test_gr, tp = tp)
+        print("############qutip TC###############")
+        tp.evt_mode = "TC"
+        points[3,:] = locate_max(test_gr, tp = tp)
+
+    print(points)
+
+    plt.scatter(points[:,0], points[:,1], color= "green")
+
+    plt.show()
+
 if __name__ == "__main__":
     
     qwgb = QWGraphBuilder()
@@ -63,9 +95,12 @@ if __name__ == "__main__":
 
     fig, axx = plt.subplots(3,1, figsize = (5,10))
 
-    plot_performance(test1,an_mode = "TC", TC = 10,  ax = axx[0])
-    plot_performance(test1,an_mode = "TC", TC = 5,  ax = axx[1])
-    plot_performance(test1,an_mode = "first",  ax = axx[2])
+    tp = TransportParameters(evt_mode="TC", TC = 10)
+    plot_performance(test1,tp = tp,  ax = axx[0])
+    tp = TransportParameters(evt_mode="TC", TC = 5)
+    plot_performance(test1,evt_mode = "TC", TC = 5,  ax = axx[1])
+    tp = TransportParameters(evt_mode="first")
+    plot_performance(test1,evt_mode = "first",  ax = axx[2])
 
     plot_performance(test1|qwgb.Ring(8))
 

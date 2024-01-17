@@ -5,7 +5,7 @@ The code was born as a collection of unorganized R scripts, it has now been full
 
 ## Features
 
-The Python project mainly consists in three levels, each one building upon the previous one: the base classes QWGraph and QWGraphCollection, the Simulator and Analyzer classes and lastly all the general purpose plotting and analysis methods.
+The Python project mainly consists in three levels, each one building upon the previous one: the base classes QWGraph and QWGraphCollection, the Simulator classes and analyze methods and lastly all the general purpose plotting and analysis methods.
 
 
 ### Submodules
@@ -13,7 +13,9 @@ graph : QWGraph is the basic object for almost any task, it stores and manages a
 
 collection : The QWGraphCollection object allow to abstract/multiprocess the analysis routine over an arbitraty set of Graphs. CollectionBuilder create and ships the "most relevant" families of graphs.
 
-simulator : this script contains the Analyzer objec which abstracts over the process of simulating and analyzing transport events on a single graph. Given a graph it can indentify the best transport maximum according to various criteria possibly accounting for all the chiral phases in the process.
+simulator : this script contains the family of Schrodinger's equation solver classes needed for Quantum Walk evolution . The basic interface of an abstract Solver is then implemented either relying on QuTip (QutipSESolver) or with eigenvalue decomposition (EigenSESolver)
+
+analyze : The class TransportParameters is a wrapper for the set of figures of merit that we identified as relevant for the analysis of transport. Those parameters can then be employed on a handful of methods that analyze the transport behavour identifying the best events and best phases.
 
 trends , plotter , article : Data extraction and plotting methods over single or relevant families of graph
 
