@@ -138,6 +138,14 @@ class QWGraphCollection(object) :
                 raise ValueError("get_list_x mode not supported")
         
         return out
+    
+    @staticmethod
+    def code_list(gr_list : List[QWGraph]) -> str:
+
+        out = ""
+        for gr in gr_list:
+            out = out + gr.code + " "
+        return out
 
     @abstractmethod  
     def evaluate( self, select, target = "p", x_mode = "dist")  -> Tuple[List[int], NDArray]:
@@ -150,6 +158,9 @@ class QWGraphCollection(object) :
     def transport_time_lm( self, select = None, x_mode = "dist") -> Tuple[float, float]:
         """
         Construct a linear model of the best transport time from the graph collection
+
+        returns:
+         [slope, intercept]
         """
         
         x, data = self.evaluate(select, target = "t", x_mode= x_mode)
@@ -168,7 +179,11 @@ class QWGraphCollection(object) :
         Very specific analysis tool: it extracts the slope of the probability progression on a loglog scale,
         which represent the power law exponent of its decay
 
-        mode : str ["poly" , "banchi1", "banchi2", "banchi3", "banchi4", "banchi4log", "custom"]
+        mode : 
+            str ["poly" , "banchi1", "banchi2", "banchi3", "banchi4", "banchi4log", "custom"]
+
+        returns :
+            the list of parameters
         """
 
         modes = ["poly" , "banchi1", "banchi2", "banchi3", "banchi4", "banchi4log", "custom"]
@@ -190,11 +205,11 @@ class QWGraphCollection(object) :
 
         elif mode == "banchi1":
             # test over y = a(x)^-2/3 
-            def model(x,a,b):
+            def model(x,a):
                 return a*np.power(x, -2/3)
 
             #first with stegun bessel expansion
-            p0 = [0.455469,-0.147317]
+            p0 = [0.455469]
             param, cov_param = curve_fit(model, x, data, p0 = p0)
 
             print("a*x^-2/3: ", param[0], " +- ", cov_param[0,0])
@@ -332,6 +347,9 @@ class QWGraphList(QWGraphCollection):
     def __setitem__(self, key : int, value : QWGraph) -> None:
         self.get_list()[key] = value
 
+    def __repr__(self) -> str:
+        return QWGraphCollection.code_list(self.get_list())
+
     def append(self, gr : QWGraph) -> None:
         self.get_list().append( gr )
 
@@ -361,7 +379,7 @@ class CachedQWGraphCollection(QWGraphCollection):
                 self._data = json.load(file)
 
                 #creating from an existing file: loading previous transport parameters
-                tp = TransportParameters(   mode        = self._data["tp"]["mode"],
+                tp = TransportParameters(   evt_mode    = self._data["tp"]["mode"],
                                             opt_mode    = self._data["tp"]["opt_mode"],
                                             TC          = self._data["tp"]["TC"],
                                             diag        = self._data["tp"]["diag"])
@@ -524,7 +542,7 @@ class CollectionBuilder(object) :
             self.C_progression = self.C_progression_singleprocess
 
     @staticmethod
-    def build_gr_list( create_func, input_vec) -> List[QWGraph]:
+    def build_gr_list( create_func, input_vec, **kwargs) -> List[QWGraph]:
         """
             Helper which returns a list of QWGraph build with the function passed as input,
             possibly employing multiple processes
@@ -546,7 +564,7 @@ class CollectionBuilder(object) :
                 pool.join()
         else :
             for l in input_vec:
-                gr_list.append( create_func(l))
+                gr_list.append( create_func(l), **kwargs)
 
         return gr_list
 

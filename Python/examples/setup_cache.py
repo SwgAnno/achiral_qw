@@ -37,13 +37,13 @@ def load_C_even_cache():
     return CachedQWGraphCollection( create_func = C_even,   filename = "C_even_first_fast")
 
 def build_chain_cache():
-    base_params =  TransportParameters( solver_mode= "eigen", mode = "first", diag = False)
+    base_params =  TransportParameters( solver_mode= "eigen", evt_mode =  "first", diag = False)
 
-    fast_params_C3 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C3 =     TransportParameters( solver_mode= "eigen", evt_mode =  "first", opt_mode = "smart", diag = True)
     fast_params_C3.fix_phase( gr = QWGraphBuilder.Ring(3))
-    fast_params_C4 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C4 =     TransportParameters( solver_mode= "eigen", evt_mode =  "first", opt_mode = "smart", diag = True)
     fast_params_C4.fix_phase( gr = QWGraphBuilder.Ring(4))
-    fast_params_SquareCut =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_SquareCut =     TransportParameters( solver_mode= "eigen", evt_mode =  "first", opt_mode = "smart", diag = True)
     fast_params_SquareCut.fix_phase( gr = QWGraphBuilder.SquareCut())
 
     create_path = QWGraphBuilder.Line
@@ -76,9 +76,9 @@ def build_chain_cache():
 
 def build_C_cache():
 
-    fast_params_C3 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C3 =     TransportParameters( solver_mode= "eigen", evt_mode =  "first", opt_mode = "smart", diag = True)
     fast_params_C3.fix_phase( gr = QWGraphBuilder.Ring(3))
-    fast_params_C4 =     TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "smart", diag = True)
+    fast_params_C4 =     TransportParameters( solver_mode= "eigen", evt_mode =  "first", opt_mode = "smart", diag = True)
     fast_params_C4.fix_phase( gr = QWGraphBuilder.Ring(4))
 
     cached_odd = CachedQWGraphCollection( create_func = C_odd,   filename = "C_odd_first_fast",  tp = fast_params_C3)
@@ -100,7 +100,7 @@ if __name__ == "__main__" :
 
     
     select = np.arange(1,100)
-    fast_params_C4 = TransportParameters( solver_mode= "eigen", mode = "first", opt_mode = "fix", diag = True)
+    fast_params_C4 = TransportParameters( solver_mode= "eigen", evt_mode =  "first", opt_mode = "fix", diag = True)
     fast_params_C4.fix_phi = 0
     cached_C4   = CachedQWGraphCollection( create_func = C4_chain,      filename = "C4_chain_first_fast",   tp = fast_params_C4)
     x, data = cached_C4.evaluate(select = select)
