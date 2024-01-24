@@ -6,6 +6,9 @@ import qutip as qt
 import networkx as nx
 import scipy.sparse as sparse
 
+from numpy.typing import NDArray
+from typing import Tuple
+from qutip import Qobj
 #QW simulation oriented graph class
 
 class QWGraph(object) :
@@ -13,7 +16,7 @@ class QWGraph(object) :
     Achiral QW simulation oriented graph class
     """
 
-    def __init__(self, N , mat = None, endpoints = None) :
+    def __init__(self, N : int , mat : NDArray = None, endpoints : Tuple[int, int] = None) :
 
         if mat is None :
             self.code = "e"
@@ -45,7 +48,7 @@ class QWGraph(object) :
         self.eig_val = None
         self.eig_vec = None
 
-    def _init_mat(self, mat):
+    def _init_mat(self, mat : NDArray):
         """
         Initialize laplacian matrix, possibly creating a new one
         This method must be overwritten if the internal representation of the matrix changes from numpy ndarray
@@ -104,7 +107,7 @@ class QWGraph(object) :
 
         return out
 
-    def rephase(self, phi_vec = [0], UPDATE_EIGEN = False) :
+    def rephase(self, phi_vec : List[float] = [0], UPDATE_EIGEN : bool = False) :
         """
         Assign new phase value to the phased cycle links
         Note: new phases values are inerpreted as being in radians!!!
@@ -147,9 +150,13 @@ class QWGraph(object) :
 
         return out
 
-    def recouple(self, pos, value):
+    def recouple(self, pos : Tuple[int, int], value : complex):
         """
         assign new value to an existing coupling
+        mat[pos[0],pos[1]] -> value
+
+        pos : Tuple[int,int]
+        value : new value for the two conjugate entries of the matrix
         """
 
         if self.mat[pos[0]][pos[1]] == 0:
@@ -158,7 +165,7 @@ class QWGraph(object) :
         self.mat[pos[0]][pos[1]] = value
         self.mat[pos[0]][pos[1]] = np.conjugate(value)
 
-    def cut(self, cut_vec):
+    def cut(self, cut_vec : List[Tuple[int,int]]):
         """
         Create a new edge, rephasing links are going to be recomputed
 
@@ -188,7 +195,7 @@ class QWGraph(object) :
         self.start, self.target = self.target, self.start
 
 
-    def speedup(self, su):
+    def speedup(self, su: float):
         """
         Multiply all non trace elements by a constant (speedup)
         """
@@ -197,7 +204,10 @@ class QWGraph(object) :
         self.mat = self.mat * su
         self.retrace(temp)
     
-    def join_link(self, other):
+    # weird Python specific string typing convenction
+    # for reference:
+    #   https://stackoverflow.com/questions/33533148/how-do-i-type-hint-a-method-with-the-type-of-the-enclosing-class
+    def join_link(self, other : 'QWGraph') -> 'QWGraph':
         """
         concatenate two graph creating the link between first end site and second start site
         (+ operator)
@@ -231,10 +241,10 @@ class QWGraph(object) :
 
         return out
 
-    def __add__(self, other) :
+    def __add__(self, other : 'QWGraph') -> 'QWGraph' :
         return QWGraph.join_link(self, other)
 
-    def join_nolink(self, other):
+    def join_nolink(self, other : 'QWGraph') -> 'QWGraph':
         """
         concatenate two graph merging the first end site and the second start site
         ( | [or] operator)
@@ -283,10 +293,10 @@ class QWGraph(object) :
 
         return out
 
-    def __or__(self, other) :
+    def __or__(self, other : 'QWGraph') -> 'QWGraph':
         return QWGraph.join_nolink(self, other)
 
-    def chain(self, rep, space = 0, speedup = 1, HANDLES = True):
+    def chain(self, rep : int, space : int = 0, speedup : float = 1, HANDLES : bool = True) -> 'QWGraph':
         """        
         concatenate multiple graph units into a chain
         ( * operator)
@@ -332,10 +342,10 @@ class QWGraph(object) :
         out.code = new_code
         return out
 
-    def __mul__(self, rep) :
+    def __mul__(self, rep : int) -> 'QWGraph' :
         return self.chain(rep, HANDLES = False)
 
-    def add_handles(self, size, mode = "both", fix =0):
+    def add_handles(self, size : int , mode : str = "both", fix : int =0) -> 'QWGraph':
         """
         Add external links and nodes on transport ends("handles")
 
@@ -371,7 +381,7 @@ class QWGraph(object) :
 
         return out
 
-    def eigen_basis( self, mode = "vec"):
+    def eigen_basis( self, mode : str= "vec"):
         """
         Pretty printing method with information on eigenvector basis
 
@@ -389,7 +399,7 @@ class QWGraph(object) :
             for j in range(len(self.eig_vec)) :
                 print(j, ") \t", self.eig_vec[j])
 
-    def krylov_basis( self, start_state = None, mode = ""):
+    def krylov_basis( self, start_state : NDArray = None, mode = "") -> Tuple[ List[NDArray], List[float], List[float]]:
         """
         Compute krylov basis relative to the start state of the graph and eventually print some details
 
@@ -489,7 +499,7 @@ class QWGraph(object) :
 
         self.re_coord = n_re_coord
 
-    def krylov_transform( self, start_state = None):
+    def krylov_transform( self, start_state : NDArray= None) -> 'QWGraph':
         """
         Compute the krilov base and construct a new graph in the krylov subspace relative to a given start state
         """
@@ -509,7 +519,7 @@ class QWGraph(object) :
 
         return QWGraph(N = l, mat = mat)   
 
-    def to_igraph(self) :
+    def to_igraph(self) -> ig.Graph :
         """
         Build Igraph object representing the QWGraph
         the process does not transfer phase info
@@ -530,7 +540,7 @@ class QWGraph(object) :
         #print(ref)
         return out
 
-    def to_networkx(self):
+    def to_networkx(self) -> nx.Graph:
         """
         Build networkx object representin the QWGtaph.
         The process does not transfer phase info
@@ -551,7 +561,7 @@ class QWGraph(object) :
         #print(ref)
         return out
 
-    def distance(self, start = None, to = None):
+    def distance(self, start :int = None, to :int = None) -> int:
         """
         Return distance in links betweeen two given nodes
         (Actually a wrapper of igraph get_shortest_paths)
@@ -567,7 +577,7 @@ class QWGraph(object) :
 
         return len(path[0]) -1
         
-    def basis(self, i, qut = False):
+    def basis(self, i : int , qut : bool = False) -> Qobj | NDArray:
         """
         Return chosen basis vector as nupmy array
         """
@@ -579,13 +589,13 @@ class QWGraph(object) :
 
         return out
 
-    def get_start_state(self, qut = False):
+    def get_start_state(self, qut : bool = False) -> Qobj | NDArray:
         """
         Get numpy vector representation of the localized start state
         """
         return self.basis(self.start, qut)
 
-    def get_projector(self, i = None):
+    def get_projector(self, i : int = None) -> Qobj:
         """
         get QuTip projector operator on the Nth site
         """
@@ -599,17 +609,18 @@ class QWGraph(object) :
 
         return out
 
-    def get_h(self):
+    def get_h(self) -> Qobj:
         """
         get the Hamiltonian relative to the graph as QuTip object (for QuTip simulator)
         """
         return qt.Qobj(self.mat)
 
-    def get_phase_n(self):
+    def get_phase_n(self) -> int:
         """
         Get the number of free phases for the graph
         """
         return len(self.re_coord)
+
 
 class SparseQWGraph( QWGraph):
     """
@@ -648,6 +659,7 @@ class SparseQWGraph( QWGraph):
 
         Apparently there is no sparse.linalg routine which retrieve all the eigenvectors
         Therefore we must converte to dense matrix an use te usual linalg.eigh
+        !!! rendering the whole sparse approach useless hehe!!!
         """
         self.eig_val, self.eig_vec = eigh(self.mat.todense())
 
@@ -711,18 +723,18 @@ class QWGraphBuilder(object):
         return QWGraphBuilder.Graph_from_code(code, args)
 
     @staticmethod
-    def fromIgraph( ig, E = 0, ends = None) :
+    def fromIgraph( gr : ig.Graph, E : float = 0, ends : Tuple[int, int] = None) -> QWGraph:
         """
         return QWGraph instance from a igraph object
         note: the resulting Laplacian matrix is of course going to be real valued
         """
 
-        out = QWGraph( ig.vcount())
+        out = QWGraph( gr.vcount())
 
         #todo assign name
-        #out.code = ig["name"]
+        #out.code = gr["name"]
         
-        out.mat = np.array ( ig.get_adjacency().data, dtype = complex)*-1
+        out.mat = np.array ( gr.get_adjacency().data, dtype = complex)*-1
         out.retrace_E(E)
 
         
@@ -738,11 +750,11 @@ class QWGraphBuilder(object):
 
     #todo : finish this thing
     @staticmethod
-    def fromNetworkx( nx_graph, E = 0, ends = None):
+    def fromNetworkx( nx_graph : nx.Graph , E : float = 0, ends : Tuple[int, int]= None) -> QWGraph:
         raise NotImplementedError("to be implemented")
 
     @staticmethod
-    def Ring(N : int, HANDLES : bool = False, E : float  = 0, COMPUTE_EIGEN = False, sparse = False) -> QWGraph:
+    def Ring(N : int, HANDLES : bool = False, E : float  = 0, COMPUTE_EIGEN : bool = False, sparse : bool = False) -> QWGraph:
         """
         Ring graph constructor
         """
@@ -777,7 +789,7 @@ class QWGraphBuilder(object):
         return out
 
     @staticmethod
-    def Line(N : int , E : float = 0, speedup : float = None, COMPUTE_EIGEN = False) -> QWGraph:
+    def Line(N : int , E : float = 0, speedup : float = None, COMPUTE_EIGEN : bool = False) -> QWGraph:
         """
         Line graph constructor
         """
@@ -811,7 +823,7 @@ class QWGraphBuilder(object):
         return out
 
     @staticmethod
-    def Parallel(paths : int , p_len : int , E : float = 0, COMPUTE_EIGEN = False) -> QWGraph:
+    def Parallel(paths : int , p_len : int , E : float = 0, COMPUTE_EIGEN : bool = False) -> QWGraph:
         """
         Multi path element graph constructor
         """
@@ -841,7 +853,7 @@ class QWGraphBuilder(object):
         return out
 
     @staticmethod
-    def SquareCut(E  : float = 0, COMPUTE_EIGEN = False) -> QWGraph:
+    def SquareCut(E  : float = 0, COMPUTE_EIGEN : bool= False) -> QWGraph:
         """
         C4 with extra start to and cut and straight rephasal links
         """
@@ -856,7 +868,7 @@ class QWGraphBuilder(object):
 
         return out
 
-def get_list_x(gr_list, x_mode = "size"):
+def get_list_x(gr_list : List[QWGraph], x_mode : str = "size"):
     out = []
 
     for i in range(len(gr_list)):
