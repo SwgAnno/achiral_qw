@@ -1,31 +1,30 @@
+from typing import List
 import numpy as np
 from numpy.linalg import eigh
 import igraph as ig
 import qutip as qt
-import matplotlib.pyplot as plt
 import networkx as nx
+import scipy.sparse as sparse
 
+from numpy.typing import NDArray
+from typing import Tuple
+from qutip import Qobj
 #QW simulation oriented graph class
 
 class QWGraph(object) :
+    """
+    Achiral QW simulation oriented graph class
+    """
 
-    def __init__(self, N , mat = None, endpoints = None) :
+    def __init__(self, N : int , mat : NDArray = None, endpoints : Tuple[int, int] = None) :
 
         if mat is None :
-            self.N = N
             self.code = "e"
-            
-            self.mat = np.zeros((N,N), dtype = complex)
         else :
-            assert N == mat.shape[0]
-            #mat is assumed to be a square numpy ndarray
-            self.N = mat.shape[0]
             self.code = "m"
 
-            self.mat = mat
-
-        #it'd better be not mandatory
-        
+        self.N = N
+        self._init_mat(mat)
         self.compute_re_coord()
 
         if not endpoints == None :
@@ -46,64 +45,173 @@ class QWGraph(object) :
         self.start = 0
         self.target = self.N-1
 
+        self.eig_val = None
+        self.eig_vec = None
+
+    def _init_mat(self, mat : NDArray):
+        """
+        Initialize laplacian matrix, possibly creating a new one
+        This method must be overwritten if the internal representation of the matrix changes from numpy ndarray
+        """
+
+        if mat is None :
+            self.mat = np.zeros((self.N, self.N), dtype = complex)
+        else :
+            #mat is assumed to be a square numpy ndarray
+            self.N = mat.shape[0]
+            self.mat = mat
+
     def update_eigen(self):
+        """
+        Recompute and store eigenvalues and eigenvectors with numpy.linalg routine
+        WARNING: this may be time consuming for large graphs!
+        """
         self.eig_val, self.eig_vec = eigh(self.mat)
 
         self.eig_val = np.reshape(self.eig_val, (self.N,1))
         
+    def retrace(self, T : List[float]):
+        """
+        Set new values to trace elements of Laplacian matrix
+        """
 
-    #Trace elements manipulation utilities
-    def retrace_E(self, E):
+        for i in range(self.N):
+            self.mat[i][i] = T[i]
+
+    def retrace_E(self, E : float):
+        """
+        Set new value to trace elements of Laplacian matrix
+        """
+
         for i in range(self.N):
             self.mat[i][i] = E
 
         
 
     def retrace_conn(self):
+        """
+        Set trace elements with the outdegree of the corrisponding node
+        """
         ref = self.to_igraph()
         
         for i in range(self.N):
             self.mat[i][i] = ref.degree(i)
             print(ref.degree(i))
 
-    #utiliry method to save trace elements in a buffer
-    #since converting from and to igraph instances
-    #does not presereve that information
-    def buffer_trace(self):
+    def _buffer_trace(self):
+        """
+        utiliry method to save trace elements in a buffer vector
+        (useful for igraph objcet)
+        """
         out = [ self.mat[i][i] for i in range(self.N)]
 
         return out
 
-    def retrace(self, T):
-        for i in range(self.N):
-            self.mat[i][i] = T[i]
+    def rephase(self, phi_vec : List[float] = [0], UPDATE_EIGEN : bool = False) :
+        """
+        Assign new phase value to the phased cycle links
+        Note: new phases values are inerpreted as being in radians!!!
+        The operation does not change the coupling magnitude
 
-        
+        Args:
+        phi_vec -> vector of phases, has to be of the same length as re_coord
+        UPDATE_EIGEN : bool -> force update_eigen() after modifying the hamiltonian, useful if oyu have tu run a simulation right after
+
+        """
+        if isinstance(phi_vec, list):
+            phi_vec = np.array(phi_vec, dtype = complex)
+        elif isinstance(phi_vec, float) or isinstance(phi_vec, int):
+            # phi_vec is a single float: format to a numpy vector
+            temp = phi_vec
+            phi_vec = np.empty(1, dtype = float)
+            phi_vec[0] = temp
+
+        if( len( self.re_coord) != len(phi_vec)):
+            raise ValueError("rephase() error: wrong number of phases given")
+
+        exp_vec = np.exp(1j * phi_vec)
+
+        for i, edge in enumerate(self.re_coord) :
+            self.mat[edge[0]][edge[1]] = -1* np.abs(self.mat[edge[0]][edge[1]])* exp_vec[i]
+            self.mat[edge[1]][edge[0]] = np.conjugate(self.mat[edge[0]][edge[1]])
+
+        if UPDATE_EIGEN:
+            self.update_eigen()
+
+    def get_phases(self):
+        """
+        Return the vector of phases in radians of the phased links
+        """
+
+        out = np.empty(len(self.re_coord))
+
+        for i,edge in enumerate(self.re_coord) :
+            out[i] = np.angle(self.mat[edge[0]][edge[1]])
+
+        return out
+
+    def recouple(self, pos : Tuple[int, int], value : complex):
+        """
+        assign new value to an existing coupling
+        mat[pos[0],pos[1]] -> value
+
+        pos : Tuple[int,int]
+        value : new value for the two conjugate entries of the matrix
+        """
+
+        if self.mat[pos[0]][pos[1]] == 0:
+            raise ValueError("Trying to recouple a non existing edge")
+
+        self.mat[pos[0]][pos[1]] = value
+        self.mat[pos[0]][pos[1]] = np.conjugate(value)
+
+    def cut(self, cut_vec : List[Tuple[int,int]]):
+        """
+        Create a new edge, rephasing links are going to be recomputed
+
+        ##Arguments
+        cut_vec : list[(int,int)] -> list of the new edges to insert in the graph
+        """
+
+        #print(self.code, cut_vec)
+
+        if type(cut_vec) is  tuple:
+            cut_vec = [cut_vec]
+
+        ref = self.to_igraph()
+        ref.add_edges(cut_vec)
+
+        temp = self._buffer_trace()
+
+        out = QWGraphBuilder.fromIgraph(ref, ends = (self.start, self.target))
+        out.retrace(temp)
+
+        return out
+
+    def reverse(self ):
+        """
+        Exchange start and target site
+        """
+        self.start, self.target = self.target, self.start
 
 
-    #assign a new value to the target rephasing links
-    #todo: check way to keep modulus constant
-    def rephase(self, phi = [1j]) :
-        
-        if isinstance(phi, (list, np.ndarray)):
-            if( len( self.re_coord) != len(phi)):
-                print("rephase() error: wrong number of phases given")
-                return()
-        else :
-            phi = [phi]
+    def speedup(self, su: float):
+        """
+        Multiply all non trace elements by a constant (speedup)
+        """
+        temp = self._buffer_trace()
 
-        for i in range(len(phi)) :
-            p = self.re_coord[i]
-            self.mat[p[0]][p[1]] = -1*phi[i]* np.abs(self.mat[p[0]][p[1]])
-            self.mat[p[1]][p[0]] = np.conjugate(self.mat[p[0]][p[1]])
-
-        
-
-        
-    #concatenate two graph creating the link
-    #between first end site and second start site
-    #(+ operator)
-    def join_link(self, other):
+        self.mat = self.mat * su
+        self.retrace(temp)
+    
+    # weird Python specific string typing convenction
+    # for reference:
+    #   https://stackoverflow.com/questions/33533148/how-do-i-type-hint-a-method-with-the-type-of-the-enclosing-class
+    def join_link(self, other : 'QWGraph') -> 'QWGraph':
+        """
+        concatenate two graph creating the link between first end site and second start site
+        (+ operator)
+        """
 
         if self.N == 0 :
             return other
@@ -133,13 +241,14 @@ class QWGraph(object) :
 
         return out
 
-    def __add__(self, other) :
+    def __add__(self, other : 'QWGraph') -> 'QWGraph' :
         return QWGraph.join_link(self, other)
 
-    
-    #concatenate two graph merging the first end site and the second start site
-    #( | [or] operator)
-    def join_nolink(self, other):
+    def join_nolink(self, other : 'QWGraph') -> 'QWGraph':
+        """
+        concatenate two graph merging the first end site and the second start site
+        ( | [or] operator)
+        """
 
         out_N = self.N + other.N -1
 
@@ -178,28 +287,31 @@ class QWGraph(object) :
         out.compute_re_coord()
         out.code = self.code + "|" + other.code
 
-        #account for the possible swap whte copying matrices
+        #account for the possible swap while copying matrices
         out.start  = self.start                 if self.start != self.N-1   else self.target
         out.target = self.N + other.target-1    if other.target != 0        else self.N + other.start -1
 
         return out
 
-    def __or__(self, other) :
+    def __or__(self, other : 'QWGraph') -> 'QWGraph':
         return QWGraph.join_nolink(self, other)
 
-    #concatenate multiple graph units into a chain ( * operator)
-    # speedup affects the couplings before adding the handles
+    def chain(self, rep : int, space : int = 0, speedup : float = 1, HANDLES : bool = True) -> 'QWGraph':
+        """        
+        concatenate multiple graph units into a chain
+        ( * operator)
+        speedup affects the couplings before adding the handles
 
-    #todo: fix the fact that intra unit space does not get speedup
-    def chain(self, rep, space = 0, speedup = 1, HANDLES = True):
+        todo: fix the fact that intra unit space does not get speedup
+        """
 
         #create self copy with speedup
 
         su_mat = self.mat * speedup
-        unit = QWGraph.Line(space, speedup = speedup) + QWGraph(self.N,mat = su_mat, endpoints = (self.start,self.target))
+        unit = QWGraphBuilder.Line(space, speedup = speedup) + QWGraph(self.N,mat = su_mat, endpoints = (self.start,self.target))
         
         #todo: df am i doing with P graph trace?
-        temp = self.buffer_trace()
+        temp = self._buffer_trace()
         unit.retrace(temp)
 
         new_code = self.code + "^{}".format(rep)
@@ -230,10 +342,21 @@ class QWGraph(object) :
         out.code = new_code
         return out
 
-    def __mul__(self, rep) :
+    def __mul__(self, rep : int) -> 'QWGraph' :
         return self.chain(rep, HANDLES = False)
 
-    def add_handles(self, size, mode = "both", fix =0):
+    def add_handles(self, size : int , mode : str = "both", fix : int =0) -> 'QWGraph':
+        """
+        Add external links and nodes on transport ends("handles")
+
+        mode list:
+
+        both -> add "size" lenght handles at both ends
+        l -> only start site
+        r -> only end site
+        fixl -> set lenght on start site, "size" lenght on end site
+        fixe -> set lenght on end site, "size" lenght on start site
+        """
         
         temp_code = self.code
 
@@ -253,88 +376,20 @@ class QWGraph(object) :
             dx = fix
             sx = size
 
-        out = QWGraph.Line(sx) + self + QWGraph.Line(dx)
+        out = QWGraphBuilder.Line(sx) + self + QWGraphBuilder.Line(dx)
         out.code = "h(" + temp_code + ")"
 
         return out
 
-    def reverse(self ):
-        self.start, self.target = self.target, self.start
+    def eigen_basis( self, mode : str= "vec"):
+        """
+        Pretty printing method with information on eigenvector basis
 
-    #add ("cut") the edges specified in the vector as tuples
-    def cut(self, cut_vec):
+        List of modes
 
-        #print(self.code, cut_vec)
-
-        if type(cut_vec) is  tuple:
-            cut_vec = [cut_vec]
-
-        ref = self.to_igraph()
-        ref.add_edges(cut_vec)
-
-        temp = self.buffer_trace()
-
-        out = QWGraph.from_igraph(ref, ends = (self.start, self.target))
-        out.retrace(temp)
-
-        return out
-
-    def speedup(self, su):
-        temp = self.buffer_trace()
-
-        self.mat = self.mat * su
-        self.retrace(temp)
-
-    #get the equivalent graph in the krylov subspace relative to a given start state
-    def krylov_transform( self, start_state = None):
-
-        if start_state == None:
-            start_state = self.get_start_state()
-
-        #use Laczos algorithm to compute the new basis
-        k_basis = []
-        k_E = []
-        k_A = []
-
-        k_basis.append( start_state)
-        k_A.append(0)
-        l = 1
-        for i in range(self.N):
-            v = np.matmul( self.mat, k_basis[i])
-
-            E = np.vdot(k_basis[i], v )
-
-            v_orto = v - E* k_basis[i] - k_A[i]* k_basis[i-1]
-
-            #print( "******************************")
-            #print( v, E* k_basis[i], k_A[i]* k_basis[i-1])
-            A =  np.linalg.norm( v_orto)
-            v_orto = v_orto/ A
-
-            #print(l, E, A)
-            #print(v_orto)
-
-            k_E.append(E)
-
-            if A < 1e-14:
-                break
-            else :
-                k_A.append(A)
-                k_basis.append(v_orto)
-                l += 1
-
-        mat = np.zeros( (l,l), dtype = complex)
-
-        for i in range(l-1):
-            mat[i,i] = k_E[i]
-            mat[i+1, i] = k_A[i+1]
-            mat[i, i+1] = k_A[i+1]
-
-        mat[l-1, l-1] = k_E[-1]
-
-        return QWGraph(N = l, mat = mat)
-
-    def eigen_basis( self, mode = "basis_plot"):
+        val -> eigenvalues
+        vec -> eigenvectors
+        """
 
         if mode == "val":
             for j in range(len(self.eig_val)) :
@@ -344,36 +399,24 @@ class QWGraph(object) :
             for j in range(len(self.eig_vec)) :
                 print(j, ") \t", self.eig_vec[j])
 
-        elif mode == "plot_vec":
+    def krylov_basis( self, start_state : NDArray = None, mode = "") -> Tuple[ List[NDArray], List[float], List[float]]:
+        """
+        Compute krylov basis relative to the start state of the graph and eventually print some details
 
-            x_range = np.arange(0,self.N)
-            y_range = np.arange(0,len(self.eig_vec))
+        List of modes:
 
-            modulus = np.zeros( ( self.N, len(self.eig_vec)) )
-            phase = np.zeros( ( self.N, len(self.eig_vec)) )
+        e           -> print krilov basis energies
+        link        -> print krilov basis couplings
+        x           -> represent krylov basis in the site basis as occipied sites []/[x]
+        short_re    -> represent krylov basis in site basis with short formatted real part of projection
+        default     -> simple pring of krylov basis in the site basis
 
-            for j in range(len(self.eig_val)) :
-                modulus[:,j] = np.abs( self.eig_vec[j])
-                phase[:,j] = np.angle( self.eig_vec[j])
+        returns tuple(3):
+        k_basis -> krylov basis vectors in site basis
+        k_E     -> Krylov energies
+        k_A     -> Krylov couplings
 
-            fig, ax = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True)
-
-            c1 = ax[0].pcolormesh(x_range, y_range, modulus, label = "mod")
-            c2 = ax[1].pcolormesh(x_range, y_range, phase, label = "phase")
-
-            fig.colorbar(c1, ax = ax[0])
-            fig.colorbar(c2, ax = ax[1])
-
-            ax[0].set_title("Projection modulus")
-            ax[1].set_title("Relative phase")
-            
-            for stuff in ax :    
-                stuff.set_xlabel('site')
-                stuff.set_ylabel('eig_n')
-
-            plt.show()
-
-    def krylov_basis( self, start_state = None, mode = "x"):
+        """
 
         if start_state == None:
             start_state = self.get_start_state()
@@ -413,75 +456,29 @@ class QWGraph(object) :
         if mode == "e" :
             for e in k_E:
                 print( e, "\t")
-            return k_E
 
-        if mode == "link" :
+        elif mode == "link" :
             for a in k_A:
                 print( a, "\t")
-            return k_A
 
-        if mode == "basis_plot":
+        elif mode != "" :
+            for i in range(len(k_basis)):
+                vec = " "
+                for elem in k_basis[i] :
+                    if mode == "x":
+                        vec = vec + ("[]" if np.abs(elem)< 1e-10 else "[x]") + "\t"
+                    elif mode == "short_re":
+                        vec = vec + "{: 0.2f}".format(np.abs(elem[0])) + "\t"
+                    elif mode == "default":
+                        vec = vec + str(elem) + "\t"
+                print( i, "|\t", vec)
 
-            modulus = np.zeros( (len(k_basis),self.N))
-            phase = np.zeros( (len(k_basis),self.N))
+        return k_basis, k_E, k_A
 
-            for j in range(len(k_basis)) :
-                modulus[j,:] = np.abs( k_basis[j][:,0])
-                phase[j,:] = np.angle( k_basis[j][:,0])
-
-            x_range = np.arange(0,self.N)
-            y_range = np.arange(0,len(k_basis))
-
-            fig, ax = plt.subplots( nrows = 1, ncols = 2, sharex = True, sharey = True, figsize=(8, 4))
-
-            c1 = ax[0].pcolormesh(x_range, y_range, modulus, label = "mod")
-            c2 = ax[1].pcolormesh(x_range, y_range, phase, label = "phase")
-
-            fig.colorbar(c1, ax = ax[0])
-            fig.colorbar(c2, ax = ax[1])
-
-            ax[0].set_title("Projection modulus")
-            ax[1].set_title("Relative phase")
-            
-            for stuff in ax :    
-                stuff.set_xlabel('site')
-                stuff.set_ylabel('k_n')
-
-            plt.show()
-
-            return
-        
-        if mode == "link_plot":
-
-            k_A = k_A[1:]
-            
-            fig, ax = plt.subplots()
-            x = np.arange(1,len(k_A)+1)
-            
-            ax.scatter(x, k_A, label = "couplings")
-            
-            ax.set_xlabel('i')
-            ax.set_ylabel('a')
-
-            ax.legend()
-            plt.show()
-
-            return
-
-        for i in range(len(k_basis)):
-            vec = " "
-            for elem in k_basis[i] :
-                if mode == "x":
-                    vec = vec + ("[]" if np.abs(elem)< 1e-10 else "[x]") + "\t"
-                elif mode == "short_re":
-                    vec = vec + "{: 0.2f}".format(np.abs(elem[0])) + "\t"
-                else :
-                    vec = vec + str(elem) + "\t"
-            print( i, "|\t", vec)
-
-    #get automatically a new set of phased links
-    #according to the spanning tree of the graph       
     def compute_re_coord(self) :
+        """
+        Update rephasing link vector as missing link from a spanning tree of the graph
+        """
 
         ref = self.to_igraph()
         tree = ref.spanning_tree()
@@ -501,34 +498,32 @@ class QWGraph(object) :
 ##        ig.plot(ref -tree)
 
         self.re_coord = n_re_coord
-    
 
-    #return QWGraph instance from igraph reference
-    #the adj mat is obviously real
-    def from_igraph( ig, E = 0, ends = None) :
+    def krylov_transform( self, start_state : NDArray= None) -> 'QWGraph':
+        """
+        Compute the krilov base and construct a new graph in the krylov subspace relative to a given start state
+        """
 
-        out = QWGraph( ig.vcount())
+        k_basis, k_E, k_A = self.krylov_basis(start_state)
 
-        #todo assign name
-        #out.code = ig["name"]
-        
-        out.mat = np.array ( ig.get_adjacency().data, dtype = complex)
-        out.retrace_E(E)
+        l = len(k_basis)
 
-        
-        out.compute_re_coord()
+        mat = np.zeros( (l,l), dtype = complex)
 
-        if not ends :
-            out.start = 0
-            out.target = out.N-1
-        else :
-            out.start , out.target = ends
+        for i in range(l-1):
+            mat[i,i] = k_E[i]
+            mat[i+1, i] = k_A[i+1]
+            mat[i, i+1] = k_A[i+1]
 
-        return out
+        mat[l-1, l-1] = k_E[-1]
 
-    #return igraph object representing the QWGraph
-    #the process does not tranfer phase info
-    def to_igraph(self) :
+        return QWGraph(N = l, mat = mat)   
+
+    def to_igraph(self) -> ig.Graph :
+        """
+        Build Igraph object representing the QWGraph
+        the process does not transfer phase info
+        """
 
         ref = np.zeros( (self.N, self.N))
 
@@ -545,9 +540,11 @@ class QWGraph(object) :
         #print(ref)
         return out
 
-    #return networkx object representing the QWGraph
-    #the process does not tranfer phase info
-    def to_networkx(self) :
+    def to_networkx(self) -> nx.Graph:
+        """
+        Build networkx object representin the QWGtaph.
+        The process does not transfer phase info
+        """
 
         ref = np.zeros( (self.N, self.N))
 
@@ -559,28 +556,208 @@ class QWGraph(object) :
                     ref[i][m] = 1
             ref[i][i] = 0
         
-        out = nx.from_numpy_matrix(ref)
+        out = nx.from_numpy_array(ref)
 
         #print(ref)
         return out
 
-    #construct a specific graph with the respective code number with variadic arguments
+    def distance(self, start :int = None, to :int = None) -> int:
+        """
+        Return distance in links betweeen two given nodes
+        (Actually a wrapper of igraph get_shortest_paths)
+        """
+        if not start :
+            start = self.start
+        if not to :
+            to = self.target
+        
+        graph = self.to_igraph()
 
-    def graphFromCode(code , *args):
+        path = graph.get_shortest_paths(start,to)
+
+        return len(path[0]) -1
+        
+    def basis(self, i : int , qut : bool = False) -> Qobj | NDArray:
+        """
+        Return chosen basis vector as nupmy array
+        """
+        if qut:
+            return qt.basis(self.N,i)
+        
+        out = np.zeros((self.N,1), dtype = complex)
+        out[i]= 1
+
+        return out
+
+    def get_start_state(self, qut : bool = False) -> Qobj | NDArray:
+        """
+        Get numpy vector representation of the localized start state
+        """
+        return self.basis(self.start, qut)
+
+    def get_projector(self, i : int = None) -> Qobj:
+        """
+        get QuTip projector operator on the Nth site
+        """
+        if i is None:
+            i = self.target
+            
+        out_mat = np.zeros((self.N,self.N))
+        out_mat[i,i] = 1
+
+        out = qt.Qobj(out_mat)
+
+        return out
+
+    def get_h(self) -> Qobj:
+        """
+        get the Hamiltonian relative to the graph as QuTip object (for QuTip simulator)
+        """
+        return qt.Qobj(self.mat)
+
+    def get_phase_n(self) -> int:
+        """
+        Get the number of free phases for the graph
+        """
+        return len(self.re_coord)
+
+
+class SparseQWGraph( QWGraph):
+    """
+    Implementation of QWGraph with and underlying matrix representation
+    """
+
+    def _init_mat(self, mat):
+        """
+        Initialize laplacian matrix, possibly creating a new one.
+        The matrix representation is a complex scipy sparse dictionary of key
+        """
+
+        if mat is None :
+            self.mat = sparse.dok_matrix((self.N, self.N), dtype = complex)
+        else :
+            #mat is assumed to be a square scipy sparse dok matrix
+            # we need efficient slicing and access to the elements
+            assert isinstance(mat, sparse.dok_matrix)
+            self.N = mat.shape[0]
+            self.mat = mat
+
+    def to_adjacency(mat):
+        
+        out = sparse.dok_matrix(mat.shape, dtype = "int")
+        
+        for k in mat.keys():
+            if k[0] != k[1]:
+                out[k] = 1
+                
+        return out
+
+    def update_eigen(self):
+        """
+        Recompute and store eigenvalues and eigenvectors with numpy.linalg routine
+        WARNING: this may be time consuming for large graphs!
+
+        Apparently there is no sparse.linalg routine which retrieve all the eigenvectors
+        Therefore we must converte to dense matrix an use te usual linalg.eigh
+        !!! rendering the whole sparse approach useless hehe!!!
+        """
+        self.eig_val, self.eig_vec = eigh(self.mat.todense())
+
+        self.eig_val = np.reshape(self.eig_val, (self.N,1))
+
+    def compute_re_coord(self) :
+        """
+        Update rephasing link vector as missing link from a spanning tree of the graph
+        """
+
+        mst = sparse_mst(self.mat)
+
+        self.re_coord = []
+
+        for edge in self.mat.keys():
+            if edge[0] > edge[1] and mst[edge] == 0 :
+                self.re_coord.append(edge)
+
+##        names = []
+##        for i in range(self.N):
+##            names.append(str(i))
+##
+##        tree.vs["label"] = names
+##        ref.vs["label"] = names
+##        ig.plot(ref -tree)
+
+    def distance(self, start = None, to = None):
+        """
+        Return distance in links betweeen two given nodes
+        (Actually a wrapper of igraph get_shortest_paths)
+        """
+        if not start :
+            start = self.start
+        if not to :
+            to = self.target
+        
+        dist = sparse.csgraph.shortest_path(self.mat, method = "D", directed = False, unweighted= True, indices = start)
+
+        return dist[start,to]
+
+class QWGraphBuilder(object):
+
+    @staticmethod
+    def graphFromCode(code : str, *args) -> QWGraph:
+        """
+        Construct a specific graph with the respective code number with variadic arguments
+        """
 
         if code == 0:
-            return QWGraph.Line(args)
+            return QWGraphBuilder.Line(args)
         if code == 1 :
-            return QWGraph.Ring(args)
+            return QWGraphBuilder.Ring(args)
         if code == 2 :
-            return QWGraph.Ring(args)
+            return QWGraphBuilder.Ring(args)
 
-    def gfc(code, *args):
-        return QWGraph.graphFromCode(code, args)
+    @staticmethod
+    def gfc(code : str, *args) -> QWGraph:
+        """
+        wrapper for GraphFromCode
+        """
+        return QWGraphBuilder.Graph_from_code(code, args)
 
+    @staticmethod
+    def fromIgraph( gr : ig.Graph, E : float = 0, ends : Tuple[int, int] = None) -> QWGraph:
+        """
+        return QWGraph instance from a igraph object
+        note: the resulting Laplacian matrix is of course going to be real valued
+        """
 
-    #Ring graph constructor
-    def Ring(N, HANDLES = False, E = 0):
+        out = QWGraph( gr.vcount())
+
+        #todo assign name
+        #out.code = gr["name"]
+        
+        out.mat = np.array ( gr.get_adjacency().data, dtype = complex)*-1
+        out.retrace_E(E)
+
+        
+        out.compute_re_coord()
+
+        if not ends :
+            out.start = 0
+            out.target = out.N-1
+        else :
+            out.start , out.target = ends
+
+        return out
+
+    #todo : finish this thing
+    @staticmethod
+    def fromNetworkx( nx_graph : nx.Graph , E : float = 0, ends : Tuple[int, int]= None) -> QWGraph:
+        raise NotImplementedError("to be implemented")
+
+    @staticmethod
+    def Ring(N : int, HANDLES : bool = False, E : float  = 0, COMPUTE_EIGEN : bool = False, sparse : bool = False) -> QWGraph:
+        """
+        Ring graph constructor
+        """
 
         code = "C"+ str(N)
 
@@ -604,12 +781,18 @@ class QWGraph(object) :
         out.compute_re_coord()
 
         if HANDLES :
-            return out.add_handles(1)
+            out =  out.add_handles(1)
+
+        if COMPUTE_EIGEN:
+            out.update_eigen()
 
         return out
 
-    #Line graph constructor
-    def Line(N, E = 0, speedup = None):
+    @staticmethod
+    def Line(N : int , E : float = 0, speedup : float = None, COMPUTE_EIGEN : bool = False) -> QWGraph:
+        """
+        Line graph constructor
+        """
         out = QWGraph(N)
         out.code = "P"+ str(N)
 
@@ -633,12 +816,20 @@ class QWGraph(object) :
 
         out.start = 0
         out.target = N-1
-        
+
+        if COMPUTE_EIGEN:
+            out.update_eigen()
 
         return out
 
-    #Multi path element graph constructor
-    def Parallel(paths , p_len, E = 0):
+    @staticmethod
+    def Parallel(paths : int , p_len : int , E : float = 0, COMPUTE_EIGEN : bool = False) -> QWGraph:
+        """
+        Multi path element graph constructor
+        """
+
+        assert p_len > 1
+
         ref = ig.Graph()
 
         N = 2 + paths* (p_len-1)
@@ -653,97 +844,31 @@ class QWGraph(object) :
             for m in range(paths):
                 ref.add_edge(1 + paths*i + m,1 + paths*(i+1) + m)
 
-        out = QWGraph.from_igraph(ref)
+        out = QWGraphBuilder.fromIgraph(ref)
         out.retrace_E(E)
         
-        
+        if COMPUTE_EIGEN:
+            out.update_eigen()
+
         return out
 
-    def SquareCut(E = 0):
-        out = QWGraph.Ring(4, E = E)
+    @staticmethod
+    def SquareCut(E  : float = 0, COMPUTE_EIGEN : bool= False) -> QWGraph:
+        """
+        C4 with extra start to and cut and straight rephasal links
+        """
+        out = QWGraphBuilder.Ring(4, E = E)
 
         out = out.cut( (0,3))
         out.re_coord = [(1,3),(2,3)]
         out.code = "DiC4"
 
-        return out
-
-
-    #link distance between two given nodes
-    def distance(self, start = None, to = None):
-        if not start :
-            start = self.start
-        if not to :
-            to = self.target
-        
-        graph = self.to_igraph()
-
-        path = graph.get_shortest_paths(start,to)
-
-        return len(path[0]) -1
-        
-    #get numpy basis vector
-    def basis(self, i, qut = False):
-        if qut:
-            return qt.basis(self.N,i)
-        
-        out = np.zeros((self.N,1), dtype = complex)
-        out[i]= 1
+        if COMPUTE_EIGEN:
+            out.update_eigen()
 
         return out
 
-    #return localized start state for evolution
-    def get_start_state(self, qut = False):
-        return self.basis(self.start, qut)
-
-    #get QuTip projector operator on the Nth site
-    def get_projector(self, i = None):
-        if not i:
-            i = self.target
-            
-        out_mat = np.zeros((self.N,self.N))
-        out_mat[i,i] = 1
-
-        out = qt.Qobj(out_mat)
-
-        return out
-
-    #get the hamiltonian of the system as a QuTip object
-    def get_h(self):
-        return qt.Qobj(self.mat)
-
-    #get the number of registered free phases
-    def get_phase_n(self):
-        return len(self.re_coord)
-
-    #get a visual rapresentation of the graph (relies on igraph)
-    def plot(self, ax = None) :
-
-        ref = self.to_networkx()
-        nx.draw_spring(ref, with_labels = True, ax = ax)
-
-        # names = []
-        # for i in range(self.N):
-        #     names.append(str(i))
-
-        # cols = []
-        # for e in ref.es:
-        #     if e.tuple in self.re_coord or e.tuple[::-1] in self.re_coord:
-        #         cols.append("red")
-        #     else :
-        #         cols.append("black")
-
-        # v_cols = ["yellow"]* self.N
-        # v_cols[self.start] = "green"
-        # v_cols[self.target] = "red"
-
-        # ref.vs["label"] = names
-        # ref.vs["color"] = v_cols
-        # ref.es["color"] = cols
-        # ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
-
-
-def get_list_x(gr_list, x_mode = "size"):
+def get_list_x(gr_list : List[QWGraph], x_mode : str = "size"):
     out = []
 
     for i in range(len(gr_list)):
@@ -757,10 +882,49 @@ def get_list_x(gr_list, x_mode = "size"):
     return out
 
 
-############################
-
-if __name__ == "__main__":
-    a = QWGraph.Parallel(4,3)
-
-    a.plot()
-
+def sparse_mst( smat ):
+    #do it yourself implementation of kruskal algorithm for a 01 adjacency matrix
+    #suited for dok matrices
+    
+    #union find parent list
+    par = np.arange(0,smat.shape[0])
+    
+    out = sparse.dok_matrix(smat.shape, dtype = "int")
+    
+    #primitives for union-find
+    def same(a,b) ->bool :
+        
+        p1 = par[a]
+        while p1 != par[p1] :
+            p1 = par[p1]
+            par[a] = p1
+        
+        p2 = par[b]
+        while p2 != par[p2] :
+            p2 = par[p2]
+            par[b] = p2
+            
+        #print( "same {} {}\t".format(a,b), par)
+        return p1 == p2
+        
+    def join(a,b) -> None :
+        
+        p1 = par[a]
+        while p1 != par[p1] :
+            p1 = par[p1]
+            par[a] = p1
+        
+        p2 = par[b]
+        while p2 != par[p2] :
+            p2 = par[p2]
+            par[b] = p2
+            
+        par[p2] = p1
+        
+    for edge in smat.keys():
+        if not same(edge[0], edge[1]):
+            join(edge[0], edge[1])
+            out[edge] = 1
+            out[edge[1],edge[0]] = 1
+            
+    return out

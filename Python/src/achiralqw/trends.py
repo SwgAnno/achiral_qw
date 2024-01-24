@@ -1,7 +1,9 @@
-from achiralqw.simulator import Analyzer
-from achiralqw.graph import QWGraph
+from achiralqw.analyze import TransportParameters, locate_max, optimum_phase_minimize, performance_diag
+from achiralqw.graph import QWGraphBuilder
 from achiralqw.bessel import *
-from achiralqw.collection import CollectionBuilder, get_line_data
+from achiralqw.collection import CollectionBuilder, QWGraphCollection, get_line_data
+from achiralqw.simulator import evolution_grid
+from matplotlib.axis import Axis
 from scipy.optimize import minimize_scalar
 from achiralqw.plotter import set_progression_plot
 import matplotlib.pyplot as plt
@@ -87,7 +89,7 @@ def line_progression_vs_bessel_expansion(bounds = (3,10)):
 
     plt.show()
     
-def plot_speedup_performance(N, target = "p", ax = None) :
+def plot_speedup_performance(N, target = "p", ax : Axis= None) :
     """
     L(N) best transport time/probability as a function of internal speedup
     """
@@ -95,14 +97,13 @@ def plot_speedup_performance(N, target = "p", ax = None) :
     sample = np.linspace(.1,10, 1000)
     data = np.empty( len(sample))
 
-    cur = QWGraph.Line(N)
-    an = Analyzer(cur, mode = "first")
+    cur = QWGraphBuilder.Line(N)
+    tp = TransportParameters(evt_mode = "first")
 
     for i in range(len(sample)):
-        cur = QWGraph.Line(N, speedup = sample[i])
-        an.set_gr(cur)
+        cur = QWGraphBuilder.Line(N, speedup = sample[i])
 
-        data[i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
+        data[i] = locate_max(cur, tp = tp)[1] if target == "p" else locate_max(cur, tp = tp)[0]
 
     if ax == None:
         fig, ax = plt.subplots()
@@ -120,18 +121,16 @@ def plot_evo_line_speedup(N, bounds = (0,50,.5),su_bounds = (.01, 10, 1000), fig
     L(N) evolution as a function of time and speedup
     """
     
-    gr = QWGraph.Line(N)
     sample = np.geomspace(*su_bounds)
     t_sample = np.arange(*bounds)
     data = np.empty( ( len(sample), len(t_sample)))
 
-    an = Analyzer(gr, mode = "first")
+    tp = TransportParameters(evt_mode="first")
 
     for m in range( len(sample)):
-        cur = QWGraph.Line(N, speedup = sample[m])
-        an.set_gr(cur)
+        cur = QWGraphBuilder.Line(N, speedup = sample[m])
 
-        data[m,:] = an.evo_full(bounds = bounds[0:2], step = bounds[2] )
+        data[m,:] = evolution_grid(cur, bounds = bounds[0:2], step = bounds[2], tp = tp )
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -158,15 +157,14 @@ def plot_evo_chain_speedup(gr, rep, bounds = None, step = .1, su_bounds = (.1, 1
     t_sample = np.arange(bounds[0], bounds[1], step)
     data = np.empty( ( len(sample), len(t_sample)))
 
-    an = Analyzer(QWGraph.chain(gr, rep), mode = "first")
+    tp = TransportParameters(evt_mode="first")
 
     for m in range( len(sample)):
 
         print (m, "of", len(sample))
-        cur = QWGraph.chain(gr, rep, speedup = sample[m])
-        an.set_gr(cur)
+        cur = gr.chain( rep, speedup = sample[m])
         
-        data[m,:] = an.evo_full(bounds = bounds, step = step)
+        data[m,:] = evolution_grid(cur, bounds = bounds, step = step, tp = tp)
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -187,15 +185,13 @@ def plot_speedup_performance_multi(bounds = (4,20), target = "p",fig = None, ax 
     y_sample = np.arange(bounds[0],bounds[1]+1)
     data = np.empty( ( len(y_sample), len(sample)))
 
-    cur = QWGraph.Line(4)
-    an = Analyzer(cur, mode = "first")
+    tp = TransportParameters(evt_mode="first")
 
     for m in range( len(y_sample)):
         for i in range(len(sample)):
-            cur = QWGraph.Line(y_sample[m], speedup = sample[i])
-            an.set_gr(cur)
+            cur = QWGraphBuilder.Line(y_sample[m], speedup = sample[i])
 
-            data[m,i] = an.locate_max()[1] if target == "p" else an.locate_max()[0]
+            data[m,i] = locate_max(cur, tp = tp)[1] if target == "p" else locate_max(cur, tp = tp)[0]
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -218,24 +214,22 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
     y_sample = np.arange(bounds[0],bounds[1]+1)
     data = np.empty( ( len(y_sample), len(sample)))
 
-    cur = QWGraph.Line(4)
-    an = Analyzer(cur, mode = "first")
+    cur = QWGraphBuilder.Line(4)
+    tp = TransportParameters(evt_mode="first", diag=True)
 
     for m in range( len(y_sample)):
         print("Graph", m, "out of", len(y_sample) )
 
         #get hypothetical best phase for the given chain
-        cur = QWGraph.chain(gr_unit, rep = y_sample[m], speedup = 1)
-        an.set_gr(cur)
+        cur = gr_unit.chain(rep = y_sample[m], speedup = 1)
 
-        best_phi = an.optimum_phase_minimize( diag= True)[0]
+        best_phi = optimum_phase_minimize(cur, tp = tp)[0]
         #print(best_phi)
         
         for i in range(len(sample)):
-            cur = QWGraph.chain(gr_unit, rep = y_sample[m], speedup = sample[i])
-            an.set_gr(cur)
+            cur = gr_unit.chain( rep = y_sample[m], speedup = sample[i])
 
-            data[m,i] = an.performance_diag( phi = best_phi, t = (target !="p"))
+            data[m,i] = performance_diag(cur, phi = best_phi, target = target, tp = tp)
 
     if ax == None :
         fig, ax = plt.subplots()
@@ -255,7 +249,7 @@ def plot_speedup_performance_multi_chain(gr_unit, bounds = (4,20), target = "p",
 #############################################
 # progression plots
 
-def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "", ax = None, **kwargs):
+def plot_standard_progression(prog : QWGraphCollection, target = "p", x_mode = "dist", label = "", ax = None, **kwargs):
     """
     Plot helper for a standard progression ouput
         prog is a QWGraphCollection object
@@ -264,7 +258,7 @@ def plot_standard_progression(prog, target = "p", x_mode = "dist", label = "", a
         fig, ax = plt.subplots(1, 1, figsize = (6,5))
         set_progression_plot(ax, x_mode=x_mode, target=target)
     
-    x, data = prog.get_data( target = target, x_mode = x_mode, **kwargs)
+    x, data = prog.evaluate( target = target, x_mode = x_mode, **kwargs)
     ax.plot( x, data, marker = ".", label = label)
 
     #force integer ticks (discrete families of graphs)
@@ -285,7 +279,7 @@ def plot_base_progression(g_type, target = "p", \
         set_progression_plot(ax, x_mode = x_mode, target = target)
 
     prog = CollectionBuilder().base_progression(g_type= g_type, **kwargs)
-    plot_standard_progression(prog, ax = ax, label = label)
+    plot_standard_progression(prog, ax = ax, label = label, target = target)
 
     #Pass parameter for further additions
     return ax
@@ -306,7 +300,7 @@ def plot_chain_progression(gr_unit, target = "p", \
         set_progression_plot(ax, x_mode = x_mode, target = target)
 
     prog = CollectionBuilder().chain_progression(gr_unit = gr_unit, **kwargs)
-    plot_standard_progression(prog, ax = ax, label = label)
+    plot_standard_progression(prog, ax = ax, label = label, target = target)
     
     #Pass parameter for further additions
     return ax
@@ -323,4 +317,4 @@ def plot_line_data(ax = None, bounds = None, **kwargs):
     #print(bounds)
 
     x, data = get_line_data(bounds=bounds,**kwargs)
-    ax.plot(x,data, color = "green", marker = ".", label = "P")
+    ax.plot(x,data, color = "black", marker = ".", label = "P", alpha = .5)
