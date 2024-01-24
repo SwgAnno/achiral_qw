@@ -6,13 +6,13 @@ from scipy import optimize as opt
 
 from typing import Tuple, List
 
-def dim(gr : QWGraph):
+def dim(gr : QWGraph) -> int:
     """
     shorthand for the number of free phases of the analyzed graph instance
     """
     return gr.get_phase_n()
 
-def phase_sample(step = 100):
+def phase_sample(step = 100) -> NDArray:
     """
     helper function to get a discrete sample of phase values between 0 and 2*pi
     """
@@ -21,9 +21,10 @@ def phase_sample(step = 100):
 #DIY optimization method
 #it divides the sample bounds into n smaller sections
 # according to a given lenght or a set number
-#and there it tries to run scipy.minimize
-# results try to replicate scipy output
-def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None):
+# and there it tries to run scipy.minimize
+
+# Results try to replicate scipy output
+def section_minimize(f, bounds, f_prime = None, n_sec = None, sec_size = None) -> dict:
 
     if n_sec != None:
         b_vec = np.linspace(bounds[0], bounds[1], n_sec+1)
@@ -522,7 +523,7 @@ def optimum_phase(gr : QWGraph, tp : TransportParameters = TransportParameters()
     return best_phi
 
     
-def performance_best(gr : QWGraph, target = "p", tp : TransportParameters = TransportParameters()):
+def performance_best(gr : QWGraph, target = "p", tp : TransportParameters = TransportParameters()) -> float:
     """
     Compute the best transport performance according to current time and phase criteria
 

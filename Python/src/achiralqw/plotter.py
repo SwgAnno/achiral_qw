@@ -3,6 +3,7 @@ from achiralqw.analyze import TransportParameters, dim, locate_max, performance_
 from achiralqw.graph import QWGraph, QWGraphBuilder
 import achiralqw.bessel as bessel
 from matplotlib.axis import Axis
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import numpy as np
@@ -10,16 +11,18 @@ import networkx as nx
 import matplotlib.colors as colors
 import matplotlib.ticker as ticker
 
+from typing import Tuple, List
+
 ##############################################
 # Graph info plotting
 
-def plot_qwgraph(gr: QWGraph, ax = None):
+def plot_qwgraph(gr: QWGraph, ax : Axis = None):
     """
     General graph visualization tool
     """
 
     ref = gr.to_networkx()
-    nx.draw_spring(ref, with_labels = True, ax  = ax)
+    nx.draw_spring(ref, with_labels = True, ax = ax)
 
     #todo: more accurate plotting
 
@@ -43,7 +46,7 @@ def plot_qwgraph(gr: QWGraph, ax = None):
         # ref.es["color"] = cols
         # ig.plot( ref , layout = ig.Graph.layout_fruchterman_reingold(ref))
 
-def plot_graph_eigenbasis(gr: QWGraph):
+def plot_graph_eigenbasis(gr: QWGraph) -> Tuple[Figure, Axis]:
     """
     Represent eigenvector basis in the site basis with
     modulus of projection(left plot)
@@ -77,7 +80,7 @@ def plot_graph_eigenbasis(gr: QWGraph):
 
     return fig, ax
 
-def plot_krylov_basis(gr : QWGraph, add_phase = False, **kwargs):
+def plot_krylov_basis(gr : QWGraph, add_phase = False, **kwargs) -> Tuple[Figure , Axis| List[Axis]]:
     """
     Represent krylov basis vector in the site basis with
     modulus of projection(left plot)
@@ -125,7 +128,7 @@ def plot_krylov_basis(gr : QWGraph, add_phase = False, **kwargs):
 
         return fig, ax
 
-def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs):
+def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs) -> Axis:
     """
     Plot coupling between krylov basis states in a scatter plot
     """
@@ -151,7 +154,8 @@ def plot_krylov_couplings(gr: QWGraph, ax = None, **kwargs):
  ####################################
  # Simple evolution plotting
 
-def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC = None, solver = EigenSESolver(), ax = None):
+def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC = None, \
+                 solver : SESolver = EigenSESolver(), ax : Axis = None) -> Axis:
     """
     Plot probability evolution on each and every site of the graph
     todo: discuss show buffering option   
@@ -195,7 +199,8 @@ def plot_evo_mat(gr : QWGraph, start = 0, end = None, by = .1, filter = None, TC
     ax.legend()
     return ax
 
-def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC = None, fig = None, solver = EigenSESolver(), ax = None):
+def plot_evo_mat_heatmap(gr :QWGraph, start = 0, end = None, by = .1, filter = None, TC = None,\
+                         fig : Figure= None, solver : SESolver = EigenSESolver(), ax : Axis = None) -> Axis:
     """
     Display probability evolution on each node of a graph in a 2D heatmap
     """
@@ -238,7 +243,8 @@ def plot_evo_mat_heatmap(gr , start = 0, end = None, by = .1, filter = None, TC 
     #dPass parameter for further additions
     return ax
 
-def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = None, plot_max = False, ax = None, tp = None):
+def plot_evo_vs_phase(gr : QWGraph, start = 0, end = None, by = .1, phase_by = .1, TC = None, plot_max = False,\
+                      ax : Axis = None, tp : TransportParameters = TransportParameters(evt_mode="first")) -> Axis:
     """
     Plot probability evolution on target site as a function of time and phase
         Graph must have 1 free phase to work properly
@@ -253,9 +259,6 @@ def plot_evo_vs_phase(gr , start = 0, end = None, by = .1, phase_by = .1, TC = N
 
     data = np.ndarray( (len(phase_seq), len(seq)))
     max_data = np.empty( (2,len(phase_seq)))
-    
-    if tp is None:
-        tp = TransportParameters( evt_mode="first")
 
     for i in range( len(phase_seq)):
         data[i:] = evolution_grid(gr, bounds = (start,end), step = by, phase_vec = np.repeat( phase_seq[i], dim(gr) ))
@@ -358,7 +361,8 @@ def plot_ring_vs_bessel(l = 5, end = 30):
 
     plt.show()
 
-def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None, solver = EigenSESolver(), ax = None):
+def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None,\
+                           solver : SESolver = EigenSESolver(), ax : Axis = None) -> Axis:
     """
     Comparison between target site probability and its derivative
     """
@@ -389,7 +393,7 @@ def plot_evo_vs_derivative(gr, l = 0, start = 0, end = None, by = .1, TC = None,
 
 def plot_performance(gr : QWGraph, sample_step = 100, target = "p", mode = None,\
                      tp : TransportParameters = TransportParameters(),
-                    ax : Axis = None, **kwargs):
+                    ax : Axis = None, **kwargs) -> Axis:
     """
     Generic wrapper to plot transport performance as a function of phases
     actually a router method for graph-specific routines       
@@ -406,7 +410,7 @@ def plot_performance(gr : QWGraph, sample_step = 100, target = "p", mode = None,
     else :
         raise NotImplementedError("Plot mode not found or graph not supported")
 
-def plot_performance_diag(gr : QWGraph, sample_step, target, tp : TransportParameters = TransportParameters(), ax : Axis = None):
+def plot_performance_diag(gr : QWGraph, sample_step, target, tp : TransportParameters = TransportParameters(), ax : Axis = None) -> Axis:
     """
     Transport performance in equal phases setting as a function of one parameter
     """
@@ -425,7 +429,7 @@ def plot_performance_diag(gr : QWGraph, sample_step, target, tp : TransportParam
     #Pass parameter for further additions
     return ax
 
-def plot_performance_time(gr : QWGraph, sample_step, tp : TransportParameters = TransportParameters(), ax : Axis= None):
+def plot_performance_time(gr : QWGraph, sample_step, tp : TransportParameters = TransportParameters(), ax : Axis= None) -> Axis:
     """
     Plot diagonal trsnsport probability performance
     + time of arrival information as color
@@ -452,7 +456,7 @@ def plot_performance_time(gr : QWGraph, sample_step, tp : TransportParameters = 
     #Pass parameter for further additions
     return ax
 
-def plot_performance_1(gr : QWGraph, sample_step, target, tp : TransportParameters = TransportParameters(), ax : Axis= None):
+def plot_performance_1(gr : QWGraph, sample_step, target, tp : TransportParameters = TransportParameters(), ax : Axis= None) -> Axis:
     """
     Transport performance for 1-phase graphs
     """
@@ -472,7 +476,7 @@ def plot_performance_1(gr : QWGraph, sample_step, target, tp : TransportParamete
     return ax
     
 # 2-phased graph performance
-def plot_performance_2(gr, sample_step, target, tp : TransportParameters = TransportParameters(), verbose = False, ax : Axis= None):
+def plot_performance_2(gr, sample_step, target, tp : TransportParameters = TransportParameters(), verbose = False, ax : Axis= None) -> Axis:
     """
     Transport performance for 2-phase graphs
     """
@@ -497,7 +501,7 @@ def plot_performance_2(gr, sample_step, target, tp : TransportParameters = Trans
 ############################################
 #utils
 
-def set_performance_plot(ax,target = "p", dim = 1):
+def set_performance_plot(ax : Axis, target : str = "p", dim : int = 1):
         
     if dim == 1 :
         ax.set_xlabel( "$\\theta$")
@@ -514,7 +518,7 @@ def set_performance_plot(ax,target = "p", dim = 1):
         ax.set_xlabel("$\\theta_1$")
         ax.set_ylabel("$\\theta_2$")
 
-def set_progression_plot(ax,x_mode = "dist", target = "p", loglog = False, bounds = None,  **kwargs):
+def set_progression_plot( ax : Axis, x_mode = "dist", target = "p", loglog = False, bounds = None,  **kwargs):
 
 
     if x_mode == "size":
@@ -540,13 +544,16 @@ def set_progression_plot(ax,x_mode = "dist", target = "p", loglog = False, bound
         raise NotImplementedError("target mode not supported")
 
 #probably usless helper 
-def probability_colorbar_map():
+def probability_colorbar_map() -> cm.ScalarMappable :
+    
     norm = colors.Normalize(vmin= 0, vmax=1)
     map = cm.ScalarMappable(norm, cmap="inferno")
+    
     return map
 
 #trick to sneak in a global colorbar into a figure
-def fit_colorbar(fig ):
+def fit_colorbar(fig : Figure):
+
     fig.subplots_adjust(.05, hspace = .25)
     cbar_ax = fig.add_axes([0.92, 0.1, 0.025, 0.8])
     map = probability_colorbar_map()

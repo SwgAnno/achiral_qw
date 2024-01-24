@@ -3,10 +3,13 @@ from achiralqw.graph import QWGraph
 import numpy as np
 import qutip as qt
     
+from typing import List, Tuple
+from numpy.typing import NDArray
+from qutip import Qobj
 
 #qutip has problems with non list input
 #and with evaulation times not starting with 0
-def format_qutip_time( t):
+def format_qutip_time( t) -> Tuple[List[float] | NDArray, bool]:
     if type(t) == float or type(t) == int:
         t = [float(t)]
 
@@ -31,7 +34,7 @@ class SESolver(object):
         pass
 
     @abstractmethod
-    def evolve_state( self, gr : QWGraph, psi, t):
+    def evolve_state( self, gr : QWGraph, psi, t : float | List[float]) -> NDArray:
         """
         Solve the Schrodinger equation for a given pure state in the site basis
         Return the projection of the resulting state on each state
@@ -40,14 +43,14 @@ class SESolver(object):
 
     #todo check correctness
     @abstractmethod
-    def evolve_state_deriv(self, gr : QWGraph, psi,t):
+    def evolve_state_deriv(self, gr : QWGraph, psi, t : float | List[float]) -> NDArray:
         """
         Compute the derivative of an evolving state at time t (Schrodinger equation)
         """
         pass
 
     @abstractmethod
-    def evolve_state_p(self, gr, psi, t) :
+    def evolve_state_p(self, gr : QWGraph, psi, t : float | List[float]) -> NDArray :
         """
         Solve the Schrodinger equation for a given pure state in the site basis
         Return the squared modulus (on site probability) of the resulting state on each state
@@ -55,14 +58,14 @@ class SESolver(object):
         pass
 
     @abstractmethod
-    def evolve_state_p_deriv(self, gr, psi, t):
+    def evolve_state_p_deriv(self, gr : QWGraph, psi, t : float | List[float]) -> NDArray:
         """
         Compute the derivative of the localization probability on each site at time t ( evolving psi according to Schrodinger equation)
         """
         pass
 
     @abstractmethod
-    def evolve_default(self, gr : QWGraph, t):
+    def evolve_default(self, gr : QWGraph, t : float | List[float]) -> List[complex]:
         """
         wrapper for evolve state :
         Solves Schrodinger equation for a state localized on the graph start site
@@ -71,7 +74,7 @@ class SESolver(object):
         pass
 
     @abstractmethod
-    def evolve_default_deriv(self, gr : QWGraph, t):
+    def evolve_default_deriv(self, gr : QWGraph, t : float | List[float]) -> List[complex]:
         """
         wrapper for evolve state_deriv :
         Compute derivative according to Schrodinger equation for a state localized on the graph start site
@@ -79,7 +82,7 @@ class SESolver(object):
         """
         pass
     @abstractmethod
-    def evolve_default_p(self, gr : QWGraph, t):
+    def evolve_default_p(self, gr : QWGraph, t : float | List[float]) -> List[float]:
         """
         wrapper for evolve state_p :
         Solves Schrodinger equation for a state localized on the graph start site
@@ -88,7 +91,7 @@ class SESolver(object):
         pass
 
     @abstractmethod
-    def evolve_default_p_deriv(self, gr : QWGraph, t):
+    def evolve_default_p_deriv(self, gr : QWGraph, t : float | List[float]) -> List[float]:
         """
         wrapper for evolve state__p_deriv :
         Compute derivative of localization probability according to Schrodinger equation
@@ -131,7 +134,7 @@ class EigenSESolver(SESolver) :
         """
         return np.exp(-1j * np.outer( eig_val, t) )
 
-    def evolve_state( self, gr : QWGraph, psi, t):
+    def evolve_state( self, gr : QWGraph, psi : NDArray, t : float | List[float]) -> NDArray:
         """
         Solve the Schrodinger equation for a given pure state in the site basis
         Return the projection of the resulting state on each state
@@ -144,21 +147,21 @@ class EigenSESolver(SESolver) :
         return EigenSESolver._to_state_basis(gr.eig_vec, A_t)
 
     #todo check correctness
-    def evolve_state_deriv(self, gr : QWGraph, psi,t):
+    def evolve_state_deriv(self, gr : QWGraph, psi : NDArray, t : float | List[float]) -> NDArray:
         """
         Compute the derivative of an evolving state at time t (Schrodinger equation)
         """
         psi_t = self.evolve_state(gr, psi,t)
         return -1j * gr.mat.dot(psi_t)
 
-    def evolve_state_p(self, gr, psi, t) :
+    def evolve_state_p(self, gr : QWGraph, psi : NDArray, t : float | List[float]) -> NDArray:
         """
         Solve the Schrodinger equation for a given pure state in the site basis
         Return the squared modulus (on site probability) of the resulting state on each state
         """
         return np.power(np.abs(self.evolve_state(gr, psi, t)), 2)
 
-    def evolve_state_p_deriv(self, gr, psi, t):
+    def evolve_state_p_deriv(self, gr : QWGraph, psi : NDArray, t : float | List[float]) -> NDArray:
         """
         Compute the derivative of the localization probability on each site at time t ( evolving psi according to Schrodinger equation)
         """
@@ -173,7 +176,7 @@ class EigenSESolver(SESolver) :
 
         return -2* np.imag(out)
 
-    def evolve_default(self, gr : QWGraph, t):
+    def evolve_default(self, gr : QWGraph, t : float | List[float]) -> List[complex]:
         """
         wrapper for evolve state :
         Solves Schrodinger equation for a state localized on the graph start site
@@ -181,7 +184,7 @@ class EigenSESolver(SESolver) :
         """
         return   self.evolve_state(gr, gr.get_start_state(), t)[gr.target, :]
     
-    def evolve_default_deriv(self, gr : QWGraph, t):
+    def evolve_default_deriv(self, gr : QWGraph,  t : float | List[float]) -> List[complex]:
         """
         wrapper for evolve state_deriv :
         Compute derivative according to Schrodinger equation for a state localized on the graph start site
@@ -189,7 +192,7 @@ class EigenSESolver(SESolver) :
         """
         return self.evolve_state_deriv(gr, gr.get_start_state(), t)[gr.target, :]
 
-    def evolve_default_p(self, gr : QWGraph, t):
+    def evolve_default_p(self, gr : QWGraph,  t : float | List[float]) -> List[float]:
         """
         wrapper for evolve state_p :
         Solves Schrodinger equation for a state localized on the graph start site
@@ -197,7 +200,7 @@ class EigenSESolver(SESolver) :
         """
         return self.evolve_state_p(gr, gr.get_start_state(), t)[gr.target, :]
 
-    def evolve_default_p_deriv(self, gr : QWGraph, t):
+    def evolve_default_p_deriv(self, gr : QWGraph,  t : float | List[float]) -> List[float]:
         """
         wrapper for evolve state__p_deriv :
         Compute derivative of localization probability according to Schrodinger equation
@@ -219,7 +222,7 @@ class QutipSESolver(SESolver):
     def __init__(self):
         pass
 
-    def evolve_state( self, gr : QWGraph, psi, t):
+    def evolve_state( self, gr : QWGraph, psi : Qobj, t : float | List[float]):
         t, strip = format_qutip_time(t) 
 
         H = gr.get_h()
@@ -237,13 +240,13 @@ class QutipSESolver(SESolver):
         return out
 
     #todo check correctness
-    def evolve_state_deriv(self, gr : QWGraph, psi,t):
+    def evolve_state_deriv(self, gr : QWGraph, psi : Qobj, t : float | List[float]):
         
         psi_t = self.evolve_state(gr, psi, t)
         psi_t = qt.Qobj(psi_t)
         return (-1j * gr.get_h() * psi_t).full() 
 
-    def evolve_state_p(self, gr, psi, t) :
+    def evolve_state_p(self, gr, psi : Qobj, t : float | List[float]) :
         
         #qutip has problems with non list input
         #and with evaulation times not starting with 0
@@ -264,7 +267,7 @@ class QutipSESolver(SESolver):
         else:
             return res.expect
 
-    def evolve_state_p_deriv(self, gr, psi, t):
+    def evolve_state_p_deriv(self, gr, psi : Qobj, t : float | List[float]):
         
         #qutip has problems with non list input
         #and with evaulation times not starting with 0
@@ -284,16 +287,16 @@ class QutipSESolver(SESolver):
         else:
             return res.expect
 
-    def evolve_default(self, gr : QWGraph, t):
+    def evolve_default(self, gr : QWGraph,  t : float | List[float]) -> List[complex]:
         return self.evolve_state(gr, gr.get_start_state(), t)[gr.target]
     
-    def evolve_default_deriv(self, gr : QWGraph, t):
+    def evolve_default_deriv(self, gr : QWGraph,  t : float | List[float]) -> List[complex]:
         return self.evolve_state_deriv(gr, gr.get_start_state(), t)[gr.target]
 
-    def evolve_default_p(self, gr : QWGraph, t):
+    def evolve_default_p(self, gr : QWGraph,  t : float | List[float]) -> List[float]:
         return self.evolve_state_p(gr, gr.get_start_state(), t)[gr.target]
 
-    def evolve_default_p_deriv(self, gr : QWGraph, t):
+    def evolve_default_p_deriv(self, gr : QWGraph,  t : float | List[float]) -> List[float]:
         return self.evolve_state_p_deriv(gr, gr.get_start_state(), t)[gr.target]
 
 
