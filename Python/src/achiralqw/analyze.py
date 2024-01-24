@@ -175,10 +175,10 @@ def locate_max_TC(gr : QWGraph, tp : TransportParameters = TransportParameters()
     solver = tp.get_solver()
 
     def f(t):
-        return -1*solver.evolve_default_p( gr, t)
+        return -1*solver.evolve_default_p( gr, t)[0]
 
     def f_prime(t):
-        return -1*solver.evolve_default_p_deriv( gr, t)
+        return -1*solver.evolve_default_p_deriv( gr, t)[0]
 
     b_vec = np.linspace(start,end, (end-start)//tp.event_size + 2)
     sol_vec = np.empty( len(b_vec)-1)
@@ -240,7 +240,7 @@ def locate_max_first(gr : QWGraph, tp : TransportParameters = TransportParameter
                 else :
 
                     def obj(t):
-                        return solver.evolve_default_p_deriv(gr, t)
+                        return solver.evolve_default_p_deriv(gr, t)[0]
                     res = opt.root_scalar( obj, \
                                             bracket = [sample[i], \
                                                         sample[i+1]])

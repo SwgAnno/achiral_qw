@@ -52,7 +52,43 @@ def test_locate_max():
     assert performance(test_gr, 0, tp = tp) == pt.approx(0.3698988609910833)
 
 def test_optimum_phase():
-    pass
+    
+    gr = QWGraphBuilder.Ring(3)
+    tp = TransportParameters(evt_mode="first")
+    assert optimum_phase_minimize(gr, tp = tp)[0] == pt.approx(np.pi/2)
+    assert optimum_phase_smart(gr, tp = tp)[0] == pt.approx(np.pi/2)
+    assert optimum_phase_yolo(gr, tp = tp)[0] == pt.approx(np.pi/2, abs = 1e-3)
+
+    gr = QWGraphBuilder.Ring(4)
+    tp = TransportParameters(evt_mode="first")
+    assert (optimum_phase_minimize(gr, tp = tp)[0] + np.pi/2) % (2*np.pi)== pt.approx(np.pi/2)
+    assert (optimum_phase_smart(gr, tp = tp)[0] + np.pi/2) % (2*np.pi)== pt.approx(np.pi/2)
+    assert (optimum_phase_yolo(gr, tp = tp)[0] + np.pi/2) % (2*np.pi)== pt.approx(np.pi/2)
+
+    gr = QWGraphBuilder.Ring(4).chain(4)
+    tp = TransportParameters(evt_mode = "TC", TC = 5)
+    assert (optimum_phase_minimize(gr, tp = tp)[0] + np.pi/2) % (2*np.pi)== pt.approx(np.pi/2)
+    assert (optimum_phase_smart(gr, tp = tp)[0] + np.pi/2) % (2*np.pi)== pt.approx(np.pi/2)
+    assert (optimum_phase_yolo(gr, tp = tp)[0] + np.pi/2) % (2*np.pi)== pt.approx(np.pi/2)
+
+def test_performance_reference():
+
+    tp = TransportParameters(evt_mode = "first", opt_mode="smart")
+    gr = QWGraphBuilder.SquareCut()
+    assert performance_best(gr, tp = tp) == pt.approx(1)
+    gr = QWGraphBuilder.Ring(3)
+    assert performance_best(gr, tp = tp) == pt.approx(1)
+    gr = QWGraphBuilder.Ring(4)
+    assert performance_best(gr, tp = tp) == pt.approx(1)
+
+    tp = TransportParameters(evt_mode = "first", opt_mode="smart", diag = True)
+    gr = QWGraphBuilder.SquareCut().chain(10, HANDLES = True)
+    assert performance_best(gr, tp = tp) == pt.approx(0.9188742)
+    gr = QWGraphBuilder.Ring(3).chain(9, HANDLES = True)
+    assert performance_best(gr, tp = tp) == pt.approx(0.96146705)
+    gr = QWGraphBuilder.Ring(4).chain(8, HANDLES = True)
+    assert performance_best(gr, tp = tp) == pt.approx(0.9392034)
+
 
 
 # plitting helper

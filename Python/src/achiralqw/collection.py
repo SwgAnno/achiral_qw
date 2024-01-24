@@ -42,6 +42,9 @@ def unit_list_bounds(bounds, unit):
 
 def unit_list( select, unit):
 
+    if type(select) == list:
+        select = np.array(select)
+
     num_unit = (select -2)// unit.distance()
 
     return num_unit
@@ -372,9 +375,9 @@ class CachedQWGraphCollection(QWGraphCollection):
         super().__init__(tp = tp, name = filename,  **kwargs)
         
         #todo: smart regex file name
-        filename = filename # +.json
+        filename = str(filename) # +.json
 
-        if os.path.isfile("./{}.json".format(filename)):
+        if os.path.isfile("./{}.json".format(filename)) or os.path.isfile("{}.json".format(filename)):
             with open("{}.json".format(filename), "r") as file :
                 self._data = json.load(file)
 
@@ -413,6 +416,7 @@ class CachedQWGraphCollection(QWGraphCollection):
 
         if filename == None:
             filename = self._name
+        filename = str(filename)
 
         filename += ".json"
         with open(filename, "w") as out :

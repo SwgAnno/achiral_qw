@@ -420,7 +420,7 @@ def example_chain_time_performance(gr_unit, len = 10, **kwargs):
 
     gr = gr_unit.chain(len)
 
-    tp = TransportParameters(mode = "TC", TC = 2)
+    tp = TransportParameters(evt_mode = "TC", TC = 2)
     plot_performance(gr, mode = "time",ax = ax, tp = tp, **kwargs)
     ax.legend()
     plt.show()
