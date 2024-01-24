@@ -129,6 +129,69 @@ def test_sesolver_qutip():
     print(res)
     np.testing.assert_allclose(res, exp, rtol = 1e-5)
 
+def test_specific_solver():
+    #compare the non default methods for evolution
+    
+    gr = QWGraphBuilder.Ring(5)
+
+    esolver = EigenSESolver()
+    qsolver = QutipSESolver()
+
+    t = 5
+
+    #state vector
+    exp = [-0.66088495-0.47713899j, \
+           -0.21553422+0.21217166j, \
+           -0.21553422+0.21217166j, \
+            0.12644093-0.24561273j, \
+            0.12644093-0.24561273j ]
+    eres = esolver.evolve_state(gr, psi = gr.get_start_state(), t = t)
+    eres = [eres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(eres, exp, rtol = 1e-5)
+    qres = qsolver.evolve_state(gr, psi = gr.get_start_state(), t = t)
+    qres = [qres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(qres, exp, rtol = 1e-5)
+
+    #state vector derivative
+    exp = [-0.42434333-0.43106844j, \
+            0.72275171-0.53444402j, \
+            0.72275171-0.53444402j, \
+            0.03344106-0.08909329j, \
+            0.03344106-0.08909329j ]
+    eres = esolver.evolve_state_deriv(gr, psi = gr.get_start_state(), t = t)
+    eres = [eres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(eres, exp, rtol = 1e-5)
+    qres = qsolver.evolve_state_deriv(gr, psi = gr.get_start_state(), t = t)
+    qres = [qres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(qres, exp, rtol = 1e-5)
+
+    # site prob
+    exp = [ 0.66443053, \
+            0.09147181, \
+            0.09147181, \
+            0.07631292, \
+            0.07631292]
+    eres = esolver.evolve_state_p(gr, psi = gr.get_start_state(), t = t)
+    eres = [eres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(eres, exp, rtol = 1e-5)
+    qres = qsolver.evolve_state_p(gr, psi = gr.get_start_state(), t = t)
+    qres = [qres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(qres, exp, rtol = 1e-5)
+
+    # site prob derivative
+    exp = [ 0.97224335, \
+           -0.53834321, \
+           -0.53834321, \
+            0.05222153, \
+            0.05222153]
+    eres = esolver.evolve_state_p_deriv(gr, psi = gr.get_start_state(), t = t)
+    eres = [eres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(eres, exp, rtol = 1e-5)
+    qres = qsolver.evolve_state_p_deriv(gr, psi = gr.get_start_state(), t = t)
+    qres = [qres[i][0] for i in range(len(exp))]
+    np.testing.assert_allclose(qres, exp, rtol = 1e-5)
+
+
 #plotting helper
 #comparison between eigenvalue method and Qutip solver on computed evolution
 def check_evo_vs_qutip( test_gr = QWGraphBuilder.Ring(6, COMPUTE_EIGEN= True), l = 0, start = 0, end = None, by = .1, deriv = True):
