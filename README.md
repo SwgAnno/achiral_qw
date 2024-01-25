@@ -27,7 +27,7 @@ The folder "Python/examples" unsurprisingly contains various examples of usage o
 
 ## Installation
 
-The project has been bundled into a package put is not available on pip to install, you therefore have to clone the repo and locally install the package.
+The project has been bundled into a package but is not available on pip to install, you therefore have to clone the repo and locally install the package.
 
 Navigate to the Python dir and run pip install as follows:
 
